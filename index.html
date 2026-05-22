@@ -1,0 +1,3015 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>FigForge — Gestão para Construtoras</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+:root{
+  --bg:#0F1117;--bg2:#181C27;--bg3:#1E2333;--bg4:#252B3D;
+  --br:#2D3348;--br2:#3A4160;
+  --tx:#EEF0F8;--tx2:#8D95B0;--tx3:#555F7A;
+  --gn:#18B06A;--gn2:#129156;
+  --rd:#E84B4B;--rd2:#C03A3A;
+  --ac:#4F6EF7;--ac2:#3558E0;
+  --am:#E59410;--bl:#3A8EF5;
+  --r:8px;--r2:13px;
+}
+*{box-sizing:border-box;margin:0;padding:0;font-family:'Calibri','Calibri',Calibri,sans-serif}
+body{background:var(--bg);color:var(--tx);font-size:13px;height:100vh;overflow:hidden}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-thumb{background:var(--br2);border-radius:4px}
+/* LAYOUT */
+.shell{display:flex;height:100vh}
+/* SIDEBAR */
+.sb{width:210px;min-width:210px;background:var(--bg2);border-right:1px solid var(--br);display:flex;flex-direction:column;transition:min-width .2s,width .2s;overflow:hidden}
+.sb.mini{width:50px;min-width:50px}
+.sb-top{padding:13px 12px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--br);flex-shrink:0}
+.sb-logo{width:30px;height:30px;min-width:30px;border-radius:7px;background:linear-gradient(135deg,var(--ac),#7B3FE4);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:#fff}
+.sb-brand{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden}
+.sb-nav{flex:1;overflow-y:auto;padding:5px 0}
+.sb-g{padding-bottom:4px;margin-bottom:4px;border-bottom:1px solid var(--br)}
+.sb-lbl{font-size:9px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:1px;padding:6px 12px 2px;white-space:nowrap}
+.sbi{display:flex;align-items:center;gap:8px;padding:7px 12px;cursor:pointer;border-left:3px solid transparent;white-space:nowrap;overflow:hidden;transition:all .1s}
+.sbi:hover{background:var(--bg3)}
+.sbi.act{background:rgba(79,110,247,.12);border-left-color:var(--ac);color:var(--ac)}
+.sbi-i{width:17px;min-width:17px;text-align:center;font-size:14px}
+.sbi-t{font-size:12px;font-weight:500}
+.sb-foot{padding:8px;border-top:1px solid var(--br);flex-shrink:0}
+.sb-usr{display:flex;align-items:center;gap:7px;padding:6px 8px;background:var(--bg3);border-radius:var(--r);overflow:hidden}
+.sb-av{width:26px;height:26px;min-width:26px;border-radius:50%;background:linear-gradient(135deg,var(--ac),#7B3FE4);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:10px}
+/* MAIN */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+.topbar{height:46px;background:var(--bg2);border-bottom:1px solid var(--br);display:flex;align-items:center;padding:0 14px;gap:8px;flex-shrink:0}
+.top-ttl{font-size:14px;font-weight:600;flex:1}
+.content{flex:1;overflow-y:auto;padding:14px}
+/* PANELS */
+.pnl{display:none}.pnl.on{display:block}
+/* CARD */
+.card{background:var(--bg2);border:1px solid var(--br);border-radius:var(--r2);padding:13px;margin-bottom:10px}
+.ct{font-size:10px;font-weight:700;color:var(--tx2);text-transform:uppercase;letter-spacing:.6px;margin-bottom:9px;display:flex;align-items:center;justify-content:space-between;gap:6px}
+/* GRID */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.ga{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+/* STAT */
+.st{background:var(--bg2);border:1px solid var(--br);border-radius:var(--r2);padding:12px 14px;position:relative;overflow:hidden}
+.st::before{content:'';position:absolute;top:-6px;right:-6px;width:44px;height:44px;border-radius:50%;opacity:.15}
+.st.g::before{background:var(--gn)}.st.r::before{background:var(--rd)}.st.b::before{background:var(--ac)}.st.a::before{background:var(--am)}.st.p::before{background:#7B3FE4}
+.st-ico{font-size:16px;margin-bottom:4px}
+.st-val{font-size:20px;font-weight:700;line-height:1.1}
+.st-lbl{font-size:10px;color:var(--tx2);margin-top:2px}
+/* FORM */
+label{font-size:11px;color:var(--tx2);display:block;margin-bottom:3px;font-weight:500}
+input,select,textarea{width:100%;padding:6px 9px;border:1px solid var(--br2);border-radius:var(--r);background:var(--bg3);color:var(--tx);font-size:12px;font-family:inherit}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--ac)}
+input[readonly]{background:var(--bg4);color:var(--tx2)}
+input::placeholder{color:var(--tx3)}
+select option{background:var(--bg3)}
+textarea{resize:vertical;min-height:60px}
+.fr{display:grid;gap:8px;margin-bottom:8px}
+.fr2{grid-template-columns:1fr 1fr}
+.fr3{grid-template-columns:repeat(3,1fr)}
+.fr4{grid-template-columns:repeat(4,1fr)}
+/* BUTTONS */
+.btn{padding:6px 12px;border-radius:var(--r);font-size:11px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:5px;border:1px solid var(--br2);background:var(--bg3);color:var(--tx);white-space:nowrap;transition:all .1s}
+.btn:hover{background:var(--bg4)}
+.btn:active{opacity:.8}
+.bp{background:var(--ac);border-color:var(--ac2);color:#fff}.bp:hover{background:var(--ac2)}
+.bg{background:var(--gn);border-color:var(--gn2);color:#fff}.bg:hover{background:var(--gn2)}
+.br-{background:rgba(232,75,75,.12);border-color:rgba(232,75,75,.3);color:var(--rd)}
+.ba{background:rgba(229,148,16,.12);border-color:rgba(229,148,16,.3);color:var(--am)}
+.sm{padding:3px 8px;font-size:10px}
+.xs{padding:2px 5px;font-size:9px}
+/* INNER TABS */
+.itabs{display:flex;border-bottom:1px solid var(--br);margin-bottom:12px;overflow-x:auto}
+.itab{padding:7px 13px;font-size:11px;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;color:var(--tx2);white-space:nowrap}
+.itab.on{color:var(--ac);border-bottom-color:var(--ac)}
+.itab:hover:not(.on){color:var(--tx)}
+.itp{display:none}.itp.on{display:block}
+/* TABLE */
+.tw{overflow-x:auto}
+.tbl{width:100%;border-collapse:collapse;font-size:11px}
+.tbl th{text-align:left;padding:7px 9px;border-bottom:1px solid var(--br);font-weight:600;color:var(--tx2);font-size:10px;text-transform:uppercase;background:var(--bg3);white-space:nowrap}
+.tbl td{padding:7px 9px;border-bottom:1px solid var(--br);vertical-align:middle}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tr:hover td{background:rgba(255,255,255,.012)}
+/* BADGE */
+.bdg{display:inline-block;font-size:9px;padding:2px 7px;border-radius:20px;font-weight:600}
+.bgg{background:rgba(24,176,106,.14);color:#18B06A}
+.bgr{background:rgba(232,75,75,.14);color:#E84B4B}
+.bgo{background:rgba(229,148,16,.14);color:#E59410}
+.bgb{background:rgba(79,110,247,.14);color:#4F6EF7}
+.bgp{background:rgba(123,63,228,.14);color:#7B3FE4}
+/* PROGRESS */
+.prog{height:4px;background:var(--bg4);border-radius:4px;overflow:hidden;margin-top:5px}
+.pf{height:100%;border-radius:4px;background:var(--ac)}
+/* MODAL */
+.mo{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:200;display:none;align-items:flex-start;justify-content:center;padding:28px 14px;overflow-y:auto}
+.mo.op{display:flex}
+.mbox{background:var(--bg2);border:1px solid var(--br2);border-radius:var(--r2);padding:20px;width:100%;max-width:500px}
+.mh{font-size:15px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between}
+.mx{cursor:pointer;width:26px;height:26px;border-radius:var(--r);background:var(--bg3);border:1px solid var(--br);display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--tx2)}
+.mx:hover{color:var(--rd)}
+/* MISC */
+.mbox-lg{max-width:640px}
+.clt-extra{display:none;background:var(--bg3);border:1px solid var(--br2);border-radius:var(--r);padding:10px;margin:8px 0}
+.clt-extra.show{display:block}
+.al-g{background:rgba(24,176,106,.1);border:1px solid rgba(24,176,106,.3);color:var(--gn);padding:7px 10px;border-radius:var(--r);font-size:11px}
+.al-b{background:rgba(79,110,247,.1);border:1px solid rgba(79,110,247,.3);color:var(--ac);padding:7px 10px;border-radius:var(--r);font-size:11px}
+.logo-preview{max-width:100px;max-height:60px;object-fit:contain;border-radius:var(--r);border:1px solid var(--br2);display:none;background:#fff;padding:4px}
+.sb-logo-img{width:30px;height:30px;min-width:30px;border-radius:7px;object-fit:contain;background:#fff;padding:2px;display:none}
+.rec-card{background:var(--bg3);border:1px solid var(--br);border-radius:var(--r2);padding:11px;margin-bottom:8px}
+.empty{text-align:center;padding:24px;color:var(--tx3);font-size:12px}
+.div-line{height:1px;background:var(--br);margin:10px 0}
+.badge-tag{display:inline-flex;align-items:center;gap:5px;padding:3px 8px;border-radius:20px;font-size:10px;font-weight:600}
+.t-and{background:rgba(24,176,106,.12);color:var(--gn)}
+.t-par{background:rgba(229,148,16,.12);color:var(--am)}
+.t-con{background:rgba(79,110,247,.12);color:var(--ac)}
+.t-fin{background:rgba(123,63,228,.12);color:#7B3FE4}
+.t-orc{background:rgba(58,142,245,.12);color:var(--bl)}
+/* KANBAN */
+.kb{display:flex;gap:9px;overflow-x:auto;padding-bottom:6px}
+.kb-col{min-width:195px;background:var(--bg3);border-radius:var(--r2);padding:10px;flex-shrink:0}
+.kb-h{font-size:10px;font-weight:700;color:var(--tx2);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between}
+.kb-c{background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);padding:9px;margin-bottom:6px;cursor:pointer}
+.kb-c:hover{border-color:var(--br2)}
+.kb-ct{font-size:11px;font-weight:600;margin-bottom:3px}
+.kb-cs{font-size:10px;color:var(--tx2)}
+/* TOTBOX */
+.tot-box{background:var(--bg3);border-radius:var(--r);padding:10px 12px;margin-top:8px}
+.tot-r{display:flex;justify-content:space-between;padding:3px 0;font-size:11px;border-bottom:1px solid var(--br)}
+.tot-r:last-child{border:none;font-size:13px;font-weight:700;padding-top:6px;margin-top:2px}
+.perm-r{display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--br);font-size:11px}
+.perm-r:last-child{border:none}
+.tog{width:30px;height:16px;border-radius:16px;background:var(--bg4);border:1px solid var(--br2);cursor:pointer;position:relative;flex-shrink:0;transition:background .18s}
+.tog.on{background:var(--gn);border-color:var(--gn2)}
+.tog::after{content:'';position:absolute;left:2px;top:2px;width:10px;height:10px;border-radius:50%;background:#fff;transition:left .18s}
+.tog.on::after{left:16px}
+@media(max-width:768px){.g4{grid-template-columns:1fr 1fr}.fr4{grid-template-columns:1fr 1fr}.fr3{grid-template-columns:1fr 1fr}.sb{width:50px;min-width:50px}.sbi-t,.sb-brand,.sb-lbl{display:none}}
+@media print{.sb,.topbar,.btn,.mo{display:none!important}.main,.content{overflow:visible!important;height:auto!important}.pnl{display:block!important}}
+
+/* ── AUTH SCREENS ─────────────────────────────────────────── */
+.auth-screen{position:fixed;inset:0;background:#0A0D14;z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px}
+.auth-box{width:100%;max-width:400px;background:#181C27;border:1px solid #2D3348;border-radius:16px;padding:36px 32px;box-shadow:0 24px 80px rgba(0,0,0,.6)}
+.auth-logo{width:72px;height:72px;border-radius:14px;background:linear-gradient(135deg,#4F6EF7,#7B3FE4);display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:800;color:#fff;margin:0 auto 16px}
+.auth-logo img{width:100%;height:100%;object-fit:contain;border-radius:14px}
+.auth-title{text-align:center;font-size:22px;font-weight:700;color:#EEF0F8;margin-bottom:4px}
+.auth-sub{text-align:center;font-size:12px;color:#8D95B0;margin-bottom:28px}
+.auth-field{margin-bottom:14px}
+.auth-field label{display:block;font-size:11px;color:#8D95B0;font-weight:600;margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px}
+.auth-field input{width:100%;padding:11px 14px;background:#1E2333;border:1px solid #2D3348;border-radius:8px;color:#EEF0F8;font-size:13px;outline:none;font-family:inherit;transition:border-color .15s}
+.auth-field input:focus{border-color:#4F6EF7}
+.auth-field input::placeholder{color:#555F7A}
+.auth-btn{width:100%;padding:12px;border-radius:8px;background:linear-gradient(135deg,#4F6EF7,#7B3FE4);border:none;color:#fff;font-size:14px;font-weight:700;cursor:pointer;margin-top:6px;transition:opacity .15s;font-family:inherit}
+.auth-btn:hover{opacity:.9}
+.auth-btn:active{opacity:.8}
+.auth-err{background:rgba(232,75,75,.12);border:1px solid rgba(232,75,75,.3);border-radius:8px;padding:9px 12px;font-size:12px;color:#E84B4B;margin-bottom:12px;display:none}
+.auth-footer{text-align:center;font-size:11px;color:#555F7A;margin-top:20px}
+.auth-footer b{color:#8D95B0}
+.auth-key-box{background:#1E2333;border:1px solid #2D3348;border-radius:8px;padding:12px 14px;margin-bottom:14px}
+.auth-key-box .key-label{font-size:10px;color:#555F7A;margin-bottom:5px}
+.auth-key-box .key-val{font-size:14px;font-weight:700;color:#4F6EF7;letter-spacing:2px;font-family:monospace}
+.auth-steps{margin-bottom:20px;padding:0}
+.auth-steps li{font-size:12px;color:#8D95B0;margin-bottom:7px;padding-left:20px;position:relative;list-style:none}
+.auth-steps li::before{content:counter(step);counter-increment:step;position:absolute;left:0;background:#4F6EF7;color:#fff;width:14px;height:14px;border-radius:50%;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.auth-steps{counter-reset:step}
+.forgot-link{text-align:center;font-size:11px;color:#4F6EF7;cursor:pointer;margin-top:10px}
+.forgot-link:hover{text-decoration:underline}
+
+
+.plano-lock{position:relative;pointer-events:none;opacity:.45;user-select:none}
+.plano-lock::after{content:'🔒 Plano Profissional';position:absolute;inset:0;background:rgba(15,17,23,.82);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--ac);border-radius:var(--r2);cursor:not-allowed;pointer-events:all}
+.upgrade-banner{background:linear-gradient(135deg,rgba(79,110,247,.15),rgba(123,63,228,.15));border:1px solid rgba(79,110,247,.35);border-radius:var(--r2);padding:14px 16px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.upgrade-banner .ub-txt{font-size:12px;color:var(--tx2)}<b style="color:var(--tx)">.ub-txt b{color:var(--tx)}</b>
+.badge-plano{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700}
+.badge-starter{background:rgba(79,110,247,.15);color:#4F6EF7;border:1px solid rgba(79,110,247,.3)}
+.badge-pro{background:linear-gradient(135deg,rgba(79,110,247,.2),rgba(123,63,228,.2));color:#9B6FF5;border:1px solid rgba(123,63,228,.3)}
+
+
+.update-bar{position:fixed;bottom:0;left:0;right:0;background:linear-gradient(135deg,#1a2a6c,#4F6EF7);color:#fff;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;z-index:8888;font-size:12px;flex-wrap:wrap;transform:translateY(100%);transition:transform .4s cubic-bezier(.34,1.56,.64,1)}
+.update-bar.show{transform:translateY(0)}
+.update-bar .ub-info{display:flex;align-items:center;gap:10px}
+.update-bar .ub-badge{background:rgba(255,255,255,.2);border-radius:20px;padding:2px 10px;font-size:10px;font-weight:700}
+.update-bar .ub-btns{display:flex;gap:7px}
+.update-bar .ub-btn{padding:5px 14px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;border:none;font-family:inherit}
+.update-bar .ub-dl{background:#fff;color:#1a2a6c}
+.update-bar .ub-skip{background:rgba(255,255,255,.15);color:#fff}
+
+
+.test-mode-bar{position:fixed;top:0;left:0;right:0;background:linear-gradient(90deg,#e59410,#e84b4b);color:#fff;text-align:center;font-size:11px;font-weight:700;padding:4px 8px;z-index:9990;letter-spacing:.5px}
+
+
+.foto-preview-wrap{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.foto-thumb{width:70px;height:70px;object-fit:cover;border-radius:var(--r);border:1px solid var(--br2);cursor:pointer}
+.foto-thumb:hover{border-color:var(--ac)}
+.comp-preview{max-width:180px;max-height:120px;object-fit:contain;border-radius:var(--r);border:1px solid var(--br2);margin-top:4px;display:none}
+.upload-btn-wrap{position:relative;overflow:hidden;display:inline-block}
+.upload-btn-wrap input[type=file]{position:absolute;left:0;top:0;opacity:0;width:100%;height:100%;cursor:pointer}
+
+</style>
+</head>
+<body>
+
+<!-- ═══ TELA DE LICENÇA / ATIVAÇÃO ═════════════════════════════════════ -->
+<div class="auth-screen" id="screen-license">
+  <div class="auth-box">
+    <div class="auth-logo" id="lic-logo-box">OB</div>
+    <div class="auth-title">Ativar FigForge</div>
+    <div class="auth-sub">Digite o e-mail usado na compra para ativar</div>
+    <div class="auth-err" id="lic-err">E-mail não encontrado ou licença inválida.</div>
+    <div class="auth-field">
+      <label>E-mail de cadastro</label>
+      <input id="lic-email" type="email" placeholder="seuemail@email.com"
+        autocomplete="email" onkeydown="if(event.key==='Enter')ativarLicenca()"/>
+    </div>
+    <button class="auth-btn" onclick="ativarLicenca()" id="lic-btn">✔ Ativar agora</button>
+    <div style="text-align:center;font-size:11px;color:var(--tx3);margin-top:10px" id="lic-status"></div>
+    <div class="auth-footer">
+      Não tem licença? Adquira em <b>figforge.com.br</b><br/>
+      Suporte: <b>WhatsApp (67) 9654-7866</b>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ TELA DE LOGIN ═══════════════════════════════════════════════════ -->
+<div class="auth-screen" id="screen-login" style="display:none">
+  <div class="auth-box">
+    <div class="auth-logo" id="login-logo-box">OB</div>
+    <div class="auth-title" id="login-empresa-nome">FigForge</div>
+    <div class="auth-sub">Faça login para continuar</div>
+    <div class="auth-err" id="login-err">Usuário ou senha incorretos.</div>
+    <div class="auth-field">
+      <label>E-mail ou usuário</label>
+      <input id="login-user" type="text" placeholder="seu@email.com"
+        autocomplete="username" onkeydown="if(event.key==='Enter')el('login-pass').focus()"/>
+    </div>
+    <div class="auth-field">
+      <label>Senha</label>
+      <input id="login-pass" type="password" placeholder="••••••••"
+        autocomplete="current-password" onkeydown="if(event.key==='Enter')fazerLogin()"/>
+    </div>
+    <button class="auth-btn" onclick="fazerLogin()">🔓 Entrar</button>
+    <div class="forgot-link" onclick="esqueciSenha()">Esqueci minha senha</div>
+    <div class="auth-footer" id="login-footer">FigForge · Gestão para construtoras</div>
+  </div>
+</div>
+
+
+<div class="shell" id="app-shell" style="display:none">
+
+<!-- SIDEBAR -->
+<nav class="sb" id="sb">
+  <div class="sb-top">
+    <img class="sb-logo-img" id="sb-logo-img" src="" alt=""/>
+    <div class="sb-logo" id="sb-logo-def">FF</div>
+    <div class="sb-brand">Fig<b style="color:var(--ac)">Forge</b></div>
+  </div>
+  <div class="sb-nav">
+    <div class="sb-g">
+      <div class="sb-lbl">Principal</div>
+      <div class="sbi act" data-p="dashboard"><div class="sbi-i">📊</div><div class="sbi-t">Dashboard</div></div>
+      <div class="sbi" data-p="obras"><div class="sbi-i">🏗️</div><div class="sbi-t">Obras</div></div>
+      <div class="sbi" data-p="orcamentos"><div class="sbi-i">🧾</div><div class="sbi-t">Orçamentos</div></div>
+      <div class="sbi" data-p="clientes"><div class="sbi-i">👥</div><div class="sbi-t">Clientes</div></div>
+    </div>
+    <div class="sb-g">
+      <div class="sb-lbl">Operações</div>
+      <div class="sbi" data-p="funcionarios"><div class="sbi-i">👷</div><div class="sbi-t">Funcionários</div></div>
+      <div class="sbi" data-p="estoque"><div class="sbi-i">📦</div><div class="sbi-t">Estoque</div></div>
+      <div class="sbi" data-p="financeiro"><div class="sbi-i">💰</div><div class="sbi-t">Financeiro</div></div>
+      <div class="sbi" data-p="diario"><div class="sbi-i">📸</div><div class="sbi-t">Diário de Obra</div></div>
+    </div>
+    <div class="sb-g">
+      <div class="sb-lbl">Gestão</div>
+      <div class="sbi" data-p="relatorios"><div class="sbi-i">📋</div><div class="sbi-t">Relatórios</div></div>
+      <div class="sbi" data-p="usuarios"><div class="sbi-i">🔐</div><div class="sbi-t">Usuários</div></div>
+      <div class="sbi" data-p="config"><div class="sbi-i">⚙️</div><div class="sbi-t">Configurações</div></div>
+    </div>
+  </div>
+  <div class="sb-foot">
+    <div class="sb-usr">
+      <div class="sb-av" id="sb-av" >AD</div>
+      <div style="overflow:hidden"><div style="font-size:11px;font-weight:600;white-space:nowrap" id="sb-nome">Administrador</div><div style="font-size:9px;color:var(--tx2)" id="sb-nivel">Administrador</div></div>
+    </div>
+  </div>
+</nav>
+
+<!-- MAIN -->
+
+<!-- BARRA DE ATUALIZAÇÃO -->
+<div class="update-bar" id="update-bar">
+  <div style="display:flex;align-items:center;gap:10px">
+    <span style="font-size:18px">🚀</span>
+    <div>
+      <div style="font-weight:700">Nova versão disponível! <span class="ub-badge" id="update-version-badge">v0.0</span></div>
+      <div style="font-size:11px;opacity:.85" id="update-changelog">Melhorias disponíveis</div>
+    </div>
+  </div>
+  <div class="ub-btns">
+    <button class="ub-btn ub-dl" onclick="baixarAtualizacao()">📥 Baixar atualização</button>
+    <button class="ub-btn ub-skip" onclick="fecharUpdateBar()">Depois</button>
+    <button class="ub-btn ub-skip" onclick="ignorarVersao()">✕</button>
+  </div>
+</div>
+
+<div class="test-mode-bar" id="test-mode-bar" style="display:none">⚠️ MODO DE TESTE LOCAL — Servidor não configurado. Todas as funções estão liberadas. <span style="margin-left:12px;cursor:pointer" onclick="el('test-mode-bar').style.display='none'">✕</span></div>
+<div class="main">
+  <div class="topbar">
+    <button class="btn sm" id="btn-sb">☰</button>
+    <div class="top-ttl" id="ttl">📊 Dashboard</div>
+    <span id="clock" style="font-size:10px;color:var(--tx3);font-family:monospace"></span>
+    <button class="btn sm bp" id="btn-acao" style="display:none">+ Novo</button>
+  </div>
+  <div class="content" id="content">
+
+<!-- ========== DASHBOARD ========== -->
+<div class="pnl on" id="pnl-dashboard">
+  <div class="ga" id="dash-stats" style="margin-bottom:12px"></div>
+  <div class="g2" style="margin-bottom:12px">
+    <div class="card"><div class="ct">🏗️ Obras ativas</div><div id="dash-obras"></div></div>
+    <div class="card"><div class="ct">💰 Últimas movimentações</div><div id="dash-movs"></div></div>
+  </div>
+  <div class="g2">
+    <div class="card"><div class="ct">👷 Funcionários hoje</div><div id="dash-funcs"></div></div>
+    <div class="card"><div class="ct">📦 Estoque crítico</div><div id="dash-estq"></div></div>
+  </div>
+</div>
+
+<!-- ========== OBRAS ========== -->
+<div class="pnl" id="pnl-obras">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+    <span style="font-size:13px;color:var(--tx2)">Gerencie suas obras por status</span>
+    <button class="btn bp" onclick="abrirMo('mo-obra')">+ Nova obra</button>
+  </div>
+  <div class="kb" id="kanban-obras"></div>
+</div>
+
+<!-- ========== ORÇAMENTOS ========== -->
+<div class="pnl" id="pnl-orcamentos">
+  <div class="itabs">
+    <div class="itab on" onclick="itab('orc','novo',this)">✏️ Novo orçamento</div>
+    <div class="itab" onclick="itab('orc','lista',this)">📋 Lista de orçamentos</div>
+  </div>
+  <div class="itp on" id="orc-novo">
+    <div class="g2" style="margin-bottom:10px">
+      <div class="card">
+        <div class="ct">Dados do cliente</div>
+        <div class="fr fr2"><div><label>Cliente</label><select id="of-cli"></select></div><div><label>Obra vinculada</label><select id="of-obra"></select></div></div>
+        <div class="fr fr2"><div><label>Endereço da obra</label><input id="of-end" type="text" placeholder="Rua, número, bairro"/></div><div><label>Data do orçamento</label><input id="of-data" type="date"/></div></div>
+        <div class="fr fr3"><div><label>Validade (dias)</label><input id="of-valid" type="number" value="30" min="1"/></div><div><label>BDI (%)</label><input id="of-bdi" type="number" value="25" min="0" oninput="calcOrc()"/></div><div><label>Desconto (%)</label><input id="of-desc" type="number" value="0" min="0" oninput="calcOrc()"/></div></div>
+        <div class="fr"><div><label>Forma de pagamento</label><select id="of-pgto"><option>À vista</option><option>Por etapa</option><option>30/60/90 dias</option><option>Financiamento</option><option>Personalizado</option></select></div></div>
+        <div class="fr"><div><label>Observações</label><textarea id="of-obs" placeholder="Condições, exclusões, garantias..."></textarea></div></div>
+      </div>
+      <div class="card">
+        <div class="ct">Resumo financeiro</div>
+        <div class="tot-box">
+          <div class="tot-r"><span>Subtotal de serviços</span><span id="ot-sub">R$ 0,00</span></div>
+          <div class="tot-r"><span>BDI (<span id="ot-bdi-p">25</span>%)</span><span id="ot-bdi">R$ 0,00</span></div>
+          <div class="tot-r"><span>Desconto (<span id="ot-dsc-p">0</span>%)</span><span id="ot-dsc" style="color:var(--rd)">- R$ 0,00</span></div>
+          <div class="tot-r" style="color:var(--gn)">TOTAL GERAL <span id="ot-total">R$ 0,00</span></div>
+        </div>
+        <div style="margin-top:12px;display:flex;flex-direction:column;gap:7px">
+          <button class="btn bg" onclick="salvarOrc()" style="width:100%">💾 Salvar orçamento</button>
+          <button class="btn bp" onclick="exportarOrcPDF()" style="width:100%">📄 Exportar PDF</button>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="ct">
+        Itens do orçamento
+        <button class="btn sm bp" onclick="addItemOrc()">+ Adicionar item</button>
+      </div>
+      <div class="tw">
+        <table class="tbl">
+          <thead><tr><th>#</th><th>Descrição do serviço/material</th><th>Unid.</th><th>Qtd.</th><th>Valor unit. (R$)</th><th>Total</th><th></th></tr></thead>
+          <tbody id="orc-itens"><tr><td colspan="7" class="empty">Clique em "+ Adicionar item" para começar</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="itp" id="orc-lista">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <input type="text" id="orc-busca" placeholder="Buscar orçamento..." style="width:240px" oninput="renderOrcLista()"/>
+      <button class="btn bp" onclick="itab('orc','novo',document.querySelectorAll('.itab')[0])">+ Novo orçamento</button>
+    </div>
+    <div class="tw"><table class="tbl"><thead><tr><th>Nº</th><th>Data</th><th>Cliente</th><th>Obra</th><th>Total</th><th>Status</th><th>Ações</th></tr></thead>
+    <tbody id="tbl-orcs"></tbody></table></div>
+  </div>
+</div>
+
+<!-- ========== CLIENTES ========== -->
+<div class="pnl" id="pnl-clientes">
+  <div style="display:flex;gap:8px;margin-bottom:10px">
+    <input type="text" id="cli-busca" placeholder="Buscar cliente..." style="flex:1" oninput="renderClientes()"/>
+    <button class="btn bp" onclick="abrirMo('mo-cli')">+ Novo cliente</button>
+  </div>
+  <div class="tw"><table class="tbl"><thead><tr><th>Nome</th><th>CPF / CNPJ</th><th>Telefone</th><th>E-mail</th><th>Tipo</th><th>Obras</th><th>Ações</th></tr></thead>
+  <tbody id="tbl-cli"></tbody></table></div>
+</div>
+
+<!-- ========== FUNCIONÁRIOS ========== -->
+<div class="pnl" id="pnl-funcionarios">
+  <div class="itabs">
+    <div class="itab on" onclick="itab('func','cadastro',this)">👤 Cadastro</div>
+    <div class="itab" onclick="itab('func','ponto',this)">📅 Ponto</div>
+    <div class="itab" onclick="itab('func','pagamento',this)">💰 Pagamento</div>
+  </div>
+  <div class="itp on" id="func-cadastro">
+    <div style="display:flex;gap:8px;margin-bottom:10px">
+      <input type="text" id="func-busca" placeholder="Buscar funcionário..." style="flex:1" oninput="renderFuncionarios()"/>
+      <button class="btn bp" onclick="abrirMo('mo-func')">+ Novo funcionário</button>
+    </div>
+    <div class="tw"><table class="tbl"><thead><tr><th>Nome</th><th>CPF</th><th>Função</th><th>Vínculo</th><th>Valor</th><th>Horário (CLT)</th><th>Obra</th><th>Status</th><th>Ações</th></tr></thead>
+    <tbody id="tbl-func"></tbody></table></div>
+  </div>
+  <div class="itp" id="func-ponto">
+    <div class="g2" style="margin-bottom:10px">
+      <div><label>Funcionário</label><select id="ponto-func" onchange="renderPonto()"></select></div>
+      <div><label>Mês / Ano</label><input type="month" id="ponto-mes" onchange="renderPonto()"/></div>
+    </div>
+    <div class="card">
+      <div class="ct">Registros de ponto <button class="btn sm bp" onclick="abrirMo('mo-ponto')">+ Lançar ponto</button></div>
+      <div class="tw"><table class="tbl"><thead><tr><th>Data</th><th>Entrada</th><th>Saída</th><th>Intervalo</th><th>Trabalhadas</th><th>H. Extra</th><th>Tipo</th><th>Obs</th><th></th></tr></thead>
+      <tbody id="tbl-ponto"></tbody></table></div>
+      <div class="tot-box" style="margin-top:8px" id="ponto-resumo"></div>
+    </div>
+  </div>
+  <div class="itp" id="func-pagamento">
+    <div class="g2" style="margin-bottom:10px">
+      <div><label>Funcionário</label><select id="pg-func" onchange="calcPagamento()"></select></div>
+      <div><label>Mês / Ano</label><input type="month" id="pg-mes" onchange="calcPagamento()"/></div>
+    </div>
+    <div class="card" id="pg-result"><div class="empty">Selecione funcionário e mês para calcular</div></div>
+    <div class="card" id="pg-pago-area" style="display:none">
+      <div class="ct">💵 Registro de pagamento</div>
+      <div class="fr fr3">
+        <div><label>Foi pago?</label><select id="pg-pago" onchange="togglePagoFunc()"><option value="nao">Não</option><option value="sim">Sim</option></select></div>
+        <div><label>Data do pagamento</label><input type="date" id="pg-data-pag"/></div>
+        <div><label>Forma</label><select id="pg-forma" onchange="toggleComprovante()"><option>Dinheiro</option><option>PIX</option><option>Transferência</option><option>TED</option><option>Cheque</option><option>Depósito</option></select></div>
+      </div>
+      <div id="pg-comp-area" style="display:none">
+        <div class="fr fr2">
+          <div><label>Nº comprovante / Chave PIX / TED</label><input id="pg-comp" type="text" placeholder="Chave PIX, código TED, nº recibo..."/></div>
+          <div><label>Observação</label><input id="pg-comp-obs" type="text" placeholder="Notas adicionais..."/></div>
+        </div>
+        <div id="pg-img-comp-area" style="display:none;margin-bottom:8px">
+          <label>📎 Anexar comprovante PIX / TED (imagem)</label>
+          <div class="upload-btn-wrap" style="margin-top:4px">
+            <button class="btn sm">📷 Selecionar imagem</button>
+            <input type="file" id="pg-img-comp" accept="image/*" onchange="previaComprovante(this)"/>
+          </div>
+          <img id="pg-comp-preview" class="comp-preview" src="" alt="comprovante"/>
+          <div style="font-size:10px;color:var(--tx3);margin-top:3px">Imagem salva junto ao registro de pagamento</div>
+        </div>
+        <div id="pg-anotacoes-area" style="display:none">
+          <div class="fr"><div><label>📝 Anotações do recibo (CLT)</label><textarea id="pg-anotacoes" placeholder="H. extras justificadas, banco de horas, VT, adiantamentos..." style="min-height:65px"></textarea></div></div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap">
+        <button class="btn bp" onclick="calcPagamento()">🔄 Recalcular</button>
+        <button class="btn bg" onclick="confirmarPagamentoFunc()">✔ Confirmar e lançar no Financeiro</button>
+        <button class="btn" onclick="exportarHoleritePDF()">📄 Holerite PDF</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== ESTOQUE ========== -->
+<div class="pnl" id="pnl-estoque">
+  <div class="itabs">
+    <div class="itab on" onclick="itab('estq','itens',this)">📦 Itens</div>
+    <div class="itab" onclick="itab('estq','movs',this)">📋 Movimentações</div>
+  </div>
+  <div class="itp on" id="estq-itens">
+    <div style="display:flex;gap:8px;margin-bottom:10px">
+      <input type="text" id="estq-busca" placeholder="Buscar material..." style="flex:1" oninput="renderEstoque()"/>
+      <button class="btn bp" onclick="abrirMo('mo-estq')">+ Novo material</button>
+    </div>
+    <div class="tw"><table class="tbl"><thead><tr><th>Material</th><th>Un.</th><th>Estoque</th><th>Mínimo</th><th>Localização</th><th>Valor unit.</th><th>Status</th><th>Ações</th></tr></thead>
+    <tbody id="tbl-estq"></tbody></table></div>
+  </div>
+  <div class="itp" id="estq-movs">
+    <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+      <select id="estq-mov-tipo" style="width:auto"><option value="">Todos os tipos</option><option value="entrada">Entrada</option><option value="saida">Saída</option></select>
+      <button class="btn bg" onclick="abrirMo('mo-estq-ent')">📥 Entrada</button>
+      <button class="btn ba" onclick="abrirMo('mo-estq-sai')">📤 Saída</button>
+    </div>
+    <div class="tw"><table class="tbl"><thead><tr><th>Data</th><th>Tipo</th><th>Material</th><th>Qtd.</th><th>Obra</th><th>Responsável</th><th>Obs.</th><th>Ações</th></tr></thead>
+    <tbody id="tbl-estq-movs"></tbody></table></div>
+  </div>
+</div>
+
+<!-- ========== FINANCEIRO ========== -->
+<div class="pnl" id="pnl-financeiro">
+  <div class="itabs">
+    <div class="itab on" onclick="itab('fin','lancamentos',this)">💳 Lançamentos</div>
+    <div class="itab" onclick="itab('fin','receber',this)">💚 A receber</div>
+    <div class="itab" onclick="itab('fin','resumo',this)">📊 Resumo</div>
+    <div class="itab" onclick="itab('fin','fixas',this)">📋 Despesas fixas</div>
+  </div>
+  <div class="itp on" id="fin-lancamentos">
+    <div class="card" style="margin-bottom:10px">
+      <div class="ct">Novo lançamento</div>
+      <div class="fr fr4">
+        <div><label>Tipo</label><select id="fl-tipo" onchange="toggleFlTipo()"><option value="receita">Receita</option><option value="despesa">Despesa</option></select></div>
+        <div><label>Categoria</label><select id="fl-cat"><option>Material</option><option>Mão de obra</option><option>Equipamento</option><option>Serviço terceiro</option><option>Imposto</option><option>Aluguel</option><option>Outro</option></select></div>
+        <div><label>Obra vinculada</label><select id="fl-obra"><option value="">Nenhuma / Geral</option></select></div>
+        <div><label>Data</label><input type="date" id="fl-data"/></div>
+      </div>
+      <div class="fr fr3">
+        <div style="grid-column:1/3"><label>Descrição</label><input type="text" id="fl-desc" placeholder="Descreva o lançamento..."/></div>
+        <div><label>Valor (R$)</label><input type="number" id="fl-val" placeholder="0,00" min="0" step="0.01"/></div>
+      </div>
+      <div class="fr fr2">
+        <div><label>Fornecedor / Pagador</label><input type="text" id="fl-forn" placeholder="Nome do fornecedor ou cliente"/></div>
+        <div><label>Nota fiscal / Nº doc.</label><input type="text" id="fl-nf" placeholder="NF-e, recibo, contrato..."/></div>
+      </div>
+      <div id="lanc-comp-area" style="display:none;margin-bottom:8px">
+        <div class="fr">
+          <div>
+            <label>📎 Anexar comprovante (PIX / TED / NF)</label>
+            <div class="upload-btn-wrap">
+              <button class="btn sm">📷 Selecionar imagem</button>
+              <input type="file" id="lanc-comp-img" accept="image/*,application/pdf" onchange="previaLancComp(this)"/>
+            </div>
+            <img id="lanc-comp-preview" class="comp-preview" src="" alt="comprovante"/>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn bp" onclick="salvarLanc()">💾 Salvar lançamento</button>
+        <button class="btn sm" onclick="limparLanc()">✕ Limpar</button>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap">
+      <select id="fin-filtro-mes" onchange="renderLanc()" style="width:auto"><option value="">Todos os meses</option></select>
+      <select id="fin-filtro-tipo" onchange="renderLanc()" style="width:auto"><option value="">Todos os tipos</option><option value="receita">Receita</option><option value="despesa">Despesa</option></select>
+      <input type="text" id="fin-busca" placeholder="Buscar..." style="flex:1;min-width:140px" oninput="renderLanc()"/>
+    </div>
+    <div class="tw"><table class="tbl"><thead><tr><th>Data</th><th>Tipo</th><th>Categoria</th><th>Descrição</th><th>Obra</th><th>Fornecedor</th><th>NF</th><th>Valor</th><th></th></tr></thead>
+    <tbody id="tbl-lanc"></tbody></table></div>
+  </div>
+  <div class="itp" id="fin-receber">
+    <div class="ga" id="rec-stats" style="margin-bottom:12px"></div>
+    <div class="card"><div class="ct">📊 Recebimentos por obra</div><div id="rec-obras-lista"></div></div>
+  </div>
+  <div class="itp" id="fin-resumo">
+    <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+      <select id="res-mes" onchange="renderResumo()" style="width:auto"></select>
+      <select id="res-obra" onchange="renderResumo()" style="width:auto"><option value="">Todas as obras</option></select>
+    </div>
+    <div class="ga" id="fin-stats" style="margin-bottom:12px"></div>
+    <div class="g2">
+      <div class="card"><div class="ct">📊 Receitas por categoria</div><div id="fin-cat-rec"></div></div>
+      <div class="card"><div class="ct">📊 Despesas por categoria</div><div id="fin-cat-desp"></div></div>
+    </div>
+  </div>
+  <div class="itp" id="fin-fixas">
+    <div class="card" style="margin-bottom:10px">
+      <div class="ct">Nova despesa fixa <button class="btn sm bp" onclick="abrirMo('mo-fixa')">+ Adicionar</button></div>
+      <div class="tw"><table class="tbl"><thead><tr><th>Descrição</th><th>Valor</th><th>Dia vencimento</th><th>Categoria</th><th>Status</th><th>Ações</th></tr></thead>
+      <tbody id="tbl-fixas"></tbody></table></div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== DIÁRIO ========== -->
+<div class="pnl" id="pnl-diario">
+  <div class="g2" style="margin-bottom:10px">
+    <div><label>Obra</label><select id="diario-obra" onchange="renderDiario()"></select></div>
+    <div style="display:flex;align-items:flex-end"><button class="btn bp" onclick="abrirMo('mo-diario')">+ Novo registro</button></div>
+  </div>
+  <div id="lista-diario"></div>
+</div>
+
+<!-- ========== RELATÓRIOS ========== -->
+<div class="pnl" id="pnl-relatorios">
+  <div class="g2" style="margin-bottom:10px">
+    <div><label>Obra</label><select id="rel-obra"><option value="">Todas as obras</option></select></div>
+    <div><label>Período</label><select id="rel-periodo"><option value="">Todo o período</option></select></div>
+  </div>
+  <div class="ga" id="rel-stats" style="margin-bottom:12px"></div>
+  <div class="g2">
+    <div class="card"><div class="ct">🏗️ Situação das obras</div><div id="rel-obras"></div></div>
+    <div class="card"><div class="ct">💰 Fluxo financeiro</div><div id="rel-fin"></div></div>
+  </div>
+  <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+    <button class="btn bp" onclick="exportarRelPDF()">📄 Exportar relatório PDF</button>
+    <button class="btn bg" onclick="exportarCSV()">📊 Exportar CSV / Excel</button>
+    <button class="btn sm" onclick="window.print()">🖨️ Imprimir</button>
+  </div>
+</div>
+
+<!-- ========== USUÁRIOS ========== -->
+<div class="pnl" id="pnl-usuarios">
+  <div style="background:rgba(79,110,247,.08);border:1px solid rgba(79,110,247,.25);border-radius:var(--r2);padding:12px 14px;margin-bottom:12px;font-size:12px">
+    <div style="font-weight:700;color:var(--ac);margin-bottom:5px">ℹ️ Como funciona o acesso da equipe</div>
+    <div style="color:var(--tx2);line-height:1.7">
+      <b style="color:var(--tx)">1 licença = 1 empresa = vários usuários.</b>
+      Cadastre cada membro da equipe com seu nível de acesso. Cada um entra com seu e-mail e senha na tela de login.
+      O sistema pode ser aberto em vários dispositivos usando o mesmo e-mail de ativação da licença.
+    </div>
+  </div>
+  <div class="g2">
+    <div class="card">
+      <div class="ct">👥 Usuários cadastrados <button class="btn sm bp" onclick="novoUsuario()">+ Novo usuário</button></div>
+      <div class="tw"><table class="tbl">
+        <thead><tr><th>Nome</th><th>E-mail (login)</th><th>Nível</th><th>O que pode fazer</th><th>Ações</th></tr></thead>
+        <tbody id="tbl-users"></tbody>
+      </table></div>
+    </div>
+    <div class="card">
+      <div class="ct">🔐 Níveis de acesso</div>
+      <div style="font-size:11px">
+        <div style="padding:9px;background:rgba(123,63,228,.08);border-radius:var(--r);margin-bottom:6px">
+          <div style="font-weight:700;color:#7B3FE4">👑 Administrador</div>
+          <div style="color:var(--tx2);margin-top:2px">Acesso completo: obras, financeiro, estoque, funcionários, usuários e configurações.</div>
+        </div>
+        <div style="padding:9px;background:rgba(79,110,247,.08);border-radius:var(--r);margin-bottom:6px">
+          <div style="font-weight:700;color:var(--ac)">💰 Financeiro</div>
+          <div style="color:var(--tx2);margin-top:2px">Lançamentos, receitas, despesas, relatórios e exportações. Sem acesso a usuários e config.</div>
+        </div>
+        <div style="padding:9px;background:rgba(229,148,16,.08);border-radius:var(--r);margin-bottom:6px">
+          <div style="font-weight:700;color:var(--am)">📦 Almoxarifado</div>
+          <div style="color:var(--tx2);margin-top:2px">Cadastro de materiais, entradas e saídas de estoque. Não vê financeiro nem funcionários.</div>
+        </div>
+        <div style="padding:9px;background:rgba(24,176,106,.08);border-radius:var(--r)">
+          <div style="font-weight:700;color:var(--gn)">🏗️ Gestor de obra</div>
+          <div style="color:var(--tx2);margin-top:2px">Obras, diário de obra, ponto de funcionários e estoque (somente leitura).</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="pnl" id="pnl-config">
+  <div class="g2">
+    <div class="card">
+      <div class="ct">🏢 Dados da empresa</div>
+      <div class="fr fr2" style="align-items:end">
+        <div><label>Nome da empresa</label><input id="cfg-empresa" type="text" placeholder="Construtora..."/></div>
+        <div><label>🖼️ Logo da empresa</label>
+          <div style="display:flex;align-items:center;gap:8px">
+            <img id="logo-preview" class="logo-preview" src="" alt="logo"/>
+            <input type="file" id="logo-file" accept="image/*" style="display:none" onchange="carregarLogo(this)"/>
+            <button class="btn sm bp" onclick="el('logo-file').click()">📷 Carregar</button>
+            <button class="btn sm br-" onclick="removerLogo()">✕</button>
+          </div>
+        </div>
+      </div>
+      <div class="fr fr2"><div><label>CNPJ</label><input id="cfg-cnpj" type="text" placeholder="00.000.000/0001-00" oninput="fmtCpfCnpj(this)" maxlength="18"/></div><div><label>CREA / CAU</label><input id="cfg-crea" type="text" placeholder="CREA-XX 00000"/></div></div>
+      <div class="fr fr2"><div><label>Responsável técnico</label><input id="cfg-resp" type="text" placeholder="Eng. / Arq."/></div><div><label>Telefone</label><input id="cfg-tel" type="text" placeholder="(00) 9 9999-0000" oninput="fmtTel(this)" maxlength="16"/></div></div>
+      <div class="fr fr2"><div><label>E-mail</label><input id="cfg-email" type="email" placeholder="contato@empresa.com.br"/></div><div><label>BDI padrão (%)</label><input id="cfg-bdi" type="number" value="25" min="0"/></div></div>
+      <div class="fr"><div><label>Endereço</label><input id="cfg-end" type="text" placeholder="Rua, número, bairro, cidade, UF"/></div></div>
+      <button class="btn bg" onclick="salvarConfig()">💾 Salvar configurações</button>
+    </div>
+    <div class="card">
+      <div class="ct">⚙️ Sistema</div>
+      <div style="display:flex;flex-direction:column;gap:8px;font-size:12px">
+        <div style="padding:8px;background:var(--bg3);border-radius:var(--r)"><div style="font-weight:600">💾 Backup de dados</div><div style="color:var(--tx2);font-size:11px;margin:4px 0">Exporta todos os dados do sistema em formato JSON</div><button class="btn sm bp" onclick="backupDados()" style="margin-top:4px">📥 Exportar backup</button></div>
+        <div style="padding:8px;background:var(--bg3);border-radius:var(--r)"><div style="font-weight:600">📂 Restaurar dados</div><div style="color:var(--tx2);font-size:11px;margin:4px 0">Importa um backup JSON previamente exportado</div><input type="file" id="import-file" accept=".json" style="display:none" onchange="importarDados(this)"/><button class="btn sm" onclick="document.getElementById('import-file').click()" style="margin-top:4px">📤 Importar backup</button></div>
+        <div style="padding:8px;background:rgba(232,75,75,.06);border:1px solid rgba(232,75,75,.2);border-radius:var(--r)"><div style="font-weight:600;color:var(--rd)">⚠️ Zona de perigo</div><div style="color:var(--tx2);font-size:11px;margin:4px 0">Apaga permanentemente todos os dados do sistema</div><button class="btn sm br-" onclick="if(confirm('ATENÇÃO! Isso apagará TODOS os dados permanentemente. Tem certeza?')){limparTudo()}" style="margin-top:4px">🗑 Limpar todos os dados</button></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+</div><!-- /shell -->
+
+<!-- ===== MODAIS ===== -->
+<div class="mo" id="mo-obra"><div class="mbox">
+  <div class="mh"><span id="mo-obra-titulo">Nova obra</span><div class="mx" onclick="fecharMo('mo-obra')">✕</div></div>
+  <div class="fr fr2"><div><label>Nome / descrição</label><input id="ob-nome" type="text" placeholder="Ex: Residência unifamiliar"/></div><div><label>Cliente</label><select id="ob-cli"></select></div></div>
+  <div class="fr fr3"><div><label>Tipo</label><select id="ob-tipo"><option>Residencial</option><option>Comercial</option><option>Industrial</option><option>Reforma</option><option>Outro</option></select></div><div><label>Área (m²)</label><input id="ob-area" type="number" placeholder="0"/></div><div><label>Valor contratado (R$)</label><input id="ob-valor" type="number" placeholder="0,00" step="0.01"/></div></div>
+  <div class="fr fr2"><div><label>Data início</label><input id="ob-ini" type="date"/></div><div><label>Prazo previsto</label><input id="ob-prazo" type="date"/></div></div>
+  <div class="fr"><div><label>Endereço da obra</label><input id="ob-end" type="text" placeholder="Rua, número, bairro, cidade"/></div></div>
+  <div class="fr"><div><label>Responsável técnico</label><input id="ob-resp" type="text" placeholder="Eng. / Arq. responsável"/></div></div>
+  <div class="fr"><div><label>Observações</label><textarea id="ob-obs" placeholder="Informações adicionais..."></textarea></div></div>
+  <div style="display:flex;justify-content:flex-end;gap:7px"><button class="btn" onclick="fecharMo('mo-obra')">Cancelar</button><button class="btn bp" onclick="salvarObra()">Salvar obra</button></div>
+</div></div>
+
+<div class="mo" id="mo-cli"><div class="mbox">
+  <div class="mh"><span id="mo-cli-titulo">Novo cliente</span><div class="mx" onclick="fecharMo('mo-cli')">✕</div></div>
+  <div class="fr fr2"><div><label>Nome completo / Razão social</label><input id="cl-nome" type="text" placeholder="Nome"/></div><div><label>Tipo</label><select id="cl-tipo"><option>Pessoa Física</option><option>Pessoa Jurídica</option></select></div></div>
+  <div class="fr fr2"><div><label>CPF / CNPJ</label><input id="cl-doc" type="text" placeholder="000.000.000-00"/></div><div><label>Telefone</label><input id="cl-tel" type="text" placeholder="(00) 9 9999-0000"/></div></div>
+  <div class="fr"><div><label>E-mail</label><input id="cl-email" type="email" placeholder="email@email.com"/></div></div>
+  <div class="fr"><div><label>Endereço</label><input id="cl-end" type="text" placeholder="Rua, número, bairro, cidade"/></div></div>
+  <div class="fr"><div><label>Observações</label><textarea id="cl-obs" placeholder="Notas sobre o cliente..."></textarea></div></div>
+  <div style="display:flex;justify-content:flex-end;gap:7px"><button class="btn" onclick="fecharMo('mo-cli')">Cancelar</button><button class="btn bp" onclick="salvarCliente()">Salvar cliente</button></div>
+</div></div>
+
+<div class="mo" id="mo-func"><div class="mbox mbox-lg">
+  <div class="mh"><span id="mo-func-titulo">Novo funcionário</span><div class="mx" onclick="fecharMo('mo-func')">✕</div></div>
+  <div class="fr fr2"><div><label>Nome completo</label><input id="fn-nome" type="text" placeholder="Nome"/></div><div><label>CPF</label><input id="fn-cpf" type="text" placeholder="000.000.000-00" oninput="fmtCPF(this)" maxlength="14"/></div></div>
+  <div class="fr fr2"><div><label>Função / Ofício</label><input id="fn-func" type="text" placeholder="Ex: Pedreiro"/></div><div><label>Telefone</label><input id="fn-tel" type="text" placeholder="(00) 9 9999-0000" oninput="fmtTel(this)" maxlength="16"/></div></div>
+  <div class="fr fr3">
+    <div><label>Vínculo / Contrato</label><select id="fn-vinculo" onchange="toggleCLT()"><option value="clt">CLT / Registrado</option><option value="diaria">Diária</option><option value="mensal">Mensal</option><option value="empreitada">Empreitada</option></select></div>
+    <div><label id="fn-val-label">Salário mensal (R$)</label><input id="fn-val" type="number" placeholder="0,00" step="0.01" min="0" oninput="calcHorasDia()"/></div>
+    <div><label>Data de admissão</label><input id="fn-adm" type="date"/></div>
+  </div>
+  <div id="clt-extra" class="clt-extra show" style="background:var(--bg3);border:1px solid var(--br2);border-radius:var(--r);padding:10px;margin-bottom:8px">
+    <div style="font-size:11px;font-weight:600;color:var(--ac);margin-bottom:8px" id="fn-hor-titulo">⏱️ Horário de trabalho — CLT/Registrado</div>
+    <div class="fr fr4">
+      <div><label>Entrada</label><input id="fn-hor-ent" type="time" value="07:00" oninput="calcHorasDia()"/></div>
+      <div><label>Saída</label><input id="fn-hor-sai" type="time" value="17:00" oninput="calcHorasDia()"/></div>
+      <div><label>Intervalo almoço</label><select id="fn-intervalo" onchange="calcHorasDia()"><option value="60">60 min (padrão)</option><option value="30">30 min</option><option value="45">45 min</option><option value="90">90 min</option><option value="120">120 min</option><option value="0">Sem intervalo</option></select></div>
+      <div><label>Horas/dia ▶ auto</label><input id="fn-horas-dia" type="number" value="8.00" readonly style="color:var(--gn);font-weight:600"/></div>
+    </div>
+    <div class="fr fr3" style="margin-top:6px">
+      <div><label>H. semanais (ref.)</label><input id="fn-horas-sem" value="44" readonly style="color:var(--ac)"/></div>
+      <div><label>H. mensais (ref.)</label><input id="fn-horas-mes" value="220" readonly style="color:var(--ac)"/></div>
+      <div><label>Valor hora extra (R$)</label><input id="fn-valor-hora" value="0,00" readonly style="color:var(--am);font-weight:600"/></div>
+    </div>
+    <div class="al-g" style="margin-top:6px">✔ Horas excedentes ao horário combinado são calculadas automaticamente no Ponto e Pagamento.</div>
+  </div>
+  <div class="fr fr2"><div><label>Obra atual</label><select id="fn-obra"><option value="">Sem obra definida</option></select></div><div><label>Status</label><select id="fn-status"><option>Ativo</option><option>Afastado</option><option>Demitido</option></select></div></div>
+  <div style="display:flex;justify-content:flex-end;gap:7px"><button class="btn" onclick="fecharMo('mo-func')">Cancelar</button><button class="btn bp" onclick="salvarFuncionario()">Salvar funcionário</button></div>
+</div></div>
+
+<div class="mo" id="mo-ponto"><div class="mbox">
+  <div class="mh"><span>Lançar ponto</span><div class="mx" onclick="fecharMo('mo-ponto')">✕</div></div>
+  <div class="fr fr2"><div><label>Funcionário</label><select id="pt-func"></select></div><div><label>Data</label><input id="pt-data" type="date"/></div></div>
+  <div class="fr fr4">
+    <div><label>Entrada</label><input id="pt-ent" type="time" value="07:00" oninput="calcHorasPonto()"/></div>
+    <div><label>Saída</label><input id="pt-sai" type="time" value="17:00" oninput="calcHorasPonto()"/></div>
+    <div><label>Intervalo almoço</label><select id="pt-intervalo" onchange="calcHorasPonto()"><option value="60">60 min (padrão)</option><option value="30">30 min</option><option value="45">45 min</option><option value="90">90 min</option><option value="120">120 min</option><option value="0">Sem intervalo</option></select></div>
+    <div><label>H. extras</label><input id="pt-hex" type="number" value="0" step="0.25" readonly style="color:var(--am);font-weight:600"/></div>
+  </div>
+  <div class="al-b" id="pt-clt-info" style="font-size:10px"></div>
+  <div class="fr fr2"><div><label>Tipo</label><select id="pt-tipo"><option>Presente</option><option>Falta justificada</option><option>Falta injustificada</option><option>Folga</option><option>Feriado</option></select></div><div><label>Obra</label><select id="pt-obra"></select></div></div>
+  <div class="fr"><div><label>Observação</label><input id="pt-obs" type="text" placeholder="Opcional..."/></div></div>
+  <div style="display:flex;justify-content:flex-end;gap:7px"><button class="btn" onclick="fecharMo('mo-ponto')">Cancelar</button><button class="btn bp" onclick="salvarPonto()">Salvar ponto</button></div>
+</div></div>
+
+<div class="mo" id="mo-estq"><div class="mbox">
+  <div class="mh"><span id="mo-estq-titulo">Novo material</span><div class="mx" onclick="fecharMo('mo-estq')">✕</div></div>
+  <div class="fr fr2"><div><label>Descrição do material</label><input id="es-nome" type="text" placeholder="Ex: Cimento CP-II 50kg"/></div><div><label>Unidade</label><select id="es-un"><option>saco</option><option>un</option><option>m²</option><option>m³</option><option>m</option><option>kg</option><option>t</option><option>lata</option><option>rolo</option><option>barra</option></select></div></div>
+  <div class="fr fr3"><div><label>Qtd. inicial</label><input id="es-qtd" type="number" value="0" min="0" step="0.01"/></div><div><label>⚠️ Crítico mínimo</label><input id="es-min" title="Alerta de reposição abaixo deste valor" type="number" value="0" min="0" step="0.01"/></div><div><label>Valor unit. (R$)</label><input id="es-vl" type="number" value="0" min="0" step="0.01"/></div></div>
+  <div class="fr fr2"><div><label>Localização / Almoxarifado</label><input id="es-loc" type="text" placeholder="Ex: Galpão A, prateleira 3"/></div><div><label>Obra vinculada</label><select id="es-obra"><option value="">Estoque geral</option></select></div></div>
+  <div style="display:flex;justify-content:flex-end;gap:7px"><button class="btn" onclick="fecharMo('mo-estq')">Cancelar</button><button class="btn bp" onclick="salvarMaterial()">Salvar</button></div>
+</div></div>
+
+<div class="mo" id="mo-estq-ent"><div class="mbox">
+  <div class="mh"><span>📥 Entrada de material</span><div class="mx" onclick="fecharMo('mo-estq-ent')">✕</div></div>
+  <div class="fr fr2"><div><label>Material</label><select id="ent-mat"></select></div><div><label>Data</label><input id="ent-data" type="date"/></div></div>
+  <div class="fr fr3"><div><label>Quantidade</label><input id="ent-qtd" type="number" value="0" min="0.01" step="0.01"/></div><div><label>Valor unit. (R$)</label><input id="ent-vl" type="number" value="0" min="0" step="0.01"/></div><div><label>Obra destino</label><select id="ent-obra"><option value="">Estoque geral</option></select></div></div>
+  <div class="fr fr2"><div><label>Fornecedor</label><input id="ent-forn" type="text" placeholder="Nome do fornecedor"/></div><div><label>Nota fiscal</label><input id="ent-nf" type="text" placeholder="Nº NF"/></div></div>
+  <div class="fr"><div><label>Observação</label><input id="ent-obs" type="text" placeholder="Opcional..."/></div></div>
+  <div style="display:flex;justify-content:flex-end;gap:7px"><button class="btn" onclick="fecharMo('mo-estq-ent')">Cancelar</button><button class="btn bg" onclick="salvarEntrada()">Registrar entrada</button></div>
+</div></div>
+
+<div class="mo" id="mo-estq-sai"><div class="mbox">
+  <div class="mh"><span>📤 Saída de material</span><div class="mx" onclick="fecharMo('mo-estq-sai')">✕</div></div>
+  <div class="fr fr2"><div><label>Material</label><select id="sai-mat"></select></div><div><label>Data</label><input id="sai-data" type="date"/></div></div>
+  <div class="fr fr3"><div><label>Quantidade</label><input id="sai-qtd" type="number" value="0" min="0.01" step="0.01"/></div><div><label>Obra destino</label><select id="sai-obra"><option value="">Sem obra</option></select></div><div><label>Retirado por</label><input id="sai-resp" type="text" placeholder="Nome do funcionário"/></div></div>
+  <div class="fr"><div><label>Observação</label><input id="sai-obs" type="text" placeholder="Opcional..."/></div></div>
+  <div style="display:flex;justify-content:flex-end;gap:7px"><button class="btn" onclick="fecharMo('mo-estq-sai')">Cancelar</button><button class="btn ba" onclick="salvarSaida()">Registrar saída</button></div>
+</div></div>
+
+<div class="mo" id="mo-fixa"><div class="mbox">
+  <div class="mh"><span>Nova despesa fixa</span><div class="mx" onclick="fecharMo('mo-fixa')">✕</div></div>
+  <div class="fr fr2"><div><label>Descrição</label><input id="fx-desc" type="text" placeholder="Ex: Aluguel, contador..."/></div><div><label>Valor mensal (R$)</label><input id="fx-val" type="number" placeholder="0,00" step="0.01"/></div></div>
+  <div class="fr fr2"><div><label>Dia do vencimento</label><input id="fx-dia" type="number" placeholder="10" min="1" max="31"/></div><div><label>Categoria</label><select id="fx-cat"><option>Aluguel</option><option>Contador</option><option>Seguro</option><option>Internet/Telefone</option><option>Software</option><option>Imposto fixo</option><option>Outro</option></select></div></div>
+  <div style="display:flex;justify-content:flex-end;gap:7px"><button class="btn" onclick="fecharMo('mo-fixa')">Cancelar</button><button class="btn bp" onclick="salvarFixa()">Salvar</button></div>
+</div></div>
+
+<div class="mo" id="mo-diario"><div class="mbox">
+  <div class="mh"><span>Novo registro diário</span><div class="mx" onclick="fecharMo('mo-diario')">✕</div></div>
+  <div class="fr fr2"><div><label>Obra</label><select id="dr-obra"></select></div><div><label>Data</label><input id="dr-data" type="date"/></div></div>
+  <div class="fr fr3"><div><label>Etapa da obra</label><select id="dr-etapa"><option>Fundação</option><option>Estrutura</option><option>Alvenaria</option><option>Cobertura</option><option>Revestimento</option><option>Instalações elétricas</option><option>Instalações hidráulicas</option><option>Pintura</option><option>Acabamento</option><option>Outro</option></select></div><div><label>Funcionários presentes</label><input id="dr-funcs" type="number" value="0" min="0"/></div><div><label>Clima</label><select id="dr-clima"><option>Ensolarado</option><option>Nublado</option><option>Chuva — parado</option><option>Parcialmente nublado</option></select></div></div>
+  <div class="fr"><div><label>Atividades realizadas</label><textarea id="dr-ativ" placeholder="Descreva o que foi feito hoje..."></textarea></div></div>
+  <div class="fr"><div><label>Ocorrências / Problemas</label><textarea id="dr-ocorr" placeholder="Imprevistos, atrasos, acidentes..."></textarea></div></div>
+  <div class="fr">
+    <div>
+      <label>📸 Fotos da obra</label>
+      <div class="upload-btn-wrap">
+        <button class="btn sm">📷 Selecionar fotos</button>
+        <input type="file" id="dr-fotos" accept="image/*" multiple onchange="previaDiarFotos(this)"/>
+      </div>
+      <div class="foto-preview-wrap" id="dr-fotos-preview"></div>
+    </div>
+  </div>
+  <div style="display:flex;justify-content:flex-end;gap:7px"><button class="btn" onclick="fecharMo('mo-diario')">Cancelar</button><button class="btn bp" onclick="salvarDiario()">Salvar registro</button></div>
+</div></div>
+
+<div class="mo" id="mo-user"><div class="mbox">
+  <div class="mh"><span id="mo-user-titulo">Novo usuário</span><div class="mx" onclick="fecharMo('mo-user')">✕</div></div>
+  <div class="fr fr2">
+    <div><label>Nome completo</label><input id="us-nome" type="text" placeholder="Ex: Joao Silva"/></div>
+    <div><label>E-mail (usado no login)</label><input id="us-email" type="email" placeholder="joao@empresa.com"/></div>
+  </div>
+  <div class="fr fr2">
+    <div>
+      <label>Nível de acesso</label>
+      <select id="us-nivel" onchange="mostrarDescNivel()">
+        <option value="adm">Administrador — acesso total</option>
+        <option value="fin">Financeiro — lancamentos e relatorios</option>
+        <option value="alm">Almoxarifado — estoque</option>
+        <option value="ges">Gestor de obra — obras e diario</option>
+      </select>
+      <div id="nivel-desc" style="font-size:10px;color:var(--ac);margin-top:4px;padding:4px 8px;background:var(--bg4);border-radius:var(--r)"></div>
+    </div>
+    <div>
+      <label>Senha de acesso</label>
+      <input id="us-senha" type="password" placeholder="Minimo 4 caracteres"/>
+      <div style="font-size:10px;color:var(--tx3);margin-top:3px">Login: e-mail + esta senha</div>
+    </div>
+  </div>
+  <div style="display:flex;justify-content:flex-end;gap:7px">
+    <button class="btn" onclick="fecharMo('mo-user')">Cancelar</button>
+    <button class="btn bp" onclick="salvarUser()">Salvar usuário</button>
+  </div>
+</div></div>
+  <div class="fr fr2">
+    <div><label>Nome completo</label><input id="us-nome" type="text" placeholder="Ex: Joao Silva"/></div>
+    <div><label>E-mail (usado no login)</label><input id="us-email" type="email" placeholder="joao@empresa.com"/></div>
+  </div>
+  <div class="fr fr2">
+    <div>
+      <label>Nível de acesso</label>
+      <select id="us-nivel" onchange="mostrarDescNivel()">
+        <option value="adm">Administrador — acesso total</option>
+        <option value="fin">Financeiro — lancamentos e relatorios</option>
+        <option value="alm">Almoxarifado — estoque</option>
+        <option value="ges">Gestor de obra — obras e diario</option>
+      </select>
+      <div id="nivel-desc" style="font-size:10px;color:var(--ac);margin-top:4px;padding:4px 8px;background:var(--bg4);border-radius:var(--r)"></div>
+    </div>
+    <div>
+      <label>Senha de acesso</label>
+      <input id="us-senha" type="password" placeholder="Minimo 4 caracteres"/>
+      <div style="font-size:10px;color:var(--tx3);margin-top:3px">Login: e-mail + esta senha</div>
+    </div>
+  </div>
+  <div style="display:flex;justify-content:flex-end;gap:7px">
+    <button class="btn" onclick="fecharMo('mo-user')">Cancelar</button>
+    <button class="btn bp" onclick="salvarUser()">Salvar usuário</button>
+  </div>
+</div></div>
+
+<script>
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CONSTANTES GLOBAIS — declaradas no topo para evitar ReferenceError
+// ═══════════════════════════════════════════════════════════════════════════
+var URL_SERVIDOR_CFG = 'https://script.google.com/macros/s/AKfycbzmLyefN11Xs8kNKJaGW-UESg4AYmyEEpCy5ECJ69bBhJmjQP5vL6_Jg6Ce470u5cnz/exec';
+var SK_LIC_GLOBAL    = 'figforge_lic_v2';
+var SK_SESS_GLOBAL   = 'figforge_sess_v1';
+var VERSAO_APP       = '1.0.0';
+var SK_UPD_GLOBAL    = 'figforge_update_v1';
+var PLANOS_CFG = {
+  starter: {
+    nome:'Starter', preco:'R$ 47/mes', cor:'badge-starter', icone:'⭐',
+    modulos:['dashboard','obras','orcamentos','clientes','financeiro','config'],
+    desc:'Obras, Clientes, Orcamentos e Financeiro basico'
+  },
+  pro: {
+    nome:'Profissional', preco:'R$ 97/mes', cor:'badge-pro', icone:'🚀',
+    modulos:['dashboard','obras','orcamentos','clientes','financeiro',
+             'funcionarios','estoque','diario','relatorios','usuarios','config'],
+    desc:'Tudo do Starter + Funcionarios CLT, Estoque, Relatorios e Diario'
+  }
+};
+// ================================================================ ESTADO
+const SK = 'figforge-v1';
+let DB = {
+  obras:[], clientes:[], funcionarios:[], pontos:[], materiais:[],
+  movEstq:[], lancamentos:[], fixas:[], diario:[], orcamentos:[], users:[], config:{}
+};
+let orcLinhas = [], editId = {};
+let orcNum = 1;
+
+// ================================================================ STORAGE
+function load(){
+  try{ const v=localStorage.getItem(SK); if(v){ DB=JSON.parse(v); orcNum=Math.max(1,(DB.orcamentos||[]).length+1); } }catch(e){}
+}
+function save(){ try{ localStorage.setItem(SK,JSON.stringify(DB)); }catch(e){ alert('Erro ao salvar: '+e.message); } }
+
+// ================================================================ UTILS
+function id(){ return Date.now()+Math.random().toString(36).slice(2); }
+function el(i){ return document.getElementById(i); }
+function set(i,v){ const e=el(i); if(e) e.innerHTML=v; }
+function val(i){ const e=el(i); return e?e.value:''; }
+function setV(i,v){ const e=el(i); if(e) e.value=v||''; }
+function fmt(n){ return 'R$ '+Number(n||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function fmtN(n){ return Number(n||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function hoje(){ return new Date().toISOString().split('T')[0]; }
+function fmtData(d){ if(!d)return'—'; const [a,m,dia]=d.split('-'); return `${dia}/${m}/${a}`; }
+function nomeOb(id){ const o=DB.obras.find(x=>x.id===id); return o?o.nome:'—'; }
+function nomeCl(id){ const c=DB.clientes.find(x=>x.id===id); return c?c.nome:'—'; }
+
+// ================================================================ NAVEGAÇÃO
+const TTLS={dashboard:'📊 Dashboard',obras:'🏗️ Obras',orcamentos:'🧾 Orçamentos',clientes:'👥 Clientes',funcionarios:'👷 Funcionários',estoque:'📦 Estoque',financeiro:'💰 Financeiro',diario:'📸 Diário de Obra',relatorios:'📋 Relatórios',usuarios:'🔐 Usuários',config:'⚙️ Configurações'};
+const ACTS={obras:'+ Nova obra',orcamentos:'+ Orçamento',clientes:'+ Novo cliente',funcionarios:'+ Novo funcionário',estoque:'+ Novo material',financeiro:'',diario:'+ Novo registro',usuarios:'+ Novo usuário'};
+let panelAtual='dashboard';
+
+document.querySelectorAll('.sbi').forEach(s=>{
+  s.addEventListener('click',function(){
+    const p=this.getAttribute('data-p');
+    navegar(p);
+  });
+});
+
+function navegar(p){
+  // Verifica plano antes de navegar
+  if(!moduloDisponivel(p)){
+    mostrarUpgradeBanner(p);
+    return;
+  }
+  document.querySelectorAll('.pnl').forEach(x=>x.classList.remove('on'));
+  document.querySelectorAll('.sbi').forEach(x=>x.classList.remove('act'));
+  el('pnl-'+p)?.classList.add('on');
+  document.querySelector(`.sbi[data-p="${p}"]`)?.classList.add('act');
+  panelAtual=p;
+  el('ttl').textContent=TTLS[p]||p;
+  const btn=el('btn-acao');
+  if(ACTS[p]){btn.textContent=ACTS[p];btn.style.display='inline-flex';}else btn.style.display='none';
+  renderPanel(p);
+}
+
+el('btn-sb').addEventListener('click',()=>el('sb').classList.toggle('mini'));
+el('btn-acao').addEventListener('click',()=>{
+  const mo={obras:'mo-obra',orcamentos:null,clientes:'mo-cli',funcionarios:'mo-func',estoque:'mo-estq',diario:'mo-diario',usuarios:'mo-user'};
+  if(panelAtual==='orcamentos'){ itab('orc','novo',document.querySelectorAll('.itab')[0]); return; }
+  if(mo[panelAtual]) abrirMo(mo[panelAtual]);
+});
+
+function renderPanel(p){
+  if(p==='dashboard') renderDash();
+  if(p==='obras') renderObras();
+  if(p==='orcamentos'){ renderOrcLista(); preencherSelects(); }
+  if(p==='clientes') renderClientes();
+  if(p==='funcionarios'){ renderFuncionarios(); preencherPontoSelects(); }
+  if(p==='estoque') renderEstoque();
+  if(p==='financeiro'){ renderLanc(); renderResumo(); renderFixas(); preencherFinSelects(); }
+  if(p==='diario') renderDiario();
+  if(p==='relatorios') renderRelatorios();
+  if(p==='usuarios') renderUsers();
+  if(p==='config') renderConfig();
+}
+
+// ================================================================ MODAIS
+function abrirMo(id){ el(id)?.classList.add('op'); preencherMoSelects(id); }
+function fecharMo(id){ el(id)?.classList.remove('op'); }
+document.querySelectorAll('.mo').forEach(m=>m.addEventListener('click',function(e){if(e.target===this)this.classList.remove('op');}));
+
+function preencherMoSelects(id){
+  const obraOpts=DB.obras.map(o=>`<option value="${o.id}">${o.nome}</option>`).join('');
+  const cliOpts=DB.clientes.map(c=>`<option value="${c.id}">${c.nome}</option>`).join('');
+  const funcOpts=DB.funcionarios.filter(f=>f.status==='Ativo').map(f=>`<option value="${f.id}">${f.nome}</option>`).join('');
+  const matOpts=DB.materiais.map(m=>`<option value="${m.id}">${m.nome} (${m.un})</option>`).join('');
+  if(id==='mo-obra'){setInnerSelect('ob-cli',cliOpts||'<option value="">Nenhum cliente cadastrado</option>');}
+  if(id==='mo-func'){setInnerSelect('fn-obra','<option value="">Sem obra</option>'+obraOpts);}
+  if(id==='mo-ponto'){setInnerSelect('pt-func',funcOpts||'<option value="">Nenhum funcionário</option>');setInnerSelect('pt-obra','<option value="">Sem obra</option>'+obraOpts);setV('pt-data',hoje());}
+  if(id==='mo-estq'){setInnerSelect('es-obra','<option value="">Estoque geral</option>'+obraOpts);}
+  if(id==='mo-estq-ent'){setInnerSelect('ent-mat',matOpts||'<option value="">Cadastre materiais primeiro</option>');setInnerSelect('ent-obra','<option value="">Geral</option>'+obraOpts);setV('ent-data',hoje());}
+  if(id==='mo-estq-sai'){setInnerSelect('sai-mat',matOpts||'<option value="">Cadastre materiais primeiro</option>');setInnerSelect('sai-obra','<option value="">Sem obra</option>'+obraOpts);setV('sai-data',hoje());}
+  if(id==='mo-diario'){setInnerSelect('dr-obra',obraOpts||'<option value="">Cadastre obras primeiro</option>');setV('dr-data',hoje());}
+}
+function setInnerSelect(id,html){const e=el(id);if(e)e.innerHTML=html;}
+
+function preencherSelects(){
+  const obraOpts=DB.obras.map(o=>`<option value="${o.id}">${o.nome}</option>`).join('');
+  const cliOpts=DB.clientes.map(c=>`<option value="${c.id}">${c.nome}</option>`).join('');
+  setInnerSelect('of-cli','<option value="">Selecione...</option>'+cliOpts);
+  setInnerSelect('of-obra','<option value="">Nenhuma</option>'+obraOpts);
+  setV('of-data',hoje());
+  const bdi=DB.config.bdi||25;
+  setV('of-bdi',bdi);
+}
+function preencherPontoSelects(){
+  const funcOpts=DB.funcionarios.filter(f=>f.status==='Ativo').map(f=>`<option value="${f.id}">${f.nome}</option>`).join('');
+  setInnerSelect('ponto-func',funcOpts||'<option value="">Nenhum funcionário</option>');
+  setInnerSelect('pg-func',funcOpts||'<option value="">Nenhum funcionário</option>');
+  const ym=new Date().toISOString().slice(0,7);
+  setV('ponto-mes',ym);setV('pg-mes',ym);
+}
+function preencherFinSelects(){
+  const obraOpts=DB.obras.map(o=>`<option value="${o.id}">${o.nome}</option>`).join('');
+  setInnerSelect('fl-obra','<option value="">Nenhuma / Geral</option>'+obraOpts);
+  setInnerSelect('res-obra','<option value="">Todas as obras</option>'+obraOpts);
+  setV('fl-data',hoje());
+  const ca=el('lanc-comp-area');if(ca) ca.style.display='block';
+  const meses=[];
+  const agora=new Date();
+  for(let i=11;i>=0;i--){const d=new Date(agora.getFullYear(),agora.getMonth()-i,1);const v=d.toISOString().slice(0,7);const n=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][d.getMonth()]+'/'+d.getFullYear();meses.push({v,n});}
+  const mOpts='<option value="">Todos os meses</option>'+meses.map(m=>`<option value="${m.v}">${m.n}</option>`).join('');
+  setInnerSelect('fin-filtro-mes',mOpts);
+  setInnerSelect('res-mes',meses.map(m=>`<option value="${m.v}">${m.n}</option>`).join(''));
+  const mesAtual=agora.toISOString().slice(0,7);
+  el('res-mes').value=mesAtual;
+}
+
+// ================================================================ INNER TABS
+function itab(ns,id,el_){
+  const pnlId='pnl-'+ns==='pnl-orcamentos'?'pnl-orcamentos':'pnl-'+ns;
+  document.querySelectorAll(`[id^="${ns}-"]`).forEach(p=>{
+    if(p.classList.contains('itp'))p.classList.remove('on');
+  });
+  el(ns+'-'+id)?.classList.add('on');
+  if(el_){
+    el_.closest('.itabs')?.querySelectorAll('.itab').forEach(t=>t.classList.remove('on'));
+    el_?.classList.add('on');
+  }
+}
+
+// ================================================================ DASHBOARD
+function renderDash(){
+  const totalObras=DB.obras.filter(o=>o.status==='Em andamento').length;
+  const totalClientes=DB.clientes.length;
+  const hoje_=hoje();
+  const lancMes=DB.lancamentos.filter(l=>l.data&&l.data.slice(0,7)===hoje_.slice(0,7));
+  const receitas=lancMes.filter(l=>l.tipo==='receita').reduce((s,l)=>s+Number(l.val||0),0);
+  const despesas=lancMes.filter(l=>l.tipo==='despesa').reduce((s,l)=>s+Number(l.val||0),0);
+  const criticos=DB.materiais.filter(m=>Number(m.qtd||0)<=Number(m.min||0)&&Number(m.min||0)>0).length;
+  set('dash-stats',`
+    <div class="st b"><div class="st-ico">🏗️</div><div class="st-val">${totalObras}</div><div class="st-lbl">Obras em andamento</div></div>
+    <div class="st g"><div class="st-ico">💰</div><div class="st-val">${fmt(receitas)}</div><div class="st-lbl">Receitas do mês</div></div>
+    <div class="st r"><div class="st-ico">💸</div><div class="st-val">${fmt(despesas)}</div><div class="st-lbl">Despesas do mês</div></div>
+    <div class="st a"><div class="st-ico">📦</div><div class="st-val">${criticos}</div><div class="st-lbl">Estoque crítico</div></div>
+    <div class="st p"><div class="st-ico">👥</div><div class="st-val">${totalClientes}</div><div class="st-lbl">Clientes cadastrados</div></div>
+  `);
+  const obras=DB.obras.filter(o=>o.status==='Em andamento').slice(0,4);
+  set('dash-obras',obras.length?obras.map(o=>`<div style="padding:8px;background:var(--bg3);border-radius:var(--r);margin-bottom:5px"><div style="font-size:12px;font-weight:600">${o.nome}</div><div style="font-size:10px;color:var(--tx2);margin-top:2px">${nomeCl(o.cliente)} · ${o.area||'—'} m²</div><div class="prog"><div class="pf" style="width:${o.progresso||0}%"></div></div><div style="font-size:10px;color:var(--tx2);margin-top:2px">${o.progresso||0}% concluído</div></div>`).join(''):'<div class="empty">Nenhuma obra em andamento</div>');
+  const movs=DB.lancamentos.slice(-5).reverse();
+  set('dash-movs',movs.length?movs.map(l=>`<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--br);font-size:11px"><span>${fmtData(l.data)} · ${l.desc}</span><span style="color:${l.tipo==='receita'?'var(--gn)':'var(--rd)'};">${l.tipo==='receita'?'+':'-'}${fmt(l.val)}</span></div>`).join(''):'<div class="empty">Nenhum lançamento</div>');
+  const funcs=DB.funcionarios.filter(f=>f.status==='Ativo').slice(0,4);
+  set('dash-funcs',funcs.length?funcs.map(f=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--br);font-size:11px"><span>👷 ${f.nome} — ${f.func}</span><span class="bdg bgg">Ativo</span></div>`).join(''):'<div class="empty">Nenhum funcionário ativo</div>');
+  const crit=DB.materiais.filter(m=>Number(m.qtd||0)<=Number(m.min||0)&&Number(m.min||0)>0).slice(0,4);
+  set('dash-estq',crit.length?crit.map(m=>`<div style="padding:6px;background:rgba(232,75,75,.07);border:1px solid rgba(232,75,75,.18);border-radius:var(--r);margin-bottom:4px;font-size:11px"><div style="font-weight:600">${m.nome}</div><div style="color:var(--tx2);">${m.qtd} ${m.un} — mín: ${m.min}</div></div>`).join(''):'<div class="empty" style="color:var(--gn)">✔ Estoque OK</div>');
+}
+
+// ================================================================ OBRAS
+function renderObras(){
+  const statusList=[{k:'Em andamento',cls:'t-and'},{k:'Orçamento',cls:'t-orc'},{k:'Parada',cls:'t-par'},{k:'Concluída',cls:'t-fin'}];
+  set('kanban-obras',statusList.map(s=>{
+    const obras=DB.obras.filter(o=>o.status===s.k);
+    return `<div class="kb-col">
+      <div class="kb-h"><span>${s.k}</span><span class="bdg bgb">${obras.length}</span></div>
+      ${obras.map(o=>`<div class="kb-c">
+        <div class="kb-ct">${o.nome}</div>
+        <div class="kb-cs">${nomeCl(o.cliente)} · ${o.area||'—'} m²</div>
+        <div class="prog" style="margin-top:6px"><div class="pf" style="width:${o.progresso||0}%"></div></div>
+        <div style="font-size:9px;color:var(--tx2);margin-top:2px">${o.progresso||0}% · ${fmtData(o.prazo)}</div>
+        <div style="display:flex;gap:4px;margin-top:6px;flex-wrap:wrap">
+          <button class="btn xs bp" onclick="editarObra('${o.id}')">✏️</button>
+          <button class="btn xs" onclick="alterarProgresso('${o.id}')">% prog.</button>
+          <select class="btn xs" onchange="alterarStatus('${o.id}',this.value)" style="padding:2px 4px">
+            ${statusList.map(ss=>`<option ${ss.k===o.status?'selected':''}>${ss.k}</option>`).join('')}
+          </select>
+          <button class="btn xs br-" onclick="deletar('obras','${o.id}');renderObras()">🗑</button>
+        </div>
+      </div>`).join('')}
+      <button class="btn sm" style="width:100%;margin-top:6px" onclick="abrirMo('mo-obra')">+ Nova obra</button>
+    </div>`;
+  }).join(''));
+}
+
+function alterarStatus(id,status){DB.obras.find(o=>o.id===id).status=status;save();}
+function alterarProgresso(id){
+  const p=prompt('Progresso atual (0-100%):');
+  if(p!==null&&!isNaN(p)){DB.obras.find(o=>o.id===id).progresso=Math.min(100,Math.max(0,parseInt(p)));save();renderObras();}
+}
+function editarObra(id){
+  const o=DB.obras.find(x=>x.id===id);if(!o)return;
+  editId.obra=id;
+  el('mo-obra-titulo').textContent='Editar obra';
+  abrirMo('mo-obra');
+  setTimeout(()=>{setV('ob-nome',o.nome);el('ob-cli').value=o.cliente||'';setV('ob-area',o.area);setV('ob-valor',o.valor);setV('ob-ini',o.ini);setV('ob-prazo',o.prazo);setV('ob-end',o.end);setV('ob-resp',o.resp);setV('ob-obs',o.obs);el('ob-tipo').value=o.tipo||'Residencial';},80);
+}
+function salvarObra(){
+  const dados={nome:val('ob-nome'),cliente:val('ob-cli'),tipo:val('ob-tipo'),area:val('ob-area'),valor:val('ob-valor'),ini:val('ob-ini'),prazo:val('ob-prazo'),end:val('ob-end'),resp:val('ob-resp'),obs:val('ob-obs'),status:'Em andamento',progresso:0};
+  if(!dados.nome){alert('Preencha o nome da obra.');return;}
+  if(editId.obra){Object.assign(DB.obras.find(x=>x.id===editId.obra),dados);delete editId.obra;}
+  else{dados.id=id();DB.obras.push(dados);}
+  save();fecharMo('mo-obra');renderObras();
+  el('mo-obra-titulo').textContent='Nova obra';
+  ['ob-nome','ob-area','ob-valor','ob-ini','ob-prazo','ob-end','ob-resp','ob-obs'].forEach(i=>setV(i,''));
+}
+
+// ================================================================ CLIENTES
+function renderClientes(){
+  const q=val('cli-busca').toLowerCase();
+  const lista=DB.clientes.filter(c=>!q||c.nome.toLowerCase().includes(q)||c.doc?.includes(q)||c.tel?.includes(q));
+  set('tbl-cli',lista.length?lista.map(c=>{
+    const obras=DB.obras.filter(o=>o.cliente===c.id).length;
+    return `<tr><td><strong>${c.nome}</strong></td><td>${c.doc||'—'}</td><td>${c.tel||'—'}</td><td>${c.email||'—'}</td><td><span class="bdg ${c.tipo==='Pessoa Física'?'bgb':'bgp'}">${c.tipo||'PF'}</span></td><td>${obras} obra(s)</td><td><div style="display:flex;gap:4px"><button class="btn xs bp" onclick="editarCliente('${c.id}')">✏️</button><button class="btn xs br-" onclick="deletar('clientes','${c.id}');renderClientes()">🗑</button></div></td></tr>`;
+  }).join(''):`<tr><td colspan="7" class="empty">Nenhum cliente encontrado</td></tr>`);
+}
+function editarCliente(id){
+  const c=DB.clientes.find(x=>x.id===id);if(!c)return;
+  editId.cli=id;el('mo-cli-titulo').textContent='Editar cliente';
+  abrirMo('mo-cli');
+  setTimeout(()=>{setV('cl-nome',c.nome);setV('cl-doc',c.doc);setV('cl-tel',c.tel);setV('cl-email',c.email);setV('cl-end',c.end);setV('cl-obs',c.obs);el('cl-tipo').value=c.tipo||'Pessoa Física';},80);
+}
+function salvarCliente(){
+  const dados={nome:val('cl-nome'),doc:val('cl-doc'),tel:val('cl-tel'),email:val('cl-email'),end:val('cl-end'),obs:val('cl-obs'),tipo:val('cl-tipo')};
+  if(!dados.nome){alert('Preencha o nome.');return;}
+  if(editId.cli){Object.assign(DB.clientes.find(x=>x.id===editId.cli),dados);delete editId.cli;}
+  else{dados.id=id();DB.clientes.push(dados);}
+  save();fecharMo('mo-cli');renderClientes();
+  el('mo-cli-titulo').textContent='Novo cliente';
+  ['cl-nome','cl-doc','cl-tel','cl-email','cl-end','cl-obs'].forEach(i=>setV(i,''));
+}
+
+// ================================================================ FUNCIONÁRIOS
+function renderFuncionarios(){
+  const q=val('func-busca').toLowerCase();
+  const lista=DB.funcionarios.filter(f=>!q||f.nome.toLowerCase().includes(q)||f.func?.toLowerCase().includes(q));
+  set('tbl-func',lista.length?lista.map(f=>`<tr><td><strong>${f.nome}</strong></td><td>${f.cpf||'—'}</td><td>${f.func||'—'}</td><td><span class="bdg bgb">${f.tipo||'—'}</span></td><td>${fmt(f.val)}</td><td>${nomeOb(f.obra)}</td><td><span class="bdg ${f.status==='Ativo'?'bgg':'bgr'}">${f.status}</span></td><td><div style="display:flex;gap:4px"><button class="btn xs bp" onclick="editarFunc('${f.id}')">✏️</button><button class="btn xs br-" onclick="deletar('funcionarios','${f.id}');renderFuncionarios()">🗑</button></div></td></tr>`).join(''):`<tr><td colspan="8" class="empty">Nenhum funcionário cadastrado</td></tr>`);
+}
+
+
+
+// ================================================================ PONTO
+function renderPonto(){
+  const fid=val('ponto-func'), mes=val('ponto-mes');
+  if(!fid||!mes){
+    set('tbl-ponto','<tr><td colspan="9" class="empty">Selecione funcionário e mês</td></tr>');
+    set('ponto-resumo','');return;
+  }
+  const func=DB.funcionarios.find(f=>f.id===fid);
+  const vinculo=(func?.vinculo||func?.tipo||'diaria').toLowerCase();
+  const isCLT=vinculo==='clt';
+
+  const regs=DB.pontos.filter(p=>p.func===fid&&p.data&&p.data.slice(0,7)===mes);
+  regs.sort((a,b)=>a.data<b.data?-1:1);
+
+  set('tbl-ponto', regs.length ? regs.map(p=>{
+    const hexV=Number(p.hex||0);
+    return `<tr>
+      <td>${fmtData(p.data)}</td>
+      <td>${p.entrada||'—'}</td>
+      <td>${p.saida||'—'}</td>
+      <td>${p.intervalo!=null?p.intervalo+'min':'—'}</td>
+      <td>${p.horas||'—'}</td>
+      <td style="color:${hexV>0?'var(--am)':'var(--tx2)'}">
+        ${hexV>0?hexV.toFixed(2)+'h':'—'}
+      </td>
+      <td><span class="bdg ${p.tipo==='Presente'?'bgg':p.tipo?.includes('injust')?'bgr':'bgo'}">
+        ${p.tipo}
+      </span></td>
+      <td>${p.obs||'—'}</td>
+      <td><button class="btn xs br-" onclick="deletar('pontos','${p.id}');renderPonto()">🗑</button></td>
+    </tr>`;
+  }).join('') : '<tr><td colspan="9" class="empty">Nenhum registro neste mês</td></tr>');
+
+  // ── Resumo do mês ──────────────────────────────────────────────────────────
+  const presentes = regs.filter(p=>p.tipo==='Presente').length;
+  const faltasInj = regs.filter(p=>p.tipo==='Falta injustificada').length;
+  const faltasJus = regs.filter(p=>p.tipo==='Falta justificada').length;
+  const hexTotal  = regs.reduce((s,p)=>s+Number(p.hex||0),0);
+
+  const salario   = Number(func?.val||0);
+
+  // ── Cálculo proporcional por vínculo ─────────────────────────────────────
+  var DIAS_REF = 30; // padrão CLT: 30 dias corridos
+  var valorDia = salario / DIAS_REF;
+  var base = 0, valorHora = 0, vHex = 0, descFaltas = 0;
+
+  if(isCLT || vinculo==='mensal'){
+    // Proporcional: paga pelos dias presentes (salário / 30 × presentes)
+    var totalLanc = regs.length;
+    if(totalLanc >= 22 && faltasInj > 0){
+      // Mês completo: desconta faltas
+      descFaltas = valorDia * faltasInj;
+      base = salario - descFaltas;
+    } else {
+      // Parcial ou sem faltas: proporcional pelos presentes
+      base = valorDia * presentes;
+    }
+    const hMes = Number(func?.horasMes||220);
+    valorHora = hMes > 0 ? salario / hMes : 0;
+    vHex = hexTotal * valorHora * 1.5;
+  } else if(vinculo==='diaria'){
+    base = salario * presentes;
+    descFaltas = faltasInj * salario;
+    valorHora = salario / (Number(func?.horasDia||8));
+    vHex = hexTotal * valorHora * 1.5;
+  } else {
+    base = salario; // empreitada: valor fixo
+  }
+
+  const liquido = Math.max(0, base + vHex - (vinculo==='diaria' ? descFaltas : 0));
+
+  // Linha de horário combinado (CLT)
+  const horInfo = isCLT && func?.horEntrada
+    ? `<div style="font-size:11px;padding:5px 8px;background:var(--bg3);border-radius:var(--r);margin-bottom:8px;color:var(--tx2)">
+        ⏱️ Horário combinado: <b style="color:var(--tx)">${func.horEntrada} – ${func.horSaida}</b>
+        · Intervalo: ${func.intervalo||60} min
+        · <b style="color:var(--tx)">${(func.horasDia||8).toFixed(1)} h/dia</b>
+        · Hora extra = R$ ${fmtN(valorHora*1.5)}/h
+       </div>` : '';
+
+  set('ponto-resumo', `
+    ${horInfo}
+    <div style="display:flex;gap:12px;flex-wrap:wrap;font-size:12px;margin-bottom:10px">
+      <div><div style="color:var(--tx2);font-size:10px">Dias presentes</div>
+           <div style="font-size:20px;font-weight:700;color:var(--gn)">${presentes}</div></div>
+      <div><div style="color:var(--tx2);font-size:10px">Faltas injust.</div>
+           <div style="font-size:20px;font-weight:700;color:var(--rd)">${faltasInj}</div></div>
+      <div><div style="color:var(--tx2);font-size:10px">Faltas just.</div>
+           <div style="font-size:20px;font-weight:700;color:var(--bgo)">${faltasJus}</div></div>
+      <div><div style="color:var(--tx2);font-size:10px">H. extras</div>
+           <div style="font-size:20px;font-weight:700;color:var(--am)">${hexTotal.toFixed(2)}h</div></div>
+    </div>
+    <div class="tot-box">
+      <div class="tot-r">
+        <span>${isCLT||vinculo==='mensal'?'Salário base (mensal fixo)':vinculo==='diaria'?`Diárias: ${presentes} × ${fmt(salario)}`:'Empreitada'}</span>
+        <span>${fmt(base)}</span>
+      </div>
+      ${vHex>0?`<div class="tot-r">
+        <span>H. extras: ${hexTotal.toFixed(2)}h × R$ ${fmtN(valorHora*1.5)}/h</span>
+        <span style="color:var(--am)">${fmt(vHex)}</span>
+      </div>`:''}
+      ${descFaltas>0?`<div class="tot-r">
+        <span>Desc. faltas injust. (${faltasInj})</span>
+        <span style="color:var(--rd)">- ${fmt(descFaltas)}</span>
+      </div>`:''}
+      <div class="tot-r" style="color:var(--gn)">
+        ESTIMATIVA BRUTA
+        <span>${fmt(liquido)}</span>
+      </div>
+    </div>
+    <div style="font-size:10px;color:var(--tx3);margin-top:5px">
+      * Valor estimado — acesse a aba <b>Pagamento</b> para calcular e confirmar o pagamento oficial.
+    </div>`);
+}
+
+function nomeMat(id){const m=DB.materiais.find(x=>x.id===id);return m?m.nome:'—';}
+function editarMat(id){
+  const m=DB.materiais.find(x=>x.id===id);if(!m)return;
+  editId.mat=id;el('mo-estq-titulo').textContent='Editar material';
+  abrirMo('mo-estq');
+  setTimeout(()=>{setV('es-nome',m.nome);el('es-un').value=m.un||'un';setV('es-qtd',m.qtd);setV('es-min',m.min);setV('es-vl',m.vl);setV('es-loc',m.loc);},80);
+}
+function salvarMaterial(){
+  const dados={nome:val('es-nome'),un:val('es-un'),qtd:Number(val('es-qtd'))||0,min:Number(val('es-min'))||0,vl:Number(val('es-vl'))||0,loc:val('es-loc'),obra:val('es-obra')};
+  if(!dados.nome){alert('Preencha a descrição.');return;}
+  if(editId.mat){Object.assign(DB.materiais.find(x=>x.id===editId.mat),dados);delete editId.mat;}
+  else{dados.id=id();DB.materiais.push(dados);}
+  save();fecharMo('mo-estq');renderEstoque();
+  el('mo-estq-titulo').textContent='Novo material';
+  ['es-nome','es-qtd','es-min','es-vl','es-loc'].forEach(i=>setV(i,''));
+}
+function salvarEntrada(){
+  const mid=val('ent-mat'),qtd=Number(val('ent-qtd'))||0;
+  if(!mid||!qtd){alert('Selecione o material e a quantidade.');return;}
+  const m=DB.materiais.find(x=>x.id===mid);
+  if(m)m.qtd=Number(m.qtd||0)+qtd;
+  DB.movEstq.push({id:id(),tipo:'entrada',mat:mid,qtd,data:val('ent-data'),obra:val('ent-obra'),forn:val('ent-forn'),nf:val('ent-nf'),obs:val('ent-obs'),vl:Number(val('ent-vl'))||0});
+  save();fecharMo('mo-estq-ent');renderEstoque();
+  ['ent-qtd','ent-vl','ent-forn','ent-nf','ent-obs'].forEach(i=>setV(i,''));
+}
+function salvarSaida(){
+  const mid=val('sai-mat'),qtd=Number(val('sai-qtd'))||0;
+  if(!mid||!qtd){alert('Selecione o material e a quantidade.');return;}
+  const m=DB.materiais.find(x=>x.id===mid);
+  if(m){if(Number(m.qtd||0)<qtd&&!confirm(`Estoque insuficiente (${m.qtd} disponíveis). Continuar mesmo assim?`))return;m.qtd=Math.max(0,Number(m.qtd||0)-qtd);}
+  DB.movEstq.push({id:id(),tipo:'saida',mat:mid,qtd,data:val('sai-data'),obra:val('sai-obra'),resp:val('sai-resp'),obs:val('sai-obs')});
+  save();fecharMo('mo-estq-sai');renderEstoque();
+  ['sai-qtd','sai-resp','sai-obs'].forEach(i=>setV(i,''));
+}
+
+// ================================================================ FINANCEIRO
+function toggleFlTipo(){
+  const t=val('fl-tipo');
+  const cats=t==='receita'?['Serviço prestado','Adiantamento','Pagamento de etapa','Outros']:['Material','Mão de obra','Equipamento','Serviço terceiro','Imposto','Aluguel','Outro'];
+  setInnerSelect('fl-cat',cats.map(c=>`<option>${c}</option>`).join(''));
+}
+function salvarLanc(){
+  const dados={id:id(),tipo:val('fl-tipo'),cat:val('fl-cat'),obra:val('fl-obra'),data:val('fl-data'),desc:val('fl-desc'),val:Number(val('fl-val'))||0,forn:val('fl-forn'),nf:val('fl-nf')};
+  if(!dados.desc||!dados.val){alert('Preencha a descrição e o valor.');return;}
+  DB.lancamentos.push(dados);save();renderLanc();limparLanc();
+}
+function limparLanc(){['fl-desc','fl-val','fl-forn','fl-nf'].forEach(i=>setV(i,''));setV('fl-data',hoje());}
+function renderLanc(){
+  const mes=val('fin-filtro-mes'), tipo=val('fin-filtro-tipo'), q=val('fin-busca').toLowerCase();
+  const lista=DB.lancamentos.filter(l=>(!mes||l.data?.slice(0,7)===mes)&&(!tipo||l.tipo===tipo)&&(!q||l.desc?.toLowerCase().includes(q)||l.forn?.toLowerCase().includes(q)));
+  lista.sort((a,b)=>b.data<a.data?-1:1);
+  set('tbl-lanc',lista.length?lista.map(l=>`<tr><td>${fmtData(l.data)}</td><td><span class="bdg ${l.tipo==='receita'?'bgg':'bgr'}">${l.tipo}</span></td><td>${l.cat||'—'}</td><td>${l.desc}</td><td>${nomeOb(l.obra)}</td><td>${l.forn||'—'}</td><td>${l.nf||'—'}</td><td style="font-weight:600;color:${l.tipo==='receita'?'var(--gn)':'var(--rd)'}">${fmt(l.val)}</td><td><button class="btn xs br-" onclick="deletar('lancamentos','${l.id}');renderLanc()">🗑</button></td></tr>`).join(''):`<tr><td colspan="9" class="empty">Nenhum lançamento encontrado</td></tr>`);
+}
+function renderResumo(){
+  const mes=val('res-mes'), obraF=val('res-obra');
+  const lista=DB.lancamentos.filter(l=>(!mes||l.data?.slice(0,7)===mes)&&(!obraF||l.obra===obraF));
+  const rec=lista.filter(l=>l.tipo==='receita').reduce((s,l)=>s+Number(l.val||0),0);
+  const desp=lista.filter(l=>l.tipo==='despesa').reduce((s,l)=>s+Number(l.val||0),0);
+  const saldo=rec-desp;
+  set('fin-stats',`
+    <div class="st g"><div class="st-ico">💚</div><div class="st-val">${fmt(rec)}</div><div class="st-lbl">Receitas</div></div>
+    <div class="st r"><div class="st-ico">💸</div><div class="st-val">${fmt(desp)}</div><div class="st-lbl">Despesas</div></div>
+    <div class="st b"><div class="st-ico">💹</div><div class="st-val">${fmt(saldo)}</div><div class="st-lbl" style="color:${saldo>=0?'var(--gn)':'var(--rd)'}">${saldo>=0?'Superávit':'Déficit'}</div></div>
+  `);
+  const catRec={}, catDesp={};
+  lista.forEach(l=>{if(l.tipo==='receita'){catRec[l.cat]=(catRec[l.cat]||0)+Number(l.val||0);}else{catDesp[l.cat]=(catDesp[l.cat]||0)+Number(l.val||0);}});
+  const barCat=(obj,cor)=>Object.entries(obj).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<div class="bc-row" style="display:flex;align-items:center;gap:7px;font-size:11px;margin-bottom:5px"><div style="min-width:110px;color:var(--tx2)">${k}</div><div style="flex:1;height:14px;background:var(--bg4);border-radius:4px;overflow:hidden"><div style="width:100%;height:100%;background:${cor};border-radius:4px;display:flex;align-items:center;padding:0 6px;font-size:9px;font-weight:600;color:#fff">${fmt(v)}</div></div></div>`).join('');
+  set('fin-cat-rec',Object.keys(catRec).length?barCat(catRec,'var(--gn)'):'<div class="empty">Sem receitas</div>');
+  set('fin-cat-desp',Object.keys(catDesp).length?barCat(catDesp,'var(--rd)'):'<div class="empty">Sem despesas</div>');
+}
+function renderFixas(){
+  set('tbl-fixas',DB.fixas.length?DB.fixas.map(f=>`<tr><td>${f.desc}</td><td>${fmt(f.val)}</td><td>Dia ${f.dia||'—'}</td><td>${f.cat||'—'}</td><td><span class="bdg bgo">Ativa</span></td><td><button class="btn xs br-" onclick="deletar('fixas','${f.id}');renderFixas()">🗑</button></td></tr>`).join(''):`<tr><td colspan="6" class="empty">Nenhuma despesa fixa cadastrada</td></tr>`);
+}
+function salvarFixa(){
+  const dados={id:id(),desc:val('fx-desc'),val:Number(val('fx-val'))||0,dia:val('fx-dia'),cat:val('fx-cat')};
+  if(!dados.desc||!dados.val){alert('Preencha descrição e valor.');return;}
+  DB.fixas.push(dados);save();fecharMo('mo-fixa');renderFixas();
+  ['fx-desc','fx-val','fx-dia'].forEach(i=>setV(i,''));
+}
+
+// ================================================================ DIÁRIO
+function renderDiario(){
+  const oid=val('diario-obra');
+  const regs=DB.diario.filter(d=>!oid||d.obra===oid);
+  regs.sort((a,b)=>b.data<a.data?-1:1);
+  setInnerSelect('diario-obra','<option value="">Todas as obras</option>'+DB.obras.map(o=>`<option value="${o.id}">${o.nome}</option>`).join(''));
+  set('lista-diario',regs.length?regs.map(d=>`<div class="card" style="margin-bottom:8px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:6px">
+      <div><div style="font-size:13px;font-weight:600">${fmtData(d.data)} — ${nomeOb(d.obra)}</div><div style="font-size:11px;color:var(--tx2);margin-top:2px">Etapa: ${d.etapa||'—'} · Funcionários: ${d.funcs||0} · Clima: ${d.clima||'—'}</div></div>
+      <button class="btn xs br-" onclick="deletar('diario','${d.id}');renderDiario()">🗑</button>
+    </div>
+    ${d.ativ?`<div style="font-size:12px;margin-bottom:6px"><strong>Atividades:</strong> ${d.ativ}</div>`:''}
+    ${d.ocorr?`<div style="font-size:12px;padding:6px;background:rgba(232,75,75,.07);border-radius:var(--r);border:1px solid rgba(232,75,75,.18)"><strong style="color:var(--rd)">⚠️ Ocorrências:</strong> ${d.ocorr}</div>`:''}
+    ${d.fotos&&d.fotos.length?`<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;padding-top:8px;border-top:1px solid var(--br)"><div style="width:100%;font-size:10px;color:var(--tx2);margin-bottom:2px">📸 Fotos (${d.fotos.length})</div>${d.fotos.map((f,i)=>`<img src="${f}" style="width:70px;height:70px;object-fit:cover;border-radius:6px;border:1px solid var(--br2);cursor:pointer" onclick="window.open(this.src,'_blank')" title="Foto ${i+1}"/>`).join('')}</div>`:''}
+  </div>`).join(''):'<div class="empty">Nenhum registro de diário</div>');
+}
+function salvarDiario(){
+  const dados={
+    id:id(),obra:val('dr-obra'),data:val('dr-data'),
+    etapa:val('dr-etapa'),funcs:val('dr-funcs'),clima:val('dr-clima'),
+    ativ:val('dr-ativ'),ocorr:val('dr-ocorr'),
+    fotos: drFotosData.length ? [...drFotosData] : []
+  };
+  if(!dados.obra||!dados.data){alert('Selecione a obra e a data.');return;}
+  DB.diario.push(dados);save();fecharMo('mo-diario');renderDiario();
+  ['dr-ativ','dr-ocorr'].forEach(i=>setV(i,''));
+  drFotosData=[];
+  const prev=el('dr-fotos-preview');if(prev)prev.innerHTML='';
+  const inp=el('dr-fotos');if(inp)inp.value='';
+}
+
+// ================================================================ RELATÓRIOS
+function renderRelatorios(){
+  const obraF=val('rel-obra');
+  const obras=DB.obras.filter(o=>!obraF||o.id===obraF);
+  const lancs=DB.lancamentos.filter(l=>!obraF||l.obra===obraF);
+  const rec=lancs.filter(l=>l.tipo==='receita').reduce((s,l)=>s+Number(l.val||0),0);
+  const desp=lancs.filter(l=>l.tipo==='despesa').reduce((s,l)=>s+Number(l.val||0),0);
+  const andamento=obras.filter(o=>o.status==='Em andamento').length;
+  const concluidas=obras.filter(o=>o.status==='Concluída').length;
+  set('rel-stats',`
+    <div class="st b"><div class="st-ico">🏗️</div><div class="st-val">${andamento}</div><div class="st-lbl">Em andamento</div></div>
+    <div class="st p"><div class="st-ico">✅</div><div class="st-val">${concluidas}</div><div class="st-lbl">Concluídas</div></div>
+    <div class="st g"><div class="st-ico">💰</div><div class="st-val">${fmt(rec)}</div><div class="st-lbl">Total recebido</div></div>
+    <div class="st r"><div class="st-ico">💸</div><div class="st-val">${fmt(desp)}</div><div class="st-lbl">Total despesas</div></div>
+    <div class="st a"><div class="st-ico">💹</div><div class="st-val">${fmt(rec-desp)}</div><div class="st-lbl">${rec-desp>=0?'Lucro':'Prejuízo'}</div></div>
+  `);
+  set('rel-obras',obras.length?obras.map(o=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--br);font-size:12px"><div><div style="font-weight:600">${o.nome}</div><div style="color:var(--tx2);font-size:10px">${nomeCl(o.cliente)}</div></div><div style="text-align:right"><span class="badge-tag ${o.status==='Em andamento'?'t-and':o.status==='Concluída'?'t-fin':'t-par'}">${o.status}</span><div style="font-size:10px;color:var(--tx2);margin-top:2px">${o.progresso||0}%</div></div></div>`).join(''):'<div class="empty">Sem dados</div>');
+  set('rel-fin',`<div style="font-size:12px"><div class="tot-r"><span>Total de receitas</span><span style="color:var(--gn)">${fmt(rec)}</span></div><div class="tot-r"><span>Total de despesas</span><span style="color:var(--rd)">${fmt(desp)}</span></div><div class="tot-r" style="color:${rec-desp>=0?'var(--gn)':'var(--rd)'}">Resultado <span>${fmt(rec-desp)}</span></div></div>`);
+  setInnerSelect('rel-obra','<option value="">Todas as obras</option>'+DB.obras.map(o=>`<option value="${o.id}">${o.nome}</option>`).join(''));
+}
+
+function exportarRelPDF(){
+  try{
+    const {jsPDF}=window.jspdf;
+    const doc=new jsPDF({unit:'mm',format:'a4'});
+    const cfg=DB.config;
+    const PW=210,PH=297,mL=15,mR=15,cW=PW-mL-mR;
+    const logo=cfg.logo||null;
+
+    /* Marca dagua */
+    pdfAddWatermark(doc,logo,PW,PH);
+
+    /* CABECALHO */
+    let y=12;
+    const temLogo=logo&&pdfAddLogo(doc,logo,mL,y,26,18);
+    const xTxt=temLogo?mL+30:mL;
+
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(20);
+    doc.setTextColor(40,40,40);
+    doc.text('Relatorio Gerencial',PW-mR,y+10,{align:'right'});
+
+    doc.setFont('helvetica','normal');
+    doc.setFontSize(8);
+    doc.setTextColor(110,110,110);
+    doc.text('Emitido em '+new Date().toLocaleDateString('pt-BR'),PW-mR,y+16,{align:'right'});
+
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(11);
+    doc.setTextColor(40,40,40);
+    doc.text(cfg.empresa||'',xTxt,y+8);
+
+    if(cfg.cnpj){
+      doc.setFont('helvetica','normal');
+      doc.setFontSize(8);
+      doc.setTextColor(90,90,90);
+      doc.text('CNPJ: '+cfg.cnpj,xTxt,y+14);
+    }
+    y=36;
+    doc.setDrawColor(200,200,200);
+    doc.line(mL,y,PW-mR,y);
+    y+=8;
+
+    /* CARDS FINANCEIRO */
+    const rec=DB.lancamentos.filter(function(l){return l.tipo==='receita';}).reduce(function(s,l){return s+Number(l.val||0);},0);
+    const desp=DB.lancamentos.filter(function(l){return l.tipo==='despesa';}).reduce(function(s,l){return s+Number(l.val||0);},0);
+    const saldo=rec-desp;
+    const cardW=(cW-8)/3;
+
+    /* Card Receitas - verde */
+    doc.setFillColor(220,245,230);
+    doc.rect(mL,y,cardW,18,'F');
+    doc.setFont('helvetica','normal');
+    doc.setFontSize(7.5);
+    doc.setTextColor(100,100,100);
+    doc.text('Receitas',mL+4,y+6);
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(11);
+    doc.setTextColor(30,120,50);
+    doc.text('R$ '+fmtN(rec),mL+cardW/2,y+14,{align:'center'});
+
+    /* Card Despesas - vermelho */
+    const cx2=mL+cardW+4;
+    doc.setFillColor(245,220,220);
+    doc.rect(cx2,y,cardW,18,'F');
+    doc.setFont('helvetica','normal');
+    doc.setFontSize(7.5);
+    doc.setTextColor(100,100,100);
+    doc.text('Despesas',cx2+4,y+6);
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(11);
+    doc.setTextColor(180,30,30);
+    doc.text('R$ '+fmtN(desp),cx2+cardW/2,y+14,{align:'center'});
+
+    /* Card Resultado - azul ou vermelho */
+    const cx3=mL+(cardW+4)*2;
+    if(saldo>=0){
+      doc.setFillColor(220,235,250);
+    }else{
+      doc.setFillColor(250,235,220);
+    }
+    doc.rect(cx3,y,cardW,18,'F');
+    doc.setFont('helvetica','normal');
+    doc.setFontSize(7.5);
+    doc.setTextColor(100,100,100);
+    doc.text('Resultado',cx3+4,y+6);
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(11);
+    if(saldo>=0){
+      doc.setTextColor(30,50,150);
+    }else{
+      doc.setTextColor(150,30,30);
+    }
+    doc.text('R$ '+fmtN(saldo),cx3+cardW/2,y+14,{align:'center'});
+    y+=24;
+
+    /* TABELA OBRAS */
+    doc.setFillColor(35,35,35);
+    doc.rect(mL,y,cW,7,'F');
+    doc.setTextColor(255,255,255);
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(8);
+    doc.text('Obra',mL+3,y+5);
+    doc.text('Cliente',mL+72,y+5);
+    doc.text('Status',mL+122,y+5);
+    doc.text('Contratado',PW-mR-2,y+5,{align:'right'});
+    y+=7;
+
+    doc.setFont('helvetica','normal');
+    doc.setTextColor(40,40,40);
+    var alt=false;
+    DB.obras.forEach(function(ob){
+      if(y>PH-35){doc.addPage();y=20;}
+      if(alt){doc.setFillColor(247,248,250);doc.rect(mL,y,cW,6,'F');}
+      alt=!alt;
+      doc.setFontSize(8);
+      doc.setTextColor(40,40,40);
+      doc.text((ob.nome||'').slice(0,40),mL+3,y+4.5);
+      doc.text(nomeCl(ob.cliente).slice(0,26),mL+72,y+4.5);
+      doc.text(ob.status||'',mL+122,y+4.5);
+      doc.text('R$ '+fmtN(ob.valor||0),PW-mR-2,y+4.5,{align:'right'});
+      doc.setDrawColor(235,235,235);
+      doc.line(mL,y+6,PW-mR,y+6);
+      y+=6;
+    });
+    y+=5;
+
+    /* ULTIMOS LANCAMENTOS */
+    if(y<PH-60){
+      doc.setFillColor(35,35,35);
+      doc.rect(mL,y,cW,7,'F');
+      doc.setTextColor(255,255,255);
+      doc.setFont('helvetica','bold');
+      doc.setFontSize(8);
+      doc.text('Ultimos lancamentos',mL+3,y+5);
+      y+=7;
+      doc.setFont('helvetica','normal');
+      var alt2=false;
+      var ultimos=DB.lancamentos.slice(-8).reverse();
+      ultimos.forEach(function(l){
+        if(y>PH-35)return;
+        if(alt2){doc.setFillColor(247,248,250);doc.rect(mL,y,cW,6,'F');}
+        alt2=!alt2;
+        doc.setFontSize(8);
+        doc.setTextColor(40,40,40);
+        doc.text(fmtData(l.data)||'—',mL+3,y+4.5);
+        doc.text((l.desc||'').slice(0,40),mL+28,y+4.5);
+        /* Cor do valor por tipo */
+        if(l.tipo==='receita'){
+          doc.setTextColor(0,130,70);
+          doc.text('+ R$ '+fmtN(l.val),PW-mR-2,y+4.5,{align:'right'});
+        }else{
+          doc.setTextColor(180,30,30);
+          doc.text('- R$ '+fmtN(l.val),PW-mR-2,y+4.5,{align:'right'});
+        }
+        doc.setTextColor(40,40,40);
+        doc.setDrawColor(235,235,235);
+        doc.line(mL,y+6,PW-mR,y+6);
+        y+=6;
+      });
+    }
+
+    /* RODAPE */
+    doc.setDrawColor(200,200,200);
+    doc.line(mL,PH-16,PW-mR,PH-16);
+    doc.setFont('helvetica','normal');
+    doc.setFontSize(7);
+    doc.setTextColor(140,140,140);
+    if(cfg.resp) doc.text(cfg.resp+(cfg.crea?' - '+cfg.crea:''),mL,PH-11);
+    doc.text('FigForge - '+new Date().toLocaleDateString('pt-BR'),PW-mR,PH-11,{align:'right'});
+
+    doc.save('relatorio_'+hoje()+'.pdf');
+  }catch(e){alert('Erro ao gerar relatorio: '+e.message);}
+}
+
+function addItemOrc(){
+  const tbody=el('orc-itens');
+  const idx=tbody.querySelectorAll('tr[data-row]').length;
+  const row=document.createElement('tr');
+  row.setAttribute('data-row',idx);
+  row.innerHTML=`<td style="color:var(--tx3)">${idx+1}</td>
+    <td><input type="text" placeholder="Descreva o serviço ou material..." style="min-width:200px" oninput="calcOrc()"/></td>
+    <td><select style="width:70px" onchange="calcOrc()"><option>un</option><option>m²</option><option>m³</option><option>m</option><option>kg</option><option>saco</option><option>hr</option><option>vb</option></select></td>
+    <td><input type="number" value="1" min="0" step="0.01" style="width:70px" oninput="calcOrc()"/></td>
+    <td><input type="number" value="0" min="0" step="0.01" style="width:90px" oninput="calcOrc()"/></td>
+    <td style="font-weight:600;color:var(--gn)">R$ 0,00</td>
+    <td><button class="btn xs br-" onclick="this.closest('tr').remove();calcOrc()">✕</button></td>`;
+  if(tbody.querySelector('.empty')?.closest('tr')) tbody.innerHTML='';
+  tbody.appendChild(row);
+  row.querySelector('input[type=text]').focus();
+}
+function calcOrc(){
+  const bdi=Number(val('of-bdi'))||0, desc=Number(val('of-desc'))||0;
+  let sub=0;
+  el('orc-itens').querySelectorAll('tr[data-row]').forEach(row=>{
+    const inputs=row.querySelectorAll('input[type=number]');
+    const qtd=Number(inputs[0]?.value)||0, vu=Number(inputs[1]?.value)||0;
+    const tot=qtd*vu;
+    sub+=tot;
+    const cells=row.querySelectorAll('td');
+    if(cells[5])cells[5].textContent='R$ '+fmtN(tot);
+  });
+  const bdiA=sub*bdi/100, dscA=(sub+bdiA)*desc/100, total=sub+bdiA-dscA;
+  setInner('ot-sub',fmt(sub));setInner('ot-bdi',fmt(bdiA));setInner('ot-dsc','- '+fmt(dscA));setInner('ot-total',fmt(total));
+  setInner('ot-bdi-p',bdi);setInner('ot-dsc-p',desc);
+}
+function setInner(id,v){const e=el(id);if(e)e.textContent=v;}
+
+function salvarOrc(){
+  const bdi=Number(val('of-bdi'))||0, desc=Number(val('of-desc'))||0;
+  const linhas=[];
+  let sub=0;
+  el('orc-itens').querySelectorAll('tr[data-row]').forEach(row=>{
+    const inputs=row.querySelectorAll('input[type=number]');
+    const desc_=row.querySelector('input[type=text]')?.value||'';
+    const un=row.querySelector('select')?.value||'un';
+    const qtd=Number(inputs[0]?.value)||0, vu=Number(inputs[1]?.value)||0;
+    const tot=qtd*vu;sub+=tot;
+    linhas.push({desc:desc_,un,qtd,vu,tot});
+  });
+  if(!linhas.length){alert('Adicione pelo menos um item.');return;}
+  const bdiA=sub*bdi/100, dscA=(sub+bdiA)*desc/100, total=sub+bdiA-dscA;
+  const orc={id:id(),num:orcNum++,cli:val('of-cli'),obra:val('of-obra'),data:val('of-data'),validade:val('of-valid'),bdi,desc,pgto:val('of-pgto'),obs:val('of-obs'),linhas,sub,bdiA,dscA,total,status:'Pendente'};
+  DB.orcamentos.push(orc);save();renderOrcLista();
+  alert(`✔ Orçamento #${orc.num} salvo!\nTotal: ${fmt(total)}`);
+  el('orc-itens').innerHTML='<tr><td colspan="7" class="empty">Clique em "+ Adicionar item" para começar</td></tr>';
+  calcOrc();
+}
+
+function renderOrcLista(){
+  const q=val('orc-busca')?.toLowerCase()||'';
+  const lista=DB.orcamentos.filter(o=>!q||nomeCl(o.cli).toLowerCase().includes(q)||String(o.num).includes(q));
+  lista.sort((a,b)=>b.num-a.num);
+  set('tbl-orcs',lista.length?lista.map(o=>`<tr><td><strong>#${o.num}</strong></td><td>${fmtData(o.data)}</td><td>${nomeCl(o.cli)}</td><td>${nomeOb(o.obra)}</td><td style="font-weight:600;color:var(--gn)">${fmt(o.total)}</td><td><select onchange="alterarStatusOrc('${o.id}',this.value)" class="btn xs"><option ${o.status==='Pendente'?'selected':''}>Pendente</option><option ${o.status==='Aprovado'?'selected':''}>Aprovado</option><option ${o.status==='Reprovado'?'selected':''}>Reprovado</option></select></td><td><div style="display:flex;gap:4px"><button class="btn xs bp" onclick="exportarOrcPDFById('${o.id}')">📄 PDF</button><button class="btn xs br-" onclick="deletar('orcamentos','${o.id}');renderOrcLista()">🗑</button></div></td></tr>`).join(''):`<tr><td colspan="7" class="empty">Nenhum orçamento salvo</td></tr>`);
+}
+function alterarStatusOrc(id,status){
+  const o=DB.orcamentos.find(x=>x.id===id);if(!o)return;
+  const anterior=o.status;o.status=status;save();
+  if(status==='Aprovado'&&anterior!=='Aprovado'){
+    if(confirm('Orcamento aprovado!\n\nDeseja criar uma OBRA a partir deste orcamento?')){
+      criarObraDoOrcamento(id);
+    }
+  }
+  renderOrcLista();
+}
+function criarObraDoOrcamento(orcId){
+  const o=DB.orcamentos.find(x=>x.id===orcId);if(!o)return;
+  if(o.obra&&DB.obras.find(x=>x.id===o.obra)){alert('Este orcamento ja esta vinculado a uma obra.');return;}
+  const cli=DB.clientes.find(c=>c.id===o.cli);
+  const nova={id:id(),nome:'Obra - '+(cli?cli.nome:'Orc #'+o.num),cliente:o.cli,
+    tipo:'Residencial',area:0,valor:o.total,ini:hoje(),prazo:'',end:'',
+    resp:DB.config.resp||'',obs:'Criada do orcamento #'+o.num,
+    status:'Em andamento',progresso:0,orcamentoId:orcId};
+  DB.obras.push(nova);o.obra=nova.id;save();
+  alert('Obra criada! Valor contratado: '+fmt(o.total));
+  navegar('obras');
+}
+
+function exportarOrcPDF(){
+  const cli=val('of-cli'), bdi=Number(val('of-bdi'))||0, desc=Number(val('of-desc'))||0;
+  const linhas=[];let sub=0;
+  el('orc-itens').querySelectorAll('tr[data-row]').forEach(row=>{
+    const inputs=row.querySelectorAll('input[type=number]');
+    const d=row.querySelector('input[type=text]')?.value||'';
+    const u=row.querySelector('select')?.value||'un';
+    const q=Number(inputs[0]?.value)||0, v=Number(inputs[1]?.value)||0, t=q*v;
+    sub+=t;linhas.push({desc:d,un:u,qtd:q,vu:v,tot:t});
+  });
+  if(!linhas.length){alert('Adicione itens ao orçamento.');return;}
+  const bdiA=sub*bdi/100,dscA=(sub+bdiA)*desc/100,total=sub+bdiA-dscA;
+  const oTemp={num:orcNum,cli,obra:val('of-obra'),data:val('of-data'),validade:val('of-valid'),pgto:val('of-pgto'),obs:val('of-obs'),linhas,sub,bdiA,dscA,total,bdi,desc};
+  gerarPDFOrc(oTemp);
+}
+function exportarOrcPDFById(id){const o=DB.orcamentos.find(x=>x.id===id);if(o)gerarPDFOrc(o);}
+
+
+// ── Helper logo no PDF ────────────────────────────────────────────────────────
+function pdfLogoFmt(src){
+  if(!src) return null;
+  if(src.includes('image/png'))  return 'PNG';
+  if(src.includes('image/jpeg')) return 'JPEG';
+  if(src.includes('image/jpg'))  return 'JPEG';
+  if(src.includes('image/gif'))  return 'GIF';
+  if(src.includes('image/webp')) return 'WEBP';
+  return 'JPEG'; // fallback
+}
+function pdfAddLogo(doc, src, x, y, w, h_){
+  if(!src) return false;
+  try{
+    const fmt=pdfLogoFmt(src);
+    doc.addImage(src, fmt, x, y, w, h_);
+    return true;
+  }catch(e){ return false; }
+}
+function pdfAddWatermark(doc, src, pw, ph){
+  if(!src) return;
+  try{
+    const fmt=pdfLogoFmt(src);
+    const wm=80, hm=80;
+    // Tenta com GState (opacidade), se falhar usa sem
+    try{
+      doc.saveGraphicsState();
+      doc.setGState(new doc.GState({opacity:0.06}));
+      doc.addImage(src, fmt, (pw-wm)/2, (ph-hm)/2, wm, hm);
+      doc.restoreGraphicsState();
+    }catch(e2){
+      // fallback sem opacidade — apenas tenta adicionar menor
+      try{ doc.addImage(src, fmt, (pw-wm)/2, (ph-hm)/2, 40, 40); }catch(e3){}
+    }
+  }catch(e){}
+}
+
+function gerarPDFOrc(o){
+  try{
+    const {jsPDF}=window.jspdf;
+    const doc=new jsPDF({unit:'mm',format:'a4'});
+    const cfg=DB.config;
+    const PW=210, PH=297, mL=15, mR=15, cW=PW-mL-mR;
+    const logo=cfg.logo||null;
+
+    /* MARCA DAGUA */
+    pdfAddWatermark(doc, logo, PW, PH);
+
+    /* ── CABEÇALHO ── */
+    /* Logo topo-esquerdo */
+    let logoW=0;
+    if(logo && pdfAddLogo(doc, logo, mL, 8, 30, 20)) logoW=34;
+
+    /* Título "Orçamento" — topo direito */
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(28);
+    doc.setTextColor(40,40,40);
+    doc.text('Orçamento', PW-mR, 22, {align:'right'});
+
+    /* Emissão / Validade */
+    doc.setFontSize(8); doc.setFont('helvetica','normal');
+    doc.setTextColor(110,110,110);
+    const dataEmissao = fmtData(o.data) || new Date().toLocaleDateString('pt-BR');
+    const dataVal = o.validade ? fmtData(addDias(o.data, Number(o.validade)||30)) : '—';
+    doc.text('Emissão',  PW-mR-38, 30, {align:'right'});
+    doc.text('Validade', PW-mR-38, 36, {align:'right'});
+    doc.setTextColor(40,40,40); doc.setFont('helvetica','bold');
+    doc.text(dataEmissao, PW-mR, 30, {align:'right'});
+    doc.text(dataVal,     PW-mR, 36, {align:'right'});
+
+    /* Linha separadora */
+    doc.setDrawColor(200,200,200);
+    doc.line(mL, 42, PW-mR, 42);
+
+    /* ── BLOCO EMPRESA / CLIENTE ── */
+    let y=48;
+    doc.setFontSize(7.5); doc.setTextColor(150,150,150); doc.setFont('helvetica','normal');
+    doc.text('Empresa', mL, y);
+    doc.text('Cliente', mL+95, y);
+    y+=5;
+
+    doc.setTextColor(30,30,30); doc.setFont('helvetica','bold'); doc.setFontSize(9.5);
+    doc.text(cfg.empresa||'—', mL, y);
+    const cli=DB.clientes.find(c=>c.id===o.cli);
+    doc.text(cli ? cli.nome : '—', mL+95, y);
+    y+=5;
+
+    doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(70,70,70);
+    if(cfg.end){ const ls=doc.splitTextToSize(cfg.end,85); doc.text(ls,mL,y); y+=ls.length*4.2; }
+    if(cfg.cnpj){ doc.text(cfg.cnpj, mL, y); y+=4.2; }
+    y=Math.max(y, 65);
+
+    /* Contatos empresa */
+    doc.setTextColor(150,150,150); doc.setFontSize(7.5);
+    let yc=y;
+    doc.text('Contato', mL, yc);
+    if(cli) doc.text('Contato', mL+95, yc);
+    yc+=4;
+    doc.setTextColor(50,50,50); doc.setFontSize(8);
+    if(cfg.tel){   doc.text(cfg.tel,   mL,    yc); yc+=4; }
+    if(cfg.email){ doc.text(cfg.email, mL,    yc); yc+=4; }
+    if(cli&&cli.tel){   doc.text(cli.tel,   mL+95, y+4); }
+    if(cli&&cli.email){ doc.text(cli.email, mL+95, y+8); }
+    y=yc+7;
+
+    /* ── TABELA DE ITENS ── */
+    /* Cabeçalho */
+    doc.setFillColor(35,35,35);
+    doc.rect(mL, y, cW, 8, 'F');
+    doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(8.5);
+    doc.text('Produto / Serviço',  mL+3,        y+5.5);
+    doc.text('Qty.',               mL+cW*0.64,  y+5.5, {align:'center'});
+    doc.text('Val. Unit.',         mL+cW*0.80,  y+5.5, {align:'center'});
+    doc.text('Total',              PW-mR-2,     y+5.5, {align:'right'});
+    y+=8;
+
+    /* Linhas */
+    doc.setTextColor(40,40,40); doc.setFont('helvetica','normal'); doc.setFontSize(8.5);
+    let fillRow=false;
+    o.linhas.forEach(l=>{
+      const descLines = doc.splitTextToSize(l.desc||'—', cW*0.58);
+      const rowH = Math.max(9, descLines.length*4.6+3);
+      if(y+rowH > PH-35){ doc.addPage(); y=20; }
+      if(fillRow){ doc.setFillColor(247,248,250); doc.rect(mL,y,cW,rowH,'F'); }
+      fillRow=!fillRow;
+      doc.setTextColor(40,40,40);
+      doc.text(descLines, mL+3, y+4.5);
+      doc.text(fmtN(l.qtd),      mL+cW*0.64, y+4.5, {align:'center'});
+      /* Valor unit em 2 linhas */
+      doc.setFontSize(7); doc.setTextColor(90,90,90);
+      doc.text('R$',         mL+cW*0.80, y+3,   {align:'center'});
+      doc.setFontSize(8.5); doc.setTextColor(40,40,40);
+      doc.text(fmtN(l.vu),   mL+cW*0.80, y+7.5, {align:'center'});
+      doc.setFontSize(7); doc.setTextColor(90,90,90);
+      doc.text('R$',         PW-mR-2, y+3, {align:'right'});
+      doc.setFontSize(8.5); doc.setTextColor(40,40,40);
+      doc.text(fmtN(l.tot),  PW-mR-2, y+7.5, {align:'right'});
+      doc.setDrawColor(230,230,230);
+      doc.line(mL, y+rowH, PW-mR, y+rowH);
+      y+=rowH;
+    });
+    y+=5;
+
+    /* ── TOTAIS ── */
+    const tX=mL+cW*0.52, tW=cW*0.48+mR;
+    doc.setFontSize(8.5); doc.setFont('helvetica','normal');
+
+    /* Total de produtos */
+    doc.setFillColor(245,245,245); doc.rect(tX-1,y,tW,7,'F');
+    doc.setTextColor(80,80,80);
+    doc.text('Total de produtos', tX+2, y+5);
+    doc.setFont('helvetica','bold'); doc.setTextColor(40,40,40);
+    doc.text(String(o.linhas.length), PW-mR, y+5, {align:'right'});
+    y+=8;
+
+    doc.setFont('helvetica','normal'); doc.setTextColor(80,80,80);
+    doc.text('Sub-total', tX+2, y+5);
+    doc.setFont('helvetica','bold'); doc.setTextColor(40,40,40);
+    const subComBdi=Number(o.sub||0)+Number(o.bdiA||0);
+    doc.text('R$ '+fmtN(subComBdi), PW-mR, y+5, {align:'right'});
+    y+=7;
+
+    doc.setFont('helvetica','normal'); doc.setTextColor(80,80,80);
+    doc.text('Desconto', tX+2, y+5);
+    doc.setFont('helvetica','bold'); doc.setTextColor(40,40,40);
+    doc.text('R$ '+fmtN(o.dscA||0), PW-mR, y+5, {align:'right'});
+    y+=8;
+
+    doc.setFillColor(35,35,35); doc.rect(tX-1,y,tW,9,'F');
+    doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(10);
+    doc.text('Total', tX+2, y+6.5);
+    doc.text('R$ '+fmtN(o.total), PW-mR, y+6.5, {align:'right'});
+    y+=14;
+
+    /* ── OBSERVAÇÕES ── */
+    if(o.obs){
+      doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(80,80,80);
+      const obsL=doc.splitTextToSize('Obs: '+o.obs, cW);
+      doc.text(obsL, mL, y); y+=obsL.length*4+6;
+    }
+
+    /* ── ASSINATURA DO CLIENTE — posição fixa acima do rodapé ── */
+    const yAssin = PH - 52;
+    doc.setDrawColor(160,160,160);
+    doc.line(mL,          yAssin, mL+80,    yAssin);
+    doc.line(PW-mR-80,    yAssin, PW-mR,    yAssin);
+    doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(80,80,80);
+    doc.text('Assinatura do cliente',       mL+40,   yAssin+5, {align:'center'});
+    doc.text('Assinatura do responsável',   PW-mR-40, yAssin+5, {align:'center'});
+    doc.setFontSize(7); doc.setTextColor(140,140,140);
+    const nomeCliOrc = DB?(DB.clientes.find(function(c){return c.id===o.cli;})||{}).nome||'':'';
+    if(nomeCliOrc) doc.text(nomeCliOrc, mL+40, yAssin+10, {align:'center'});
+    const nomeRespOrc = cfg.resp||cfg.empresa||'';
+    if(nomeRespOrc) doc.text(nomeRespOrc, PW-mR-40, yAssin+10, {align:'center'});
+
+    /* ── RODAPÉ ── */
+    doc.setDrawColor(200,200,200); doc.line(mL, PH-30, PW-mR, PH-30);
+    doc.setFont('helvetica','italic'); doc.setFontSize(7); doc.setTextColor(120,120,120);
+    doc.text(
+      'Serviços realizados que não estão descritos neste orçamento estão sujeitos à cobrança adicional.',
+      mL, PH-25, {maxWidth:cW}
+    );
+    doc.setFont('helvetica','normal'); doc.setTextColor(130,130,130); doc.setFontSize(7);
+    if(cfg.resp) doc.text('Resp. técnico: '+cfg.resp+(cfg.crea?' — '+cfg.crea:''), mL, PH-18);
+    if(cfg.cnpj) doc.text('CNPJ: '+cfg.cnpj, mL, PH-13);
+    doc.setFont('helvetica','bold'); doc.setTextColor(80,80,80);
+    doc.text('Nº '+String(o.num||''), PW-mR, PH-18, {align:'right'});
+
+    doc.save('orcamento_'+(o.num||'novo')+'.pdf');
+  }catch(e){ alert('Erro ao gerar PDF: '+e.message); }
+}
+
+function addDias(dateStr,dias){
+  if(!dateStr) return null;
+  const d=new Date(dateStr+'T00:00:00');
+  d.setDate(d.getDate()+dias);
+  return d.toISOString().split('T')[0];
+}
+
+function renderUsers(){
+  const nivelNome={adm:'Administrador',fin:'Financeiro',alm:'Almoxarifado',ges:'Gestor de obra'};
+  const nivelCor ={adm:'bgp',         fin:'bgb',        alm:'bgo',         ges:'bgg'};
+  const nivelDesc={
+    adm:'Acesso total ao sistema',
+    fin:'Financeiro e relatórios',
+    alm:'Estoque — entradas e saídas',
+    ges:'Obras, diário e funcionários'
+  };
+  const adminRow=`<tr style="background:rgba(79,110,247,.04)">
+    <td><strong>Administrador</strong> <span style="font-size:9px;color:var(--tx3)">(padrão do sistema)</span></td>
+    <td style="font-family:monospace;font-size:11px;color:var(--tx2)">admin</td>
+    <td><span class="bdg bgp">Administrador</span></td>
+    <td style="font-size:10px;color:var(--tx2)">Acesso total · senha padrão: admin123</td>
+    <td style="font-size:10px;color:var(--tx3)">Fixo</td>
+  </tr>`;
+  const rows=DB.users.map(u=>`<tr>
+    <td><strong>${u.nome}</strong></td>
+    <td style="font-size:11px">${u.email||'—'}</td>
+    <td><span class="bdg ${nivelCor[u.nivel]||'bgb'}">${nivelNome[u.nivel]||u.nivel}</span></td>
+    <td style="font-size:10px;color:var(--tx2)">${nivelDesc[u.nivel]||'—'}</td>
+    <td><div style="display:flex;gap:4px">
+      <button class="btn xs bp" onclick="editarUser('${u.id}')">✏️</button>
+      <button class="btn xs br-" onclick="deletar('users','${u.id}');renderUsers()">🗑</button>
+    </div></td>
+  </tr>`).join('');
+  set('tbl-users',adminRow+(rows||`<tr><td colspan="5" style="padding:9px;font-size:11px;color:var(--tx3)">Nenhum usuário adicional cadastrado.</td></tr>`));
+}
+function novoUsuario(){
+  editId.user=null;
+  el('mo-user-titulo').textContent='Novo usuário';
+  ['us-nome','us-email','us-senha'].forEach(i=>setV(i,''));
+  abrirMo('mo-user');
+  setTimeout(mostrarDescNivel,100);
+}
+function editarUser(uid){
+  const u=DB.users.find(x=>x.id===uid);if(!u)return;
+  editId.user=uid;
+  el('mo-user-titulo').textContent='Editar usuário';
+  abrirMo('mo-user');
+  setTimeout(()=>{
+    setV('us-nome',u.nome);setV('us-email',u.email);
+    el('us-nivel').value=u.nivel||'adm';setV('us-senha',u.senha);
+    mostrarDescNivel();
+  },80);
+}
+
+function salvarUser(){
+  const dados={nome:val('us-nome'),email:(val('us-email')||'').toLowerCase().trim(),nivel:val('us-nivel'),senha:val('us-senha')};
+  if(!dados.nome){alert('Preencha o nome.');return;}
+  if(!dados.email||!dados.email.includes('@')){alert('Preencha um e-mail valido.');return;}
+  if(!dados.senha||dados.senha.length<4){alert('A senha deve ter pelo menos 4 caracteres.');return;}
+  const dup=DB.users.find(u=>u.email===dados.email&&u.id!==editId.user);
+  if(dup){alert('Ja existe um usuario com este e-mail.');return;}
+  if(editId.user){
+    Object.assign(DB.users.find(x=>x.id===editId.user),dados);
+    delete editId.user;
+    el('mo-user-titulo').textContent='Novo usuario';
+  } else {
+    dados.id=id();DB.users.push(dados);
+  }
+  save();fecharMo('mo-user');renderUsers();
+  ['us-nome','us-email','us-senha'].forEach(i=>setV(i,''));
+}
+
+function renderPerms(nivel){
+  const perms={'adm':['Ver tudo','Editar tudo','Excluir registros','Gerenciar usuários','Configurar sistema','Acessar financeiro','Gerar PDFs'],'fin':['Ver lançamentos','Criar lançamentos','Ver relatórios','Gerar PDFs'],'alm':['Ver estoque','Entrada de material','Saída de material'],'ges':['Ver obras','Ver diário','Lançar diário','Ver estoque','Ver funcionários']};
+  const todasPerms=['Ver tudo','Editar tudo','Excluir registros','Gerenciar usuários','Configurar sistema','Acessar financeiro','Gerar PDFs','Ver lançamentos','Criar lançamentos','Ver relatórios','Ver estoque','Entrada de material','Saída de material','Ver obras','Ver diário','Lançar diário','Ver funcionários'];
+  const ativas=perms[nivel]||[];
+  set('perm-list',todasPerms.map(p=>`<div class="perm-r"><span>${p}</span><div class="tog ${ativas.includes(p)?'on':''}" onclick="this.classList.toggle('on')"></div></div>`).join(''));
+}
+
+// ================================================================ CONFIG
+function renderConfig(){
+  const cfg=DB.config;
+  setV('cfg-empresa',cfg.empresa);setV('cfg-cnpj',cfg.cnpj);setV('cfg-crea',cfg.crea);
+  setV('cfg-resp',cfg.resp);setV('cfg-tel',cfg.tel);setV('cfg-email',cfg.email);
+  setV('cfg-bdi',cfg.bdi||25);setV('cfg-end',cfg.end);
+  const nomeAtual=cfg.empresa||'Construtora';
+  const av=nomeAtual.split(' ').slice(0,2).map(w=>w[0]||'').join('').toUpperCase();
+  el('sb-av').textContent=av||'OB';
+}
+function salvarConfig(){
+  DB.config={empresa:val('cfg-empresa'),cnpj:val('cfg-cnpj'),crea:val('cfg-crea'),resp:val('cfg-resp'),tel:val('cfg-tel'),email:val('cfg-email'),bdi:Number(val('cfg-bdi'))||25,end:val('cfg-end')};
+  save();renderConfig();alert('✔ Configurações salvas!');
+}
+
+// ================================================================ BACKUP
+function backupDados(){
+  const blob=new Blob([JSON.stringify(DB,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='backup_erp_construtora_'+hoje()+'.json';a.click();
+}
+function importarDados(input){
+  const file=input.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{const d=JSON.parse(e.target.result);if(d.obras!==undefined&&d.clientes!==undefined){DB=d;save();navegar('dashboard');alert('✔ Dados importados com sucesso!');}else alert('Arquivo inválido — não é um backup do FigForge.');}
+    catch(err){alert('Erro ao importar: '+err.message);}
+  };
+  reader.readAsText(file);
+}
+
+// ================================================================ GENERIC
+function deletar(colecao,id_){ if(!confirm('Excluir este registro?'))return; DB[colecao]=DB[colecao].filter(x=>x.id!==id_); save(); }
+function limparTudo(){ DB={obras:[],clientes:[],funcionarios:[],pontos:[],materiais:[],movEstq:[],lancamentos:[],fixas:[],diario:[],orcamentos:[],users:[],config:{}}; save(); navegar('dashboard'); alert('Dados apagados.'); }
+
+// ================================================================ RELÓGIO
+setInterval(()=>{const e=el('clock');if(e)e.textContent=new Date().toLocaleTimeString('pt-BR');},1000);
+
+
+// ─── MÁSCARAS ────────────────────────────────────────────────
+function fmtTel(x){
+  var digits=x.value.replace(/\D/g,'');
+  if(!digits){x.value='';return;}
+  // Limita a 11 dígitos (DDD + 9 dígitos)
+  digits=digits.slice(0,11);
+  var v='';
+  if(digits.length<=2){
+    // Só DDD
+    v='('+digits;
+  } else if(digits.length<=6){
+    // (XX) XXXX
+    v='('+digits.slice(0,2)+') '+digits.slice(2);
+  } else if(digits.length<=10){
+    // (XX) XXXX-XXXX — telefone fixo
+    v='('+digits.slice(0,2)+') '+digits.slice(2,6)+'-'+digits.slice(6);
+  } else {
+    // (XX) 9XXXX-XXXX — celular com 9
+    v='('+digits.slice(0,2)+') '+digits.slice(2,7)+'-'+digits.slice(7);
+  }
+  x.value=v;
+}
+function fmtCPF(x){var v=x.value.replace(/\D/g,'').slice(0,11);v=v.replace(/(\d{3})(\d)/,'$1.$2').replace(/(\d{3})(\d)/,'$1.$2').replace(/(\d{3})(\d{1,2})$/,'$1-$2');x.value=v;}
+function fmtCpfCnpj(x){var v=x.value.replace(/\D/g,'');if(v.length<=11)v=v.slice(0,11).replace(/(\d{3})(\d)/,'$1.$2').replace(/(\d{3})(\d)/,'$1.$2').replace(/(\d{3})(\d{1,2})$/,'$1-$2');else v=v.slice(0,14).replace(/(\d{2})(\d)/,'$1.$2').replace(/(\d{3})(\d)/,'$1.$2').replace(/(\d{3})(\d)/,'$1/$2').replace(/(\d{4})(\d{1,2})$/,'$1-$2');x.value=v;}
+function horaParaMin(t){if(!t)return 0;var p=t.split(':');return parseInt(p[0])*60+parseInt(p[1]||0);}
+function minParaHora(m){if(m<0)m=0;var h=Math.floor(m/60),mm=m%60;return mm>0?h+'h'+mm+'m':h+'h';}
+
+// ─── CLT ─────────────────────────────────────────────────────
+function toggleCLT(){
+  var v=val('fn-vinculo');
+  var isCLT=v==='clt';
+  var lbl=el('fn-val-label');
+  if(lbl)lbl.textContent=isCLT?'Salario mensal (R$)':v==='diaria'?'Valor por diaria (R$)':v==='empreitada'?'Valor da empreitada (R$)':'Salario mensal (R$)';
+  var tit=el('fn-hor-titulo');
+  if(tit)tit.textContent=isCLT?'Horario de trabalho - CLT/Registrado':'Horario de trabalho (referencia)';
+  calcHorasDia();
+}
+function calcHorasDia(){
+  var ent=val('fn-hor-ent'),sai=val('fn-hor-sai');
+  var intv=Number(val('fn-intervalo'))||60;
+  if(!ent||!sai)return;
+  var minTrab=horaParaMin(sai)-horaParaMin(ent)-intv;
+  var hDia=Math.max(0,minTrab/60);
+  setV('fn-horas-dia',hDia.toFixed(2));
+  var v=val('fn-vinculo');
+  var isCLT=v==='clt';
+  setV('fn-horas-sem',isCLT?44:(hDia*5).toFixed(0));
+  setV('fn-horas-mes',isCLT?220:(hDia*22).toFixed(0));
+  var sal=Number(val('fn-val'))||0;
+  var hMes=isCLT?220:hDia*22;
+  if(sal>0&&hMes>0)setV('fn-valor-hora',((sal/hMes)*1.5).toFixed(2));
+}
+
+// ─── PONTO ───────────────────────────────────────────────────
+function preencherHorarioPonto(){
+  var fid=val('pt-func');
+  var f=DB.funcionarios.find(function(x){return x.id===fid;});
+  if(f&&f.horEntrada){
+    setV('pt-ent',f.horEntrada);setV('pt-sai',f.horSaida);
+    var s=el('pt-intervalo');
+    if(s){var vi=String(f.intervalo||60);for(var i=0;i<s.options.length;i++){if(s.options[i].value===vi){s.selectedIndex=i;break;}}}
+  }
+  calcHorasPonto();
+}
+function calcHorasPonto(){
+  var fid=val('pt-func');
+  var f=DB.funcionarios.find(function(x){return x.id===fid;});
+  var ent=val('pt-ent'),sai=val('pt-sai');
+  var intv=Number(val('pt-intervalo'))||60;
+  if(!ent||!sai){setV('pt-hex',0);return;}
+  var minTrab=horaParaMin(sai)-horaParaMin(ent)-intv;
+  if(minTrab<=0){setV('pt-hex',0);return;}
+  var hexAuto=0;
+  if(f&&f.horasDia){var exc=minTrab-(f.horasDia*60);hexAuto=Math.max(0,exc/60);}
+  setV('pt-hex',hexAuto.toFixed(2));
+  var info=el('pt-clt-info');
+  if(info&&f){var hT=(minTrab/60).toFixed(2);var hD=(f.horasDia||8).toFixed(2);info.textContent='Trabalhadas: '+hT+'h | Combinado: '+hD+'h/dia'+(hexAuto>0?' | H.Extra automatica: '+hexAuto.toFixed(2)+'h':'');}
+}
+
+// ─── salvarFuncionario ────────────────────────────────────────
+function salvarFuncionario(){
+  var vinculo=val('fn-vinculo')||'clt';
+  var isCLT=vinculo==='clt';
+  var horEnt=val('fn-hor-ent')||'07:00';
+  var horSai=val('fn-hor-sai')||'17:00';
+  var intervalo=Number(val('fn-intervalo'))||60;
+  var minTrab=horaParaMin(horSai)-horaParaMin(horEnt)-intervalo;
+  var horasDia=Math.max(0,minTrab/60);
+  var horasMes=isCLT?220:horasDia*22;
+  var salario=Number(val('fn-val'))||0;
+  var valorHora=horasMes>0?salario/horasMes:0;
+  var dados={nome:val('fn-nome'),cpf:val('fn-cpf'),func:val('fn-func'),
+    vinculo:vinculo,tipo:vinculo,val:salario,
+    obra:val('fn-obra'),tel:val('fn-tel'),adm:val('fn-adm'),status:val('fn-status'),
+    horEntrada:horEnt,horSaida:horSai,intervalo:intervalo,
+    horasDia:horasDia,horasMes:horasMes,valorHora:valorHora,
+    horasSemana:isCLT?44:horasDia*5,valorHoraExtra:valorHora*1.5};
+  if(!dados.nome){alert('Preencha o nome.');return;}
+  if(editId.func){Object.assign(DB.funcionarios.find(function(x){return x.id===editId.func;}),dados);delete editId.func;}
+  else{dados.id=id();DB.funcionarios.push(dados);}
+  save();fecharMo('mo-func');renderFuncionarios();
+  el('mo-func-titulo').textContent='Novo funcionario';
+  ['fn-nome','fn-cpf','fn-func','fn-val','fn-tel','fn-adm'].forEach(function(i){setV(i,'');});
+}
+
+// ─── editarFunc COM CLT ───────────────────────────────────────
+function editarFunc(eid){
+  var f=DB.funcionarios.find(function(x){return x.id===eid;});if(!f)return;
+  editId.func=eid;el('mo-func-titulo').textContent='Editar funcionario';
+  abrirMo('mo-func');
+  setTimeout(function(){
+    setV('fn-nome',f.nome);setV('fn-cpf',f.cpf);setV('fn-func',f.func);
+    setV('fn-val',f.val);setV('fn-tel',f.tel);setV('fn-adm',f.adm);
+    el('fn-vinculo').value=f.vinculo||f.tipo||'clt';
+    el('fn-status').value=f.status||'Ativo';el('fn-obra').value=f.obra||'';
+    setV('fn-hor-ent',f.horEntrada||'07:00');setV('fn-hor-sai',f.horSaida||'17:00');
+    var si=el('fn-intervalo');
+    if(si){var vi=String(f.intervalo||60);for(var i=0;i<si.options.length;i++){if(si.options[i].value===vi){si.selectedIndex=i;break;}}}
+    toggleCLT();
+  },80);
+}
+
+// ─── calcPagamento COM CLT ────────────────────────────────────
+function calcPagamento(){
+  var fid=val('pg-func'), mes=val('pg-mes');
+  var pa=el('pg-pago-area');
+  if(!fid||!mes){
+    set('pg-result','<div class="empty">Selecione funcionário e mês</div>');
+    if(pa) pa.style.display='none';
+    return;
+  }
+  var func=DB.funcionarios.find(function(f){return f.id===fid;});
+  if(!func) return;
+
+  var vl=(func.vinculo||func.tipo||'diaria').toLowerCase();
+  var isCLT=(vl==='clt');
+  var pontos=DB.pontos.filter(function(p){
+    return p.func===fid&&p.data&&p.data.slice(0,7)===mes;
+  });
+  var presentes   = pontos.filter(function(p){return p.tipo==='Presente';}).length;
+  var faltasInj   = pontos.filter(function(p){return p.tipo==='Falta injustificada';}).length;
+  var faltasJust  = pontos.filter(function(p){return p.tipo==='Falta justificada';}).length;
+  var hexTotal    = pontos.reduce(function(s,p){return s+Number(p.hex||0);},0);
+  var vd          = Number(func.val||0);
+  var horasDia    = Number(func.horasDia||8);
+  var horasMes    = Number(func.horasMes||220);
+
+  // ── CÁLCULO BASE POR VÍNCULO ────────────────────────────────
+  // Referência: 30 dias corridos (padrão CLT Brasil) ou 22 dias úteis
+  var DIAS_REF    = 30;  // dias corridos — padrão folha CLT
+  var DIAS_UTEIS  = 22;  // dias úteis de referência
+  var valorDia    = vd / DIAS_REF; // valor por dia corrido
+  var base=0, descLabel='', descVal=0, baseLabel='';
+
+  if(isCLT){
+    // CLT Proporcional: paga pelos dias efetivamente presentes
+    // Fórmula padrão: (salário ÷ 30) × dias presentes
+    base      = valorDia * presentes;
+    baseLabel = 'CLT proporcional ('+fmt(valorDia)+'/dia × '+presentes+' dias)';
+    // Desconto por faltas injustificadas (além dos presentes não contados)
+    // Só aplica se o mês tiver > 22 dias lançados (mês completo)
+    var totalLancados=pontos.length;
+    if(totalLancados>=22&&faltasInj>0){
+      descVal   = valorDia * faltasInj;
+      descLabel = 'Desc. faltas injustificadas ('+faltasInj+' × '+fmt(valorDia)+')';
+      base      = vd - descVal; // mês completo: desconta da base cheia
+      baseLabel = 'Salário mensal ('+fmt(vd)+') − faltas';
+    }
+  } else if(vl==='mensal'){
+    // Mensalista: igual CLT proporcional
+    base      = valorDia * presentes;
+    baseLabel = 'Mensal proporcional ('+fmt(valorDia)+'/dia × '+presentes+' dias)';
+  } else if(vl==='diaria'){
+    base      = vd * presentes;
+    baseLabel = 'Diárias ('+fmt(vd)+'/dia × '+presentes+' dias)';
+    descVal   = faltasInj * vd;
+    descLabel = descVal>0?'Desc. faltas injust. ('+faltasInj+' × '+fmt(vd)+')':'';
+  } else {
+    // Empreitada: valor fixo
+    base      = vd;
+    baseLabel = 'Empreitada (valor fixo)';
+  }
+
+  // ── HORAS EXTRAS (CLT e Mensal) ─────────────────────────────
+  var valorHora = horasMes>0 ? vd/horasMes : 0;
+  var vHex = (isCLT||vl==='mensal') ? hexTotal*valorHora*1.5 : 0;
+
+  var liquido = Math.max(0, base + vHex - (isCLT||vl==='mensal'?0:descVal));
+
+  // ── MONTA RESULTADO ─────────────────────────────────────────
+  pgCalcAtual = {valor:liquido, func:func, mes:mes};
+
+  var horInfo = isCLT&&func.horEntrada
+    ?'<div style="background:var(--bg3);border-radius:var(--r);padding:6px 10px;font-size:11px;color:var(--tx2);margin-bottom:8px">'+
+     '⏱️ Horário: <b style="color:var(--tx)">'+func.horEntrada+' – '+func.horSaida+'</b>'+
+     ' · Intervalo: '+(func.intervalo||60)+'min'+
+     ' · '+(func.horasDia||8).toFixed(1)+'h/dia'+
+     ' · Hora extra: '+fmt(valorHora*1.5)+'/h</div>'
+    :'';
+
+  var rows = '';
+  rows += '<div class="tot-r"><span>'+baseLabel+'</span><span>'+fmt(base)+'</span></div>';
+  if(vHex>0) rows += '<div class="tot-r"><span>H. extras ('+hexTotal.toFixed(2)+'h × '+fmt(valorHora*1.5)+'/h)</span><span style="color:var(--am)">'+fmt(vHex)+'</span></div>';
+  if(descLabel) rows += '<div class="tot-r"><span>'+descLabel+'</span><span style="color:var(--rd)">− '+fmt(descVal)+'</span></div>';
+  if(faltasJust>0) rows += '<div class="tot-r"><span style="color:var(--tx2)">Faltas justificadas: '+faltasJust+' (sem desconto)</span><span>—</span></div>';
+  rows += '<div class="tot-r" style="color:var(--gn)">LÍQUIDO A PAGAR <span>'+fmt(liquido)+'</span></div>';
+
+  var badge = isCLT?'bgt':vl==='mensal'?'bgb':vl==='diaria'?'bgb':'bgp';
+  var label = isCLT?'CLT/Registrado':vl==='mensal'?'Mensal':vl==='diaria'?'Diária':'Empreitada';
+
+  set('pg-result',
+    '<div class="ct" style="justify-content:space-between">'+
+      '<span>'+func.nome+' — '+mes+'</span>'+
+      '<span class="bdg '+badge+'">'+label+'</span>'+
+    '</div>'+
+    horInfo+
+    '<div class="tot-box">'+rows+'</div>'+
+    '<div style="font-size:10px;color:var(--tx3);margin-top:6px">'+
+      '📅 Dias presentes: <b style="color:var(--gn)">'+presentes+'</b> &nbsp;'+
+      '✗ Faltas injust.: <b style="color:var(--rd)">'+faltasInj+'</b> &nbsp;'+
+      '✓ Faltas just.: <b style="color:var(--tx2)">'+faltasJust+'</b> &nbsp;'+
+      '⏱ H.extras: <b style="color:var(--am)">'+hexTotal.toFixed(2)+'h</b>'+
+    '</div>'
+  );
+
+  if(pa){ pa.style.display='block'; setV('pg-data-pag',hoje()); }
+}
+
+// ─── PAGAMENTO "PAGO?" ────────────────────────────────────────
+var pgCalcAtual=null;
+function togglePagoFunc(){
+  var ativo=val('pg-pago')==='sim';
+  var a=el('pg-comp-area');
+  if(a) a.style.display=ativo?'block':'none';
+  if(ativo){
+    // Anotações CLT
+    if(pgCalcAtual&&pgCalcAtual.func){
+      var isCLT=pgCalcAtual.func.vinculo==='clt';
+      var aa=el('pg-anotacoes-area');
+      if(aa) aa.style.display=isCLT?'block':'none';
+    }
+    // Dispara verificação de comprovante imagem
+    setTimeout(toggleComprovante,50);
+  }
+}
+function toggleComprovante(){
+  var forma=val('pg-forma')||'';
+  var mostrar=forma==='PIX'||forma==='Transferência'||forma==='TED'||forma==='Depósito';
+  var area=el('pg-img-comp-area');
+  if(area) area.style.display=mostrar?'block':'none';
+}
+function confirmarPagamentoFunc(){
+  if(val('pg-pago')!=='sim'){alert('Selecione Sim para confirmar.');return;}
+  if(!pgCalcAtual){alert('Calcule o pagamento primeiro.');return;}
+  var obs='Forma: '+val('pg-forma');
+  if(val('pg-comp-obs'))obs+=' | '+val('pg-comp-obs');
+  DB.lancamentos.push({id:id(),tipo:'despesa',cat:'Mao de obra',obra:'',
+    data:val('pg-data-pag')||hoje(),
+    desc:'Pagamento '+pgCalcAtual.func.nome+' ('+pgCalcAtual.mes+')',
+    val:pgCalcAtual.valor,forn:pgCalcAtual.func.nome,
+    nf:val('pg-comp')||'',obs:obs});
+  save();
+  alert('Pagamento de '+fmt(pgCalcAtual.valor)+' lancado no Financeiro como despesa.');
+  el('pg-pago-area').style.display='none';
+  setV('pg-pago','nao');
+  var ca=el('pg-comp-area');if(ca)ca.style.display='none';
+  ['pg-comp','pg-comp-obs','pg-anotacoes'].forEach(function(i){setV(i,'');});
+}
+
+// ─── salvarPonto COM H.EXTRA AUTO ────────────────────────────
+function salvarPonto(){
+  var fid=val('pt-func');
+  var func=DB.funcionarios.find(function(f){return f.id===fid;});
+  var ent=val('pt-ent'),sai=val('pt-sai');
+  var intv=Number(val('pt-intervalo'))||Number(func&&func.intervalo||60);
+  var horas='';var hexAuto=0;
+  if(ent&&sai){
+    var minTrab=horaParaMin(sai)-horaParaMin(ent)-intv;
+    if(minTrab>0){
+      horas=minParaHora(minTrab);
+      if(func&&func.horasDia){var exc=minTrab-(func.horasDia*60);hexAuto=Math.max(0,exc/60);}
+    }
+  }
+  var dados={id:id(),func:fid,data:val('pt-data'),entrada:ent,saida:sai,
+    intervalo:intv,horas:horas,hex:parseFloat(hexAuto.toFixed(4)),
+    tipo:val('pt-tipo'),obra:val('pt-obra'),obs:val('pt-obs')};
+  if(!dados.func||!dados.data){alert('Selecione funcionario e data.');return;}
+  DB.pontos.push(dados);save();fecharMo('mo-ponto');renderPonto();
+}
+
+// ─── LOGO ─────────────────────────────────────────────────────
+function carregarLogo(input){
+  if(!input.files[0])return;
+  var r=new FileReader();
+  r.onload=function(e){DB.config.logo=e.target.result;save();aplicarLogo(e.target.result);};
+  r.readAsDataURL(input.files[0]);
+}
+function aplicarLogo(src){
+  var prev=el('logo-preview'),imgSb=el('sb-logo-img'),defSb=el('sb-logo-def')||el('sb-logo-def');
+  if(src){if(prev){prev.src=src;prev.style.display='block';}if(imgSb){imgSb.src=src;imgSb.style.display='block';}if(defSb)defSb.style.display='none';}
+  else{if(prev){prev.src='';prev.style.display='none';}if(imgSb){imgSb.src='';imgSb.style.display='none';}if(defSb)defSb.style.display='flex';}
+}
+function removerLogo(){DB.config.logo=null;save();aplicarLogo(null);var f=el('logo-file');if(f)f.value='';}
+
+// ─── ESTOQUE: EDITAR / EXCLUIR MOV ───────────────────────────
+function ehAdmin(){return true;}
+var editMovId=null;
+function editarMov(mid){
+  var m=DB.movEstq.find(function(x){return x.id===mid;});if(!m)return;
+  editMovId=mid;
+  var mo=DB.materiais.map(function(x){return '<option value="'+x.id+'">'+x.nome+'</option>';}).join('');
+  var oo=DB.obras.map(function(x){return '<option value="'+x.id+'">'+x.nome+'</option>';}).join('');
+  set('ee-mat',mo);set('ee-obra','<option value="">Geral</option>'+oo);
+  abrirMo('mo-estq-edit');
+  setTimeout(function(){
+    el('ee-mat').value=m.mat||'';setV('ee-data',m.data);
+    el('ee-tipo').value=m.tipo||'entrada';setV('ee-qtd',m.qtd);
+    setV('ee-resp',m.resp||m.forn||'');el('ee-obra').value=m.obra||'';setV('ee-obs',m.obs||'');
+  },60);
+}
+function confirmarEditMov(){
+  var m=DB.movEstq.find(function(x){return x.id===editMovId;});if(!m)return;
+  m.mat=val('ee-mat');m.data=val('ee-data');m.tipo=val('ee-tipo');
+  m.qtd=Number(val('ee-qtd'))||0;m.resp=val('ee-resp');m.forn=val('ee-resp');
+  m.obra=val('ee-obra');m.obs=val('ee-obs');
+  save();fecharMo('mo-estq-edit');editMovId=null;renderEstoque();
+}
+function excluirMov(mid){
+  if(!ehAdmin()){alert('Apenas administradores podem excluir movimentacoes.');return;}
+  if(!confirm('Excluir esta movimentacao?'))return;
+  DB.movEstq=DB.movEstq.filter(function(x){return x.id!==mid;});save();renderEstoque();
+}
+
+// ─── renderEstoque COM STATUS CRITICO ────────────────────────
+function renderEstoque(){
+  var q=val('estq-busca').toLowerCase();
+  var lista=DB.materiais.filter(function(m){return !q||m.nome.toLowerCase().indexOf(q)>=0;});
+  set('tbl-estq',lista.length?lista.map(function(m){
+    var qtd=Number(m.qtd||0),minQ=Number(m.min||0);
+    var zerado=qtd<=0,critico=!zerado&&minQ>0&&qtd<=minQ;
+    var badge=zerado?'<span class="bdg bgr">Sem estoque</span>':critico?'<span class="bdg bgo">Critico (min:'+fmtN(minQ)+')</span>':'<span class="bdg bgg">OK</span>';
+    return '<tr><td><strong>'+m.nome+'</strong></td><td>'+m.un+'</td><td style="font-weight:600;color:'+(zerado?'var(--rd)':critico?'var(--am)':'var(--tx)')+'">'+fmtN(qtd)+'</td><td>'+fmtN(minQ)+'</td><td>'+(m.loc||'-')+'</td><td>'+fmt(m.vl)+'</td><td>'+badge+'</td><td><div style="display:flex;gap:4px"><button class="btn xs bp" onclick="editarMat(\''+m.id+'\')">Editar</button><button class="btn xs br-" onclick="deletar(\'materiais\',\''+m.id+'\');renderEstoque()">Excluir</button></div></td></tr>';
+  }).join(''):'<tr><td colspan="8" class="empty">Nenhum material</td></tr>');
+  var tipo=val('estq-mov-tipo');
+  var movs=DB.movEstq.filter(function(m){return !tipo||m.tipo===tipo;});
+  movs.sort(function(a,b){return b.data<a.data?-1:1;});
+  var isAdm=ehAdmin();
+  set('tbl-estq-movs',movs.length?movs.map(function(m){
+    var excBtn=isAdm?'<button class="btn xs br-" onclick="excluirMov(\''+m.id+'\')">Excluir</button>':'<span style="font-size:10px;color:var(--tx3)" title="Apenas admin">Bloq</span>';
+    return '<tr><td>'+fmtData(m.data)+'</td><td><span class="bdg '+(m.tipo==='entrada'?'bgg':'bgr')+'">'+(m.tipo==='entrada'?'Entrada':'Saida')+'</span></td><td>'+nomeMat(m.mat)+'</td><td>'+fmtN(m.qtd)+'</td><td>'+nomeOb(m.obra)+'</td><td>'+(m.resp||m.forn||'-')+'</td><td>'+(m.obs||'-')+'</td><td><div style="display:flex;gap:4px"><button class="btn xs bp" onclick="editarMov(\''+m.id+'\')">Editar</button>'+excBtn+'</div></td></tr>';
+  }).join(''):'<tr><td colspan="8" class="empty">Nenhuma movimentacao</td></tr>');
+}
+
+// ─── A RECEBER POR OBRA ───────────────────────────────────────
+function renderReceberObras(){
+  var obras=DB.obras.filter(function(o){return Number(o.valor||0)>0;});
+  var tC=0,tR=0,tA=0;
+  obras.forEach(function(o){var v=Number(o.valor||0);var rec=DB.lancamentos.filter(function(l){return l.obra===o.id&&l.tipo==='receita';}).reduce(function(s,l){return s+Number(l.val||0);},0);tC+=v;tR+=rec;tA+=Math.max(0,v-rec);});
+  var rs=el('rec-stats');
+  if(rs)rs.innerHTML='<div class="st b"><div class="st-ico">Contratado</div><div class="st-val">'+fmt(tC)+'</div></div><div class="st g"><div class="st-ico">Recebido</div><div class="st-val">'+fmt(tR)+'</div></div><div class="st a"><div class="st-ico">A receber</div><div class="st-val">'+fmt(tA)+'</div></div>';
+  var lista=el('rec-obras-lista');if(!lista)return;
+  if(!obras.length){lista.innerHTML='<div class="empty">Nenhuma obra com valor contratado</div>';return;}
+  lista.innerHTML=obras.map(function(o){
+    var v=Number(o.valor||0);
+    var rec=DB.lancamentos.filter(function(l){return l.obra===o.id&&l.tipo==='receita';}).reduce(function(s,l){return s+Number(l.val||0);},0);
+    var aRec=Math.max(0,v-rec);
+    var pct=v>0?Math.min(100,Math.round(rec/v*100)):0;
+    return '<div class="rec-card"><div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px"><div><div style="font-size:13px;font-weight:600">'+o.nome+'</div><div style="font-size:11px;color:var(--tx2)">'+nomeCl(o.cliente)+' | '+o.status+'</div></div><button class="btn xs bp" onclick="irLancarReceita(\''+o.id+'\')">+ Lancamento</button></div><div style="height:5px;background:var(--bg4);border-radius:4px;overflow:hidden;margin:8px 0 4px"><div style="width:'+pct+'%;height:100%;border-radius:4px;background:'+(pct>=100?'var(--gn)':pct>50?'var(--ac)':'var(--am)')+'"></div></div><div style="display:flex;justify-content:space-between;font-size:11px"><span style="color:var(--tx2)">'+pct+'% recebido</span><span><span style="color:var(--gn);font-weight:600">'+fmt(rec)+'</span> / '+fmt(v)+'</span></div><div style="font-size:12px;margin-top:5px;font-weight:600;color:'+(aRec>0?'var(--am)':'var(--gn)')+'">'+( aRec>0?'A receber: '+fmt(aRec):'Totalmente recebido')+'</div></div>';
+  }).join('');
+}
+function irLancarReceita(obraId){
+  navegar('financeiro');
+  setTimeout(function(){
+    var t=el('pnl-financeiro')&&el('pnl-financeiro').querySelectorAll('.itab');
+    if(t)itab('fin','lancamentos',t[0]);
+    setTimeout(function(){el('fl-tipo').value='receita';toggleFlTipo();if(el('fl-obra'))el('fl-obra').value=obraId;if(el('fl-desc'))el('fl-desc').focus();},120);
+  },120);
+}
+
+// ─── EXPORTAR CSV ─────────────────────────────────────────────
+function exportarCSV(){
+  var sep=';';
+  function C(v){v=String(v==null?'':v);var q=String.fromCharCode(34);return(v.indexOf(sep)>=0||v.indexOf('\n')>=0||v.indexOf(q)>=0)?q+v.split(q).join(q+q)+q:v;}
+  var rows=[['FigForge - Exportacao - '+new Date().toLocaleDateString('pt-BR')],['Empresa:',(DB.config.empresa||'-')],[]];
+  rows.push(['=== OBRAS ==='],['Nome','Cliente','Tipo','Status','Area m2','Vlr contratado','Recebido','A receber','Progresso%']);
+  DB.obras.forEach(function(o){var rec=DB.lancamentos.filter(function(l){return l.obra===o.id&&l.tipo==='receita';}).reduce(function(s,l){return s+Number(l.val||0);},0);rows.push([o.nome,nomeCl(o.cliente),o.tipo||'',o.status||'',o.area||0,Number(o.valor||0).toFixed(2),rec.toFixed(2),Math.max(0,Number(o.valor||0)-rec).toFixed(2),o.progresso||0]);});
+  rows.push([],['=== LANCAMENTOS ==='],['Data','Tipo','Categoria','Descricao','Obra','Fornecedor','NF','Valor']);
+  DB.lancamentos.forEach(function(l){rows.push([fmtData(l.data),l.tipo,l.cat||'',l.desc,nomeOb(l.obra),l.forn||'',l.nf||'',Number(l.val||0).toFixed(2)]);});
+  rows.push([],['=== ESTOQUE ==='],['Material','Unidade','Qtd','Minimo','Localizacao','Vlr unit']);
+  DB.materiais.forEach(function(m){rows.push([m.nome,m.un||'',Number(m.qtd||0).toFixed(2),Number(m.min||0).toFixed(2),m.loc||'',Number(m.vl||0).toFixed(2)]);});
+  rows.push([],['=== FUNCIONARIOS ==='],['Nome','CPF','Funcao','Vinculo','Valor','Horario','Status']);
+  DB.funcionarios.forEach(function(f){rows.push([f.nome,f.cpf||'',f.func||'',f.vinculo||f.tipo||'',Number(f.val||0).toFixed(2),f.vinculo==='clt'&&f.horEntrada?f.horEntrada+'-'+f.horSaida+' ('+f.intervalo+'min)':'-',f.status||'']);});
+  var csv='\uFEFF'+rows.map(function(r){return Array.isArray(r)?r.map(C).join(sep):r;}).join('\n');
+  var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'}));a.download='figforge_'+hoje()+'.csv';a.click();
+}
+
+// ─── HOLERITE PDF ─────────────────────────────────────────────
+function exportarHoleritePDF(){
+  var fid=val('pg-func'),mes=val('pg-mes');
+  var func=DB.funcionarios.find(function(f){return f.id===fid;});
+  if(!func){alert('Selecione um funcionario');return;}
+  var isCLT=func.vinculo==='clt';
+  var vl=func.vinculo||func.tipo||'diaria';
+  var pontos=DB.pontos.filter(function(p){return p.func===fid&&p.data&&p.data.slice(0,7)===mes;});
+  var presentes=pontos.filter(function(p){return p.tipo==='Presente';}).length;
+  var faltasInj=pontos.filter(function(p){return p.tipo==='Falta injustificada';}).length;
+  var faltasJus=pontos.filter(function(p){return p.tipo==='Falta justificada';}).length;
+  var hexTotal=pontos.reduce(function(s,p){return s+Number(p.hex||0);},0);
+  var salario=Number(func.val||0);
+  var horasMes=isCLT?Number(func.horasMes||220):Number(func.horasDia||8)*22;
+  var valorHora=horasMes>0?salario/horasMes:0;
+  var valorHoraExt=valorHora*1.5;
+  var base=0;
+  if(isCLT||vl==='mensal')base=salario;
+  else if(vl==='diaria')base=salario*presentes;
+  else base=salario;
+  var vHex=isCLT?hexTotal*valorHoraExt:0;
+  var descFaltas=vl==='diaria'?faltasInj*salario:0;
+  var liquido=Math.max(0,base+vHex-descFaltas);
+  var comp=val('pg-comp')||'';
+  var compObs=val('pg-comp-obs')||'';
+  var anotacoes=isCLT?val('pg-anotacoes')||'':'';
+  var cfg=DB.config;
+  try{
+    var jsPDF=window.jspdf.jsPDF;
+    var doc=new jsPDF();
+    var y=10;
+    if(cfg.logo){try{doc.addImage(cfg.logo,'JPEG',14,y,22,18);}catch(e2){}}
+    doc.setFontSize(14);doc.setFont(undefined,'bold');
+    doc.text((cfg.empresa||'Construtora').toUpperCase(),105,y+8,{align:'center'});
+    doc.setFontSize(8);doc.setFont(undefined,'normal');
+    if(cfg.cnpj)doc.text('CNPJ: '+cfg.cnpj,105,y+14,{align:'center'});
+    if(cfg.end)doc.text(cfg.end,105,y+19,{align:'center'});
+    y+=26;
+    doc.setFillColor(35,52,100);doc.rect(14,y,182,8,'F');
+    doc.setTextColor(255,255,255);doc.setFontSize(10);doc.setFont(undefined,'bold');
+    doc.text(isCLT?'HOLERITE - FOLHA DE PAGAMENTO':'RECIBO DE PAGAMENTO',105,y+5.5,{align:'center'});
+    doc.setTextColor(0,0,0);y+=12;
+    doc.setFontSize(8);doc.setFont(undefined,'bold');doc.text('DADOS DO FUNCIONARIO',14,y);y+=7;
+    doc.setFont(undefined,'normal');
+    doc.text('Nome: '+func.nome,14,y);doc.text('CPF: '+(func.cpf||'-'),105,y);y+=5;
+    doc.text('Funcao: '+(func.func||'-'),14,y);doc.text('Vinculo: '+(isCLT?'CLT/Registrado':vl),105,y);y+=5;
+    if(func.adm)doc.text('Admissao: '+fmtData(func.adm),14,y);
+    doc.text('Competencia: '+mes,105,y);y+=5;
+    if(isCLT)doc.text('Horario: '+(func.horEntrada||'07:00')+' as '+(func.horSaida||'17:00')+' | Intervalo: '+(func.intervalo||60)+'min | '+(func.horasDia||8).toFixed(1)+'h/dia',14,y);
+    y+=7;doc.line(14,y,196,y);y+=5;
+    doc.setFont(undefined,'bold');doc.text('ESPELHO DE PONTO',14,y);y+=7;doc.setFont(undefined,'normal');
+    doc.text('Dias trabalhados: '+presentes,14,y);doc.text('Faltas injust: '+faltasInj,75,y);doc.text('Faltas just: '+faltasJus,130,y);y+=5;
+    if(hexTotal>0)doc.text('H. extras no periodo: '+hexTotal.toFixed(2)+'h | Valor hora extra: R$ '+fmtN(valorHoraExt)+'/h',14,y);
+    y+=7;doc.line(14,y,196,y);y+=5;
+    doc.setFont(undefined,'bold');doc.text('Descricao',14,y);doc.text('Referencia',120,y,{align:'right'});doc.text('Valor (R$)',196,y,{align:'right'});
+    doc.line(14,y+2,196,y+2);y+=7;doc.setFont(undefined,'normal');
+    if(isCLT||vl==='mensal'){doc.text('Salario base mensal',14,y);doc.text((func.horasMes||220)+'h',120,y,{align:'right'});doc.text(fmtN(base),196,y,{align:'right'});}
+    else if(vl==='diaria'){doc.text('Diarias trabalhadas',14,y);doc.text(presentes+' x R$'+fmtN(salario),120,y,{align:'right'});doc.text(fmtN(base),196,y,{align:'right'});}
+    else{doc.text('Empreitada',14,y);doc.text('-',120,y,{align:'right'});doc.text(fmtN(base),196,y,{align:'right'});}
+    y+=6;
+    if(vHex>0){doc.text('H. extras (adic. 50%)',14,y);doc.text(hexTotal.toFixed(2)+'h x R$'+fmtN(valorHoraExt),120,y,{align:'right'});doc.text(fmtN(vHex),196,y,{align:'right'});y+=6;}
+    if(descFaltas>0){doc.text('Desc. faltas injust.',14,y);doc.text(faltasInj+' x R$'+fmtN(salario),120,y,{align:'right'});doc.text('('+fmtN(descFaltas)+')',196,y,{align:'right'});y+=6;}
+    doc.line(14,y,196,y);y+=5;
+    doc.setFont(undefined,'bold');doc.setFontSize(11);
+    doc.text('LIQUIDO A PAGAR',14,y);doc.text('R$ '+fmtN(liquido),196,y,{align:'right'});
+    doc.setFont(undefined,'normal');doc.setFontSize(8);y+=8;
+    if(isCLT&&anotacoes){
+      doc.line(14,y,196,y);y+=5;
+      doc.setFont(undefined,'bold');doc.text('ANOTACOES',14,y);y+=6;
+      doc.setFont(undefined,'normal');
+      var la=doc.splitTextToSize(anotacoes,180);doc.text(la,14,y);y+=la.length*5+4;
+    }
+    if(comp){doc.line(14,y,196,y);y+=5;doc.text('Comprovante: '+comp+(compObs?' - '+compObs:''),14,y);doc.text('Forma: '+(val('pg-forma')||'-'),150,y);y+=8;}
+    y+=10;doc.line(30,y,90,y);doc.line(110,y,180,y);
+    doc.text('Assinatura do funcionario',60,y+5,{align:'center'});
+    doc.text('Assinatura do empregador',145,y+5,{align:'center'});
+    y+=11;doc.text('Nome: '+func.nome,30,y);doc.text('Nome: '+(cfg.resp||cfg.empresa||''),110,y);
+    doc.setFontSize(7);doc.setTextColor(120,120,120);
+    doc.text('Gerado em: '+new Date().toLocaleString('pt-BR'),105,285,{align:'center'});
+    if(cfg.crea)doc.text(cfg.crea,105,290,{align:'center'});
+    doc.save('recibo_'+func.nome.replace(/ /g,'_')+'_'+mes+'.pdf');
+  }catch(ex){alert('Erro ao gerar PDF: '+ex.message);}
+}
+
+// ─── initExtras ───────────────────────────────────────────────
+function initExtras(){if(DB.config&&DB.config.logo)aplicarLogo(DB.config.logo);}
+
+// ================================================================ INIT
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SISTEMA DE LICENÇA E LOGIN
+// ═══════════════════════════════════════════════════════════════════════════
+
+// Hashes MD5 das chaves válidas (chave = OBRA-XXXX-XXXX-XXXX)
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SISTEMA DE LICENÇA ONLINE + LOGIN — FigForge
+// ═══════════════════════════════════════════════════════════════════════════
+
+// ─── CONFIGURE AQUI após criar o Google Apps Script ────────────────────────
+var URL_SERVIDOR = URL_SERVIDOR_CFG;
+// Exemplo: 'https://script.google.com/macros/s/AKfycby.../exec'
+// ───────────────────────────────────────────────────────────────────────────
+
+var SK_LIC  = SK_LIC_GLOBAL;
+var SK_SESS = SK_SESS_GLOBAL;
+
+async function ativarLicenca(){
+  const email=(el('lic-email').value||'').trim().toLowerCase();
+  const err=el('lic-err');
+  const btn=el('lic-btn');
+  const status=el('lic-status');
+  err.style.display='none';
+
+  if(!email||!email.includes('@')){
+    err.textContent='Digite um e-mail valido.';
+    err.style.display='block';return;
+  }
+
+  // Verifica cache local primeiro
+  const licLocal=localStorage.getItem(SK_LIC);
+  if(licLocal){
+    try{
+      const obj=JSON.parse(licLocal);
+      if(obj.email===email&&obj.ativa){
+        el('screen-license').style.display='none';
+        mostrarLogin();return;
+      }
+    }catch(e){}
+  }
+
+  btn.disabled=true;
+  btn.textContent='Verificando...';
+  if(status) status.textContent='Consultando servidor...';
+
+  try{
+    const url=URL_SERVIDOR+'?action=validar&email='+encodeURIComponent(email);
+    const resp=await fetch(url, {
+      method:'GET',
+      redirect:'follow',
+      mode:'cors',
+      headers:{'Content-Type':'application/json'}
+    });
+    const json=await resp.json();
+
+    if(json.ok){
+      localStorage.setItem(SK_LIC,JSON.stringify({
+        email,ativa:true,nome:json.nome||'',plano:json.plano||'Basico',
+        ativadoEm:new Date().toISOString()
+      }));
+      btn.disabled=false;btn.textContent='Ativar agora';
+      if(status) status.textContent='';
+      el('screen-license').style.display='none';
+      mostrarLogin();
+      setV('login-user',email);
+      setTimeout(()=>el('login-pass').focus(),200);
+    } else {
+      err.textContent=json.msg||'Licenca nao encontrada. Verifique o e-mail ou adquira uma licenca.';
+      err.style.display='block';
+      if(status) status.textContent='';
+      btn.disabled=false;btn.textContent='Ativar agora';
+    }
+  }catch(e){
+    // Fallback offline
+    if(licLocal){
+      try{
+        const obj=JSON.parse(licLocal);
+        if(obj.email===email&&obj.ativa){
+          el('screen-license').style.display='none';
+          mostrarLogin();btn.disabled=false;btn.textContent='Ativar agora';return;
+        }
+      }catch(e2){}
+    }
+    err.textContent='Sem conexao com a internet. Conecte-se para ativar pela primeira vez.';
+    err.style.display='block';
+    if(status) status.textContent='';
+    btn.disabled=false;btn.textContent='Ativar agora';
+  }
+}
+
+function verificarLicenca(){
+  try{const obj=JSON.parse(localStorage.getItem(SK_LIC)||'{}');return obj.ativa===true;}
+  catch(e){return false;}
+}
+
+function mostrarLogin(){
+  el('screen-login').style.display='flex';
+  const cfg=DB.config||{};
+  const nomeEmp=cfg.empresa||'FigForge';
+  const av=nomeEmp.split(' ').slice(0,2).map(w=>w[0]||'').join('').toUpperCase()||'OB';
+  el('login-empresa-nome').textContent=nomeEmp;
+  const lb=el('login-logo-box');
+  if(lb) lb.innerHTML=cfg.logo?'<img src="'+cfg.logo+'" style="width:100%;height:100%;object-fit:contain;border-radius:14px"/>':av;
+  const lb2=el('lic-logo-box');
+  if(lb2) lb2.innerHTML=cfg.logo?'<img src="'+cfg.logo+'" style="width:100%;height:100%;object-fit:contain;border-radius:14px"/>':av;
+  setTimeout(()=>{if(!val('login-user'))el('login-user').focus();},100);
+}
+
+function verificarSessao(){
+  try{return JSON.parse(sessionStorage.getItem(SK_SESS)||'null');}catch(e){return null;}
+}
+
+function fazerLogin(){
+  const usuario=(val('login-user')||'').trim().toLowerCase();
+  const senha=val('login-pass')||'';
+  const err=el('login-err');
+  err.style.display='none';
+  if(!usuario||!senha){err.textContent='Preencha usuario e senha.';err.style.display='block';return;}
+
+  let found=null;
+  if((usuario==='admin'||usuario==='administrador')&&senha==='admin123')
+    found={nome:'Administrador',nivel:'adm',email:'admin'};
+
+  if(!found){
+    try{
+      const lic=JSON.parse(localStorage.getItem(SK_LIC)||'{}');
+      if(lic.email&&lic.email===usuario&&senha==='admin123')
+        found={nome:lic.nome||'Usuario',nivel:'adm',email:lic.email};
+    }catch(e){}
+  }
+
+  if(!found&&DB.users){
+    const u=DB.users.find(u=>(u.email||'').toLowerCase()===usuario||(u.nome||'').toLowerCase()===usuario);
+    if(u&&u.senha===senha) found={nome:u.nome,nivel:u.nivel||'adm',email:u.email};
+  }
+
+  if(found){
+    sessionStorage.setItem(SK_SESS,JSON.stringify({...found,loginEm:new Date().toISOString()}));
+    nivelUsuario=found.nivel||'adm';
+    el('screen-login').style.display='none';
+    el('app-shell').style.display='flex';
+    el('sb-nome').textContent=found.nome;
+    el('sb-nivel').textContent=found.nivel==='adm'?'Administrador':found.nivel==='fin'?'Financeiro':'Gestor';
+    el('sb-av').textContent=(found.nome||'AD').split(' ').slice(0,2).map(w=>w[0]||'').join('').toUpperCase();
+    renderPanel('dashboard');
+    if(typeof initExtras==='function')initExtras();
+    aplicarBloqueiosPlano();
+    // Revalida licença e verifica atualizações em background
+    setTimeout(revalidarOnline, 2000);
+    setTimeout(verificarAtualizacao, 4000);
+  } else {
+    err.textContent='Usuario ou senha incorretos.';
+    err.style.display='block';
+    setV('login-pass','');el('login-pass').focus();
+  }
+}
+
+function fazerLogout(){
+  if(!confirm('Deseja sair do sistema?'))return;
+  sessionStorage.removeItem(SK_SESS);
+  el('app-shell').style.display='none';
+  setV('login-user','');setV('login-pass','');
+  el('login-err').style.display='none';
+  try{const lic=JSON.parse(localStorage.getItem(SK_LIC)||'{}');if(lic.email)setV('login-user',lic.email);}catch(e){}
+  el('screen-login').style.display='flex';
+  setTimeout(()=>el('login-pass').focus(),100);
+}
+
+function esqueciSenha(){
+  alert('Senha padrao de acesso: admin123\n\nPara suporte entre em contato:\nWhatsApp: (67) 9654-7866');
+}
+
+async function revalidarOnline(){
+  try{
+    const lic=JSON.parse(localStorage.getItem(SK_LIC)||'{}');
+    if(!lic.email) return;
+    const ultimaVal=lic.ultimaValidacao?new Date(lic.ultimaValidacao):null;
+    const agora=new Date();
+    // Revalida a cada 3 dias
+    if(ultimaVal&&(agora-ultimaVal)<3*24*60*60*1000) return;
+    const url=URL_SERVIDOR+'?action=validar&email='+encodeURIComponent(lic.email);
+    const resp=await fetch(url,{
+      method:'GET', redirect:'follow', mode:'cors',
+      signal:AbortSignal.timeout(6000)
+    });
+    const json=await resp.json();
+    if(!json.ok){
+      // Licenca cancelada ou expirada
+      localStorage.removeItem(SK_LIC);
+      sessionStorage.removeItem(SK_SESS);
+      el('app-shell').style.display='none';
+      el('screen-login').style.display='none';
+      el('screen-license').style.display='flex';
+      el('lic-err').textContent=json.msg||'Sua licenca expirou. Renove para continuar.';
+      el('lic-err').style.display='block';
+    } else {
+      // Atualiza timestamp de validacao
+      lic.ultimaValidacao=agora.toISOString();
+      lic.nome=json.nome||lic.nome;
+      lic.plano=json.plano||lic.plano;
+      localStorage.setItem(SK_LIC,JSON.stringify(lic));
+    }
+  }catch(e){ /* sem conexao — ignora */ }
+}
+
+function isModoTeste(){
+  // Modo teste: ativa automaticamente quando o servidor ainda não foi configurado
+  return URL_SERVIDOR === 'COLE_AQUI_A_URL_DO_GOOGLE_APPS_SCRIPT' ||
+         URL_SERVIDOR === '' || URL_SERVIDOR === null;
+}
+
+function initAuth(){
+  // ── MODO TESTE LOCAL ─────────────────────────────────────────────────────
+  // Quando o servidor ainda não foi configurado, libera tudo para validação
+  if(isModoTeste()){
+    // Salva uma licença de teste local
+    localStorage.setItem(SK_LIC, JSON.stringify({
+      email:'teste@local.dev', ativa:true,
+      nome:'Modo Teste', plano:'pro', // plano Pro para testar todos os módulos
+      ativadoEm: new Date().toISOString()
+    }));
+    // Salva sessão de teste
+    sessionStorage.setItem(SK_SESS, JSON.stringify({
+      nome:'Administrador (Teste)', nivel:'adm',
+      email:'teste@local.dev', loginEm: new Date().toISOString()
+    }));
+    el('screen-license').style.display='none';
+    el('screen-login').style.display='none';
+    el('app-shell').style.display='flex';
+    el('sb-nome').textContent='Administrador (Teste)';
+    el('sb-nivel').textContent='Administrador';
+    el('sb-av').textContent='AD';
+    // Mostra banner de aviso
+    const bar = el('test-mode-bar');
+    if(bar) bar.style.display='block';
+    // Ajusta o padding do conteúdo para não sobrepor o banner
+    const cont = document.querySelector('.content');
+    if(cont) cont.style.paddingTop='36px';
+    aplicarBloqueiosPlano();
+    renderPanel('dashboard');
+    if(typeof initExtras==='function') initExtras();
+    setTimeout(verificarAtualizacao, 99999); // não verifica update em modo teste
+    return;
+  }
+  // ── FIM MODO TESTE ───────────────────────────────────────────────────────
+
+  if(!verificarLicenca()){
+    el('screen-license').style.display='flex';
+    el('screen-login').style.display='none';
+    el('app-shell').style.display='none';
+    setTimeout(()=>{ if(el('lic-email')) el('lic-email').focus(); },200);
+    return;
+  }
+  const sess=verificarSessao();
+  if(!sess){
+    el('screen-license').style.display='none';
+    try{const lic=JSON.parse(localStorage.getItem(SK_LIC)||'{}');if(lic.email)setV('login-user',lic.email);}catch(e){}
+    mostrarLogin();
+    el('app-shell').style.display='none';
+    return;
+  }
+  nivelUsuario=sess.nivel||'adm';
+  el('screen-license').style.display='none';
+  el('screen-login').style.display='none';
+  el('app-shell').style.display='flex';
+  el('sb-nome').textContent=sess.nome||'Administrador';
+  el('sb-nivel').textContent=sess.nivel==='adm'?'Administrador':sess.nivel==='fin'?'Financeiro':'Gestor';
+  el('sb-av').textContent=(sess.nome||'AD').split(' ').slice(0,2).map(w=>w[0]||'').join('').toUpperCase();
+  aplicarBloqueiosPlano();
+  renderPanel('dashboard');
+  if(typeof initExtras==='function')initExtras();
+  setTimeout(verificarAtualizacao, 4000);
+}
+
+load();
+initAuth();
+el('of-bdi').addEventListener('input',calcOrc);
+el('of-desc').addEventListener('input',calcOrc);
+
+function mostrarDescNivel(){
+  const descs={
+    adm:'Vê e edita tudo: obras, financeiro, estoque, funcionários, usuários e configurações.',
+    fin:'Acessa financeiro, lançamentos, relatórios e exportações. Não vê usuários nem config.',
+    alm:'Acessa estoque: cadastrar materiais, lançar entradas e saídas. Não vê financeiro.',
+    ges:'Acessa obras, diário de obra, ponto de funcionários e estoque (somente leitura).'
+  };
+  const d=el('nivel-desc');
+  if(d) d.textContent=descs[val('us-nivel')]||'';
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SISTEMA DE PLANOS — Starter R$47 | Profissional R$97
+// ═══════════════════════════════════════════════════════════════════════════
+
+
+// Retorna o plano ativo (lê da licença salva localmente)
+function getPlanoAtivo(){
+  try{
+    const lic=JSON.parse(localStorage.getItem(SK_LIC)||'{}');
+    const p=(lic.plano||'starter').toLowerCase();
+    if(p.includes('pro')||p.includes('profis')||p.includes('97')) return 'pro';
+    return 'starter';
+  }catch(e){ return 'starter'; }
+}
+
+function isPro(){ return getPlanoAtivo()==='pro'; }
+
+// Verifica se o módulo está disponível no plano atual
+function moduloDisponivel(modulo){
+  const plano=getPlanoAtivo();
+  return PLANOS_CFG[plano].modulos.includes(modulo);
+}
+
+// Aplica bloqueios na interface conforme o plano
+function aplicarBloqueiosPlano(){
+  const plano=getPlanoAtivo();
+  const cfg=PLANOS_CFG[plano];
+
+  // Itens do menu — bloqueia os que não estão no plano
+  document.querySelectorAll('.sbi').forEach(sbi=>{
+    const p=sbi.getAttribute('data-p');
+    if(!p) return;
+    if(!cfg.modulos.includes(p)){
+      sbi.style.opacity='0.4';
+      sbi.style.cursor='not-allowed';
+      sbi.title='Disponível no plano Profissional (R$97/mês)';
+      sbi.onclick=function(e){
+        e.preventDefault();e.stopPropagation();
+        mostrarUpgradeBanner(p);
+      };
+    } else {
+      sbi.style.opacity='';
+      sbi.style.cursor='';
+      sbi.title='';
+    }
+  });
+
+  // Badge do plano na sidebar (ao lado do usuário)
+  const sbNivel=el('sb-nivel');
+  if(sbNivel){
+    const badge=`<span class="badge-plano ${cfg.cor}" style="margin-top:2px">${cfg.icone} ${cfg.nome}</span>`;
+    // Só atualiza se ainda não tem o badge
+    if(!sbNivel.querySelector('.badge-plano')){
+      sbNivel.innerHTML=sbNivel.textContent+'<br/>'+badge;
+    }
+  }
+}
+
+// Mostra banner de upgrade quando tenta acessar módulo bloqueado
+function mostrarUpgradeBanner(modulo){
+  const nomes={
+    funcionarios:'Funcionários CLT',estoque:'Estoque',
+    diario:'Diário de obra',relatorios:'Relatórios avançados',
+    usuarios:'Gestão de usuários'
+  };
+  const nome=nomes[modulo]||modulo;
+  if(confirm(`🔒 "${nome}" está disponível apenas no plano Profissional (R$ 97/mês).\n\nDeseja fazer upgrade agora?`)){
+    // Abre link de upgrade (configure com a URL do seu produto Pro no Hotmart/Kiwify)
+    window.open(DB.config.urlPro||'https://hotmart.com/seu-produto-pro','_blank');
+  }
+}
+
+// Mostra banner de upgrade dentro do painel
+function renderUpgradePainel(nomePainel){
+  return `<div class="upgrade-banner">
+    <div>
+      <div style="font-size:13px;font-weight:700;color:var(--tx)">🔒 ${nomePainel} — Plano Profissional</div>
+      <div style="font-size:12px;color:var(--tx2);margin-top:3px">Este módulo está disponível no plano Profissional por <b style="color:var(--tx)">R$ 97/mês</b></div>
+    </div>
+    <button class="btn bp" onclick="window.open(DB.config.urlPro||'#','_blank')">🚀 Fazer upgrade</button>
+  </div>`;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SISTEMA DE ATUALIZAÇÃO AUTOMÁTICA
+// ═══════════════════════════════════════════════════════════════════════════
+
+var VERSAO_ATUAL = VERSAO_APP; // ← ATUALIZE ESTE NÚMERO A CADA RELEASE
+var SK_UPDATE = SK_UPD_GLOBAL;
+
+// Verifica se há atualização disponível (roda silenciosamente após login)
+async function verificarAtualizacao(){
+  try{
+    // Verifica se o usuário já ignorou esta versão
+    const ignorada=localStorage.getItem(SK_UPDATE+'_ignorada');
+    // Verifica se checou há menos de 6 horas
+    const ultimaCheck=localStorage.getItem(SK_UPDATE+'_check');
+    if(ultimaCheck){
+      const diff=(Date.now()-Number(ultimaCheck))/1000/60/60;
+      if(diff<6) return; // não verifica de novo tão cedo
+    }
+    localStorage.setItem(SK_UPDATE+'_check', Date.now());
+
+    // Busca versão mais recente no servidor
+    const url=URL_SERVIDOR+'?action=versao&versaoAtual='+encodeURIComponent(VERSAO_ATUAL);
+    const resp=await fetch(url,{signal:AbortSignal.timeout(5000)});
+    const json=await resp.json();
+
+    if(json.novaVersao && json.versao !== VERSAO_ATUAL && json.versao !== ignorada){
+      mostrarUpdateBar(json.versao, json.changelog||'Melhorias e novas funcionalidades', json.urlDownload||'');
+    }
+  }catch(e){ /* sem conexão, ignora silenciosamente */ }
+}
+
+function mostrarUpdateBar(versao, changelog, url){
+  const bar=el('update-bar');
+  if(!bar) return;
+  const badge=el('update-version-badge');
+  const log=el('update-changelog');
+  if(badge) badge.textContent='v'+versao;
+  if(log)   log.textContent=changelog;
+  // Salva URL para o botão de download
+  bar.setAttribute('data-url', url);
+  bar.setAttribute('data-versao', versao);
+  setTimeout(()=>bar.classList.add('show'), 800);
+}
+
+function fecharUpdateBar(){
+  const bar=el('update-bar');
+  if(bar) bar.classList.remove('show');
+}
+
+function ignorarVersao(){
+  const bar=el('update-bar');
+  if(!bar) return;
+  const v=bar.getAttribute('data-versao');
+  if(v) localStorage.setItem(SK_UPDATE+'_ignorada', v);
+  bar.classList.remove('show');
+}
+
+function baixarAtualizacao(){
+  const bar=el('update-bar');
+  const url=bar?.getAttribute('data-url');
+  if(url&&url!==''){
+    window.open(url,'_blank');
+  } else {
+    // Fallback: vai para área de membros do Hotmart/Kiwify
+    const urlProd=DB.config?.urlDownload||DB.config?.urlPro||'';
+    if(urlProd) window.open(urlProd,'_blank');
+    else alert('Acesse a área de membros do Hotmart/Kiwify para baixar a versão atualizada.\n\nSuporte: WhatsApp (67) 9654-7866');
+  }
+  fecharUpdateBar();
+}
+
+// ── FOTOS DO DIÁRIO ──────────────────────────────────────────────────────────
+var drFotosData = []; // armazena base64 das fotos do registro atual
+
+function previaDiarFotos(input){
+  drFotosData = [];
+  const prev = el('dr-fotos-preview');
+  if(prev) prev.innerHTML = '';
+  const files = Array.from(input.files);
+  files.forEach(file=>{
+    const reader = new FileReader();
+    reader.onload = e=>{
+      // Comprime a imagem antes de salvar
+      comprimirImagem(e.target.result, 800, 0.7, base64=>{
+        drFotosData.push(base64);
+        if(prev){
+          const img = document.createElement('img');
+          img.className = 'foto-thumb';
+          img.src = base64;
+          img.title = file.name;
+          img.onclick = ()=>{ window.open(base64,'_blank'); };
+          prev.appendChild(img);
+        }
+      });
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function comprimirImagem(src, maxW, qualidade, cb){
+  const img = new Image();
+  img.onload = ()=>{
+    const canvas = document.createElement('canvas');
+    let w = img.width, h = img.height;
+    if(w > maxW){ h = Math.round(h*maxW/w); w = maxW; }
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0, w, h);
+    cb(canvas.toDataURL('image/jpeg', qualidade));
+  };
+  img.src = src;
+}
+
+// ── COMPROVANTE DE PAGAMENTO (IMAGEM PIX/TED) ─────────────────────────────────
+var pgCompImgData = null;
+
+function previaComprovante(input){
+  const file = input.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e=>{
+    comprimirImagem(e.target.result, 600, 0.8, base64=>{
+      pgCompImgData = base64;
+      const prev = el('pg-comp-preview');
+      if(prev){ prev.src = base64; prev.style.display = 'block'; }
+    });
+  };
+  reader.readAsDataURL(file);
+}
+
+// Mostra campo de imagem apenas para PIX/TED
+
+
+// ── COMPROVANTE NO LANÇAMENTO FINANCEIRO ─────────────────────────────────────
+var lancCompImgData = null;
+function previaLancComp(input){
+  const file=input.files[0];if(!file)return;
+  // Se for PDF não mostra preview — só salva o nome
+  if(file.type==='application/pdf'){
+    lancCompImgData='PDF:'+file.name;
+    const prev=el('lanc-comp-preview');
+    if(prev){prev.style.display='none';}
+    const lbl=el('lanc-comp-img');
+    if(lbl) lbl.title=file.name+' anexado';
+    return;
+  }
+  const reader=new FileReader();
+  reader.onload=e=>{
+    comprimirImagem(e.target.result,600,0.75,base64=>{
+      lancCompImgData=base64;
+      const prev=el('lanc-comp-preview');
+      if(prev){prev.src=base64;prev.style.display='block';}
+    });
+  };
+  reader.readAsDataURL(file);
+}
+
+function verComprovante(lancId){
+  const l=DB.lancamentos.find(x=>x.id===lancId);
+  if(!l||!l.compImg) return;
+  if(l.compImg.startsWith('PDF:')){
+    alert('Comprovante PDF: '+l.compImg.replace('PDF:',''));
+    return;
+  }
+  const w=window.open('','_blank');
+  w.document.write('<html><body style="margin:0;background:#000;display:flex;align-items:center;justify-content:center;min-height:100vh"><img src="'+l.compImg+'" style="max-width:100%;max-height:100vh"/></body></html>');
+}
+</script>
+
+<div class="mo" id="mo-estq-edit"><div class="mbox">
+  <div class="mh"><span>✏️ Editar movimentação</span><div class="mx" onclick="fecharMo('mo-estq-edit')">✕</div></div>
+  <div class="fr fr2"><div><label>Material</label><select id="ee-mat"></select></div><div><label>Data</label><input id="ee-data" type="date"/></div></div>
+  <div class="fr fr3"><div><label>Tipo</label><select id="ee-tipo"><option value="entrada">Entrada</option><option value="saida">Saída</option></select></div><div><label>Quantidade</label><input id="ee-qtd" type="number" min="0.01" step="0.01"/></div><div><label>Obra</label><select id="ee-obra"><option value="">Geral</option></select></div></div>
+  <div class="fr fr2"><div><label>Responsável/Fornecedor</label><input id="ee-resp" type="text"/></div><div><label>Observação</label><input id="ee-obs" type="text"/></div></div>
+  <div style="display:flex;justify-content:flex-end;gap:7px"><button class="btn" onclick="fecharMo('mo-estq-edit')">Cancelar</button><button class="btn bp" onclick="confirmarEditMov()">Salvar</button></div>
+</div></div>
+</body>
+</html>
