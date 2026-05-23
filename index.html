@@ -216,8 +216,8 @@ textarea{resize:vertical;min-height:60px}
 <!-- ═══ TELA DE LICENÇA / ATIVAÇÃO ═════════════════════════════════════ -->
 <div class="auth-screen" id="screen-license">
   <div class="auth-box">
-    <div class="auth-logo" id="lic-logo-box">OB</div>
-    <div class="auth-title">Ativar ObraERP</div>
+    <div class="auth-logo" id="lic-logo-box">FF</div>
+    <div class="auth-title">Ativar FigForge</div>
     <div class="auth-sub">Digite o e-mail usado na compra para ativar</div>
     <div class="auth-err" id="lic-err">E-mail não encontrado ou licença inválida.</div>
     <div class="auth-field">
@@ -228,32 +228,89 @@ textarea{resize:vertical;min-height:60px}
     <button class="auth-btn" onclick="ativarLicenca()" id="lic-btn">✔ Ativar agora</button>
     <div style="text-align:center;font-size:11px;color:var(--tx3);margin-top:10px" id="lic-status"></div>
     <div class="auth-footer">
-      Não tem licença? Adquira em <b>obraerp.com.br</b><br/>
+      Não tem licença? Adquira em <b>figforge.com.br</b><br/>
       Suporte: <b>WhatsApp (67) 9654-7866</b>
     </div>
   </div>
 </div>
 
 <!-- ═══ TELA DE LOGIN ═══════════════════════════════════════════════════ -->
+<!-- ═══ TELA DE LOGIN ════════════════════════════════════════════════════ -->
 <div class="auth-screen" id="screen-login" style="display:none">
   <div class="auth-box">
-    <div class="auth-logo" id="login-logo-box">OB</div>
-    <div class="auth-title" id="login-empresa-nome">ObraERP</div>
-    <div class="auth-sub">Faça login para continuar</div>
-    <div class="auth-err" id="login-err">Usuário ou senha incorretos.</div>
-    <div class="auth-field">
-      <label>E-mail ou usuário</label>
-      <input id="login-user" type="text" placeholder="seu@email.com"
-        autocomplete="username" onkeydown="if(event.key==='Enter')el('login-pass').focus()"/>
+    <div class="auth-logo" id="login-logo-box">FF</div>
+    <div class="auth-title" id="login-empresa-nome">FigForge</div>
+
+    <!-- PAINEL LOGIN -->
+    <div id="painel-login">
+      <div class="auth-sub">Faça login para continuar</div>
+      <div class="auth-err" id="login-err"></div>
+      <div class="auth-field">
+        <label>E-mail ou usuário</label>
+        <input id="login-user" type="text" placeholder="seu@email.com"
+          autocomplete="username" onkeydown="if(event.key==='Enter')el('login-pass').focus()"/>
+      </div>
+      <div class="auth-field">
+        <label>Senha</label>
+        <input id="login-pass" type="password" placeholder="••••••••"
+          autocomplete="current-password" onkeydown="if(event.key==='Enter')fazerLogin()"/>
+      </div>
+      <button class="auth-btn" onclick="fazerLogin()">🔓 Entrar</button>
+      <div class="forgot-link" onclick="mostrarRecuperacao()">Esqueci minha senha</div>
     </div>
-    <div class="auth-field">
-      <label>Senha</label>
-      <input id="login-pass" type="password" placeholder="••••••••"
-        autocomplete="current-password" onkeydown="if(event.key==='Enter')fazerLogin()"/>
+
+    <!-- PAINEL RECUPERAÇÃO — PASSO 1 -->
+    <div id="painel-rec1" style="display:none">
+      <div class="auth-sub">Recuperar senha</div>
+      <div class="auth-err" id="rec-err1"></div>
+      <div style="font-size:12px;color:var(--tx2);margin-bottom:12px">
+        Digite o e-mail cadastrado na sua licença. Enviaremos um código de 6 dígitos.
+      </div>
+      <div class="auth-field">
+        <label>E-mail cadastrado</label>
+        <input id="rec-email" type="email" placeholder="seu@email.com"
+          onkeydown="if(event.key==='Enter')enviarCodigoRecuperacao()"/>
+      </div>
+      <button class="auth-btn" id="rec-btn1" onclick="enviarCodigoRecuperacao()">📧 Enviar código</button>
+      <div class="forgot-link" onclick="voltarLogin()">← Voltar ao login</div>
     </div>
-    <button class="auth-btn" onclick="fazerLogin()">🔓 Entrar</button>
-    <div class="forgot-link" onclick="esqueciSenha()">Esqueci minha senha</div>
-    <div class="auth-footer" id="login-footer">ObraERP · Gestão para construtoras</div>
+
+    <!-- PAINEL RECUPERAÇÃO — PASSO 2 -->
+    <div id="painel-rec2" style="display:none">
+      <div class="auth-sub">Digite o código recebido</div>
+      <div class="auth-err" id="rec-err2"></div>
+      <div style="font-size:12px;color:var(--tx2);margin-bottom:10px">
+        Código enviado para <b id="rec-email-display" style="color:var(--ac)"></b>
+      </div>
+      <div class="auth-field">
+        <label>Código de 6 dígitos</label>
+        <input id="rec-codigo" type="text" maxlength="6" placeholder="000000"
+          style="font-size:22px;letter-spacing:8px;text-align:center;font-family:monospace"
+          onkeydown="if(event.key==='Enter')el('rec-nova-senha').focus()"/>
+      </div>
+      <div class="auth-field">
+        <label>Nova senha</label>
+        <input id="rec-nova-senha" type="password" placeholder="Mínimo 4 caracteres"
+          onkeydown="if(event.key==='Enter')el('rec-conf-senha').focus()"/>
+      </div>
+      <div class="auth-field">
+        <label>Confirmar nova senha</label>
+        <input id="rec-conf-senha" type="password" placeholder="Repita a nova senha"
+          onkeydown="if(event.key==='Enter')confirmarRecuperacao()"/>
+      </div>
+      <button class="auth-btn" id="rec-btn2" onclick="confirmarRecuperacao()">✔ Redefinir senha</button>
+      <div class="forgot-link" onclick="mostrarRecuperacao()">← Reenviar código</div>
+    </div>
+
+    <!-- PAINEL RECUPERAÇÃO — PASSO 3: sucesso -->
+    <div id="painel-rec3" style="display:none;text-align:center;padding:10px 0">
+      <div style="font-size:48px;margin-bottom:12px">✅</div>
+      <div style="font-size:16px;font-weight:700;color:var(--gn);margin-bottom:8px">Senha redefinida!</div>
+      <div style="font-size:12px;color:var(--tx2);margin-bottom:16px">Faça login com a nova senha.</div>
+      <button class="auth-btn" onclick="voltarLogin()">🔓 Ir para o login</button>
+    </div>
+
+    <div class="auth-footer">FigForge · Gestão para construtoras</div>
   </div>
 </div>
 
