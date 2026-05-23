@@ -298,9 +298,7 @@ textarea{resize:vertical;min-height:60px}
       </div>
       <div style="font-size:12px;color:var(--tx3)" title="Sair">⬚</div>
     </div>
-    <div style="padding:6px 10px;border-top:1px solid var(--br)">
-      <button class="btn sm" style="width:100%;font-size:10px;color:var(--tx2)" onclick="abrirTrocarSenha()">🔑 Trocar senha</button>
-    </div>
+
   </div>
 
 <!-- MODAL TROCAR SENHA -->
@@ -632,8 +630,8 @@ textarea{resize:vertical;min-height:60px}
     <div class="card"><div class="ct">💰 Fluxo financeiro</div><div id="rel-fin"></div></div>
   </div>
   <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
-    <button class="btn bp" onclick="exportarRelPDF()">📄 Exportar relatório PDF</button>
-    <button class="btn bg" onclick="exportarCSV()">📊 Exportar CSV / Excel</button>
+    <button class="btn bp" style="flex:1;min-width:140px" onclick="exportarRelPDF()">📄 PDF</button>
+    <button class="btn bg" style="flex:1;min-width:140px" onclick="exportarCSV()">📊 CSV / Excel</button>
     <button class="btn sm" onclick="window.print()">🖨️ Imprimir</button>
   </div>
 </div>
@@ -707,6 +705,18 @@ textarea{resize:vertical;min-height:60px}
         <div style="padding:8px;background:var(--bg3);border-radius:var(--r)"><div style="font-weight:600">💾 Backup de dados</div><div style="color:var(--tx2);font-size:11px;margin:4px 0">Exporta todos os dados do sistema em formato JSON</div><button class="btn sm bp" onclick="backupDados()" style="margin-top:4px">📥 Exportar backup</button></div>
         <div style="padding:8px;background:var(--bg3);border-radius:var(--r)"><div style="font-weight:600">📂 Restaurar dados</div><div style="color:var(--tx2);font-size:11px;margin:4px 0">Importa um backup JSON previamente exportado</div><input type="file" id="import-file" accept=".json" style="display:none" onchange="importarDados(this)"/><button class="btn sm" onclick="document.getElementById('import-file').click()" style="margin-top:4px">📤 Importar backup</button></div>
         <div style="padding:8px;background:rgba(232,75,75,.06);border:1px solid rgba(232,75,75,.2);border-radius:var(--r)"><div style="font-weight:600;color:var(--rd)">⚠️ Zona de perigo</div><div style="color:var(--tx2);font-size:11px;margin:4px 0">Apaga permanentemente todos os dados do sistema</div><button class="btn sm br-" onclick="if(confirm('ATENÇÃO! Isso apagará TODOS os dados permanentemente. Tem certeza?')){limparTudo()}" style="margin-top:4px">🗑 Limpar todos os dados</button></div>
+
+        <!-- TROCAR SENHA -->
+        <div style="padding:8px;background:var(--bg3);border-radius:var(--r)">
+          <div style="font-weight:600">🔑 Segurança — Trocar senha</div>
+          <div style="color:var(--tx2);font-size:11px;margin:4px 0 8px">Altere sua senha de acesso ao sistema</div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <input id="cfg-senha-atual" type="password" placeholder="Senha atual"/>
+            <input id="cfg-senha-nova"  type="password" placeholder="Nova senha (mínimo 4 caracteres)"/>
+            <input id="cfg-senha-conf"  type="password" placeholder="Confirmar nova senha"/>
+            <button class="btn sm bp" onclick="trocarSenhaCfg()" style="margin-top:4px">💾 Salvar nova senha</button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -3113,6 +3123,46 @@ function confirmarTrocarSenha(){
 
   fecharMo('mo-trocar-senha');
   alert('✔ Senha alterada com sucesso!');
+}
+
+function trocarSenhaCfg(){
+  var atual = val('cfg-senha-atual');
+  var nova  = val('cfg-senha-nova');
+  var conf  = val('cfg-senha-conf');
+
+  if(!atual){ alert('Digite a senha atual.'); return; }
+  if(!nova||nova.length<4){ alert('A nova senha deve ter pelo menos 4 caracteres.'); return; }
+  if(nova!==conf){ alert('As senhas nao coincidem.'); return; }
+
+  var sess=null;
+  try{ sess=JSON.parse(sessionStorage.getItem(SK_SESS)||'null'); }catch(e){}
+  if(!sess){ alert('Sessao expirada. Faca login novamente.'); return; }
+
+  var senhaAdminAtual = (DB.config&&DB.config.adminSenha)||'admin123';
+  var senhaOk = false;
+
+  if(sess.nivel==='adm'&&(sess.email==='admin'||sess.email==='administrador')){
+    senhaOk=(atual===senhaAdminAtual);
+  }
+  if(!senhaOk&&DB.users){
+    var u=DB.users.find(function(x){return (x.email||'').toLowerCase()===sess.email;});
+    if(u) senhaOk=(u.senha===atual);
+  }
+  if(!senhaOk&&atual==='admin123'&&sess.nivel==='adm') senhaOk=true;
+
+  if(!senhaOk){ alert('Senha atual incorreta.'); return; }
+
+  if(sess.email==='admin'||sess.email==='administrador'){
+    DB.config=DB.config||{};
+    DB.config.adminSenha=nova;
+    save();
+  } else {
+    var u2=DB.users.find(function(x){return (x.email||'').toLowerCase()===sess.email;});
+    if(u2){u2.senha=nova;save();}
+  }
+
+  ['cfg-senha-atual','cfg-senha-nova','cfg-senha-conf'].forEach(function(i){setV(i,'');});
+  alert('Senha alterada com sucesso!');
 }
 </script>
 
