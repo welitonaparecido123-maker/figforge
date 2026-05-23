@@ -471,8 +471,8 @@ textarea{resize:vertical;min-height:60px}
 <div class="pnl" id="pnl-funcionarios">
   <div class="itabs">
     <div class="itab on" onclick="itab('func','cadastro',this)">👤 Cadastro</div>
-    <div class="itab" onclick="itab('func','ponto',this)">📅 Ponto</div>
-    <div class="itab" onclick="itab('func','pagamento',this)">💰 Pagamento</div>
+    <div class="itab" onclick="itab('func','ponto',this);preencherPontoSelects()">📅 Ponto</div>
+    <div class="itab" onclick="itab('func','pagamento',this);preencherPontoSelects();calcPagamento()">💰 Pagamento</div>
   </div>
   <div class="itp on" id="func-cadastro">
     <div style="display:flex;gap:8px;margin-bottom:10px">
@@ -672,21 +672,44 @@ textarea{resize:vertical;min-height:60px}
   </div>
   <!-- CARD ACESSO DA EQUIPE -->
   <div class="card" style="margin-bottom:10px">
-    <div class="ct">🔗 Acesso da equipe</div>
-    <div style="font-size:12px;color:var(--tx2);margin-bottom:10px">
-      Compartilhe este link com sua equipe. Eles ativam com o e-mail da empresa e fazem login com as próprias credenciais.
+    <div class="ct">🔗 Compartilhar acesso com a equipe</div>
+
+    <!-- Passo a passo -->
+    <div style="font-size:11px;margin-bottom:12px">
+      <div style="font-weight:700;color:var(--tx);margin-bottom:6px">Como liberar acesso para um funcionário:</div>
+      <div style="display:flex;flex-direction:column;gap:5px">
+        <div style="display:flex;gap:8px;align-items:flex-start">
+          <span style="background:var(--ac);color:#fff;border-radius:50%;width:16px;height:16px;min-width:16px;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center">1</span>
+          <span style="color:var(--tx2)">Cadastre o funcionário <b style="color:var(--tx)">acima</b> com nível e senha</span>
+        </div>
+        <div style="display:flex;gap:8px;align-items:flex-start">
+          <span style="background:var(--ac);color:#fff;border-radius:50%;width:16px;height:16px;min-width:16px;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center">2</span>
+          <span style="color:var(--tx2)">Clique em <b style="color:var(--tx)">☁️ Salvar na nuvem</b> para sincronizar</span>
+        </div>
+        <div style="display:flex;gap:8px;align-items:flex-start">
+          <span style="background:var(--ac);color:#fff;border-radius:50%;width:16px;height:16px;min-width:16px;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center">3</span>
+          <span style="color:var(--tx2)">Copie o link abaixo e envie para o funcionário</span>
+        </div>
+        <div style="display:flex;gap:8px;align-items:flex-start">
+          <span style="background:var(--gn);color:#fff;border-radius:50%;width:16px;height:16px;min-width:16px;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center">✓</span>
+          <span style="color:var(--tx2)">Funcionário abre o link → restaura dados → login com a própria senha</span>
+        </div>
+      </div>
     </div>
-    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">
+
+    <!-- Link + botões -->
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
       <input id="link-acesso" type="text" readonly
-        style="flex:1;font-size:10px;font-family:monospace;background:var(--bg3)"
-        placeholder="Vá em Configurações para gerar o link"/>
-      <button class="btn sm bp" onclick="copiarLinkAcesso()">📋 Copiar</button>
+        style="flex:1;font-size:10px;font-family:monospace"
+        placeholder="Abrindo painel..."/>
+      <button class="btn sm bp" onclick="copiarLinkAcesso()">📋 Copiar link</button>
     </div>
-    <div style="font-size:11px;color:var(--tx2)">
-      E-mail de ativação da empresa: <b id="email-licenca-display" style="color:var(--ac)">—</b>
+    <div style="display:flex;gap:6px;flex-wrap:wrap">
+      <button class="btn sm bg" onclick="salvarBackupNuvem(false)">☁️ Salvar na nuvem agora</button>
+      <button class="btn sm" onclick="compartilharWhatsApp()">📱 Enviar WhatsApp</button>
     </div>
-    <div style="font-size:10px;color:var(--tx3);margin-top:4px">
-      ⚙️ O link completo é gerado automaticamente em <b>Configurações → Sistema</b>
+    <div style="font-size:10px;color:var(--tx3);margin-top:6px">
+      E-mail de ativação: <b id="email-licenca-display" style="color:var(--ac)">—</b>
     </div>
   </div>
 
@@ -1072,12 +1095,21 @@ function preencherSelects(){
   setV('of-bdi',bdi);
 }
 function preencherPontoSelects(){
-  const funcOpts=DB.funcionarios.filter(f=>f.status==='Ativo').map(f=>`<option value="${f.id}">${f.nome}</option>`).join('');
-  setInnerSelect('ponto-func',funcOpts||'<option value="">Nenhum funcionário</option>');
-  setInnerSelect('pg-func',funcOpts||'<option value="">Nenhum funcionário</option>');
-  const ym=new Date().toISOString().slice(0,7);
-  setV('ponto-mes',ym);setV('pg-mes',ym);
+  var ativos = DB.funcionarios.filter(function(f){ return f.status==='Ativo'; });
+  var funcOpts = ativos.map(function(f){ return '<option value="'+f.id+'">'+f.nome+'</option>'; }).join('');
+  setInnerSelect('ponto-func', funcOpts||'<option value="">Nenhum funcionário</option>');
+  setInnerSelect('pg-func',    funcOpts||'<option value="">Nenhum funcionário</option>');
+  var ym = new Date().toISOString().slice(0,7);
+  setV('ponto-mes', ym);
+  setV('pg-mes', ym);
+  // Auto-seleciona o 1º funcionário e renderiza automaticamente
+  if(ativos.length > 0){
+    var sel = el('ponto-func');
+    if(sel && !sel.value) sel.value = ativos[0].id;
+    renderPonto();
+  }
 }
+
 function preencherFinSelects(){
   const obraOpts=DB.obras.map(o=>`<option value="${o.id}">${o.nome}</option>`).join('');
   setInnerSelect('fl-obra','<option value="">Nenhuma / Geral</option>'+obraOpts);
@@ -2194,6 +2226,14 @@ function editarFunc(eid){
 function calcPagamento(){
   var fid=val('pg-func'), mes=val('pg-mes');
   var pa=el('pg-pago-area');
+  // Auto-seleciona 1º funcionário se nenhum selecionado
+  if(!fid && DB.funcionarios.length > 0){
+    var ativos2 = DB.funcionarios.filter(function(f){ return f.status==='Ativo'; });
+    if(ativos2.length > 0){
+      var selPg = el('pg-func');
+      if(selPg){ selPg.value = ativos2[0].id; fid = ativos2[0].id; }
+    }
+  }
   if(!fid||!mes){
     set('pg-result','<div class="empty">Selecione funcionário e mês</div>');
     if(pa) pa.style.display='none';
@@ -3541,6 +3581,17 @@ function ofertarRestauracaoBackup(email){
       }
     }
   });
+}
+
+function compartilharWhatsApp(){
+  var inp = el('link-acesso');
+  var link = inp ? inp.value : '';
+  if(!link){ alert('Gere o link primeiro.'); return; }
+  var lic = JSON.parse(localStorage.getItem(SK_LIC)||'{}');
+  var msg = 'Ola! Aqui esta o link de acesso ao FigForge da empresa:\n\n' + link +
+    '\n\n1. Abra o link\n2. Clique em Ativar agora\n3. Quando perguntar sobre restaurar dados, clique SIM\n4. Faca login com seu e-mail e senha cadastrados\n\nSuporte: WhatsApp (67) 9654-7866';
+  var url = 'https://wa.me/?text=' + encodeURIComponent(msg);
+  window.open(url, '_blank');
 }
 </script>
 
