@@ -240,23 +240,81 @@ textarea{resize:vertical;min-height:60px}
 <!-- ═══ TELA DE LOGIN ═══════════════════════════════════════════════════ -->
 <div class="auth-screen" id="screen-login" style="display:none">
   <div class="auth-box">
-    <div class="auth-logo" id="login-logo-box">OB</div>
+    <div class="auth-logo" id="login-logo-box">FF</div>
     <div class="auth-title" id="login-empresa-nome">FigForge</div>
-    <div class="auth-sub">Faça login para continuar</div>
-    <div class="auth-err" id="login-err">Usuário ou senha incorretos.</div>
-    <div class="auth-field">
-      <label>E-mail ou usuário</label>
-      <input id="login-user" type="text" placeholder="seu@email.com"
-        autocomplete="username" onkeydown="if(event.key==='Enter')el('login-pass').focus()"/>
+
+    <!-- PAINEL LOGIN -->
+    <div id="painel-login">
+      <div class="auth-sub">Faça login para continuar</div>
+      <div class="auth-err" id="login-err"></div>
+      <div class="auth-field">
+        <label>E-mail ou usuário</label>
+        <input id="login-user" type="text" placeholder="seu@email.com"
+          autocomplete="username" onkeydown="if(event.key==='Enter')el('login-pass').focus()"/>
+      </div>
+      <div class="auth-field">
+        <label>Senha</label>
+        <input id="login-pass" type="password" placeholder="••••••••"
+          autocomplete="current-password" onkeydown="if(event.key==='Enter')fazerLogin()"/>
+      </div>
+      <button class="auth-btn" onclick="fazerLogin()">🔓 Entrar</button>
+      <div class="forgot-link" onclick="mostrarRecuperacao()">Esqueci minha senha</div>
     </div>
-    <div class="auth-field">
-      <label>Senha</label>
-      <input id="login-pass" type="password" placeholder="••••••••"
-        autocomplete="current-password" onkeydown="if(event.key==='Enter')fazerLogin()"/>
+
+    <!-- PAINEL RECUPERAÇÃO — PASSO 1: informar e-mail -->
+    <div id="painel-rec1" style="display:none">
+      <div class="auth-sub">Recuperar senha</div>
+      <div class="auth-err" id="rec-err1"></div>
+      <div style="font-size:12px;color:var(--tx2);margin-bottom:12px">
+        Digite o e-mail cadastrado na sua licença. Enviaremos um código de 6 dígitos.
+      </div>
+      <div class="auth-field">
+        <label>E-mail cadastrado</label>
+        <input id="rec-email" type="email" placeholder="seu@email.com"
+          onkeydown="if(event.key==='Enter')enviarCodigoRecuperacao()"/>
+      </div>
+      <button class="auth-btn" id="rec-btn1" onclick="enviarCodigoRecuperacao()">📧 Enviar código</button>
+      <div class="forgot-link" onclick="voltarLogin()">← Voltar ao login</div>
     </div>
-    <button class="auth-btn" onclick="fazerLogin()">🔓 Entrar</button>
-    <div class="forgot-link" onclick="abrirRecuperarSenha()">Esqueci minha senha</div>
-    <div class="auth-footer" id="login-footer">FigForge · Gestão para construtoras</div>
+
+    <!-- PAINEL RECUPERAÇÃO — PASSO 2: código + nova senha -->
+    <div id="painel-rec2" style="display:none">
+      <div class="auth-sub">Digite o código recebido</div>
+      <div class="auth-err" id="rec-err2"></div>
+      <div style="font-size:12px;color:var(--tx2);margin-bottom:10px">
+        Código enviado para <b id="rec-email-display" style="color:var(--ac)"></b>
+      </div>
+      <div class="auth-field">
+        <label>Código de 6 dígitos</label>
+        <input id="rec-codigo" type="text" maxlength="6" placeholder="000000"
+          style="font-size:22px;letter-spacing:8px;text-align:center;font-family:monospace"
+          onkeydown="if(event.key==='Enter')el('rec-nova-senha').focus()"/>
+      </div>
+      <div class="auth-field">
+        <label>Nova senha</label>
+        <input id="rec-nova-senha" type="password" placeholder="Mínimo 4 caracteres"
+          onkeydown="if(event.key==='Enter')el('rec-conf-senha').focus()"/>
+      </div>
+      <div class="auth-field">
+        <label>Confirmar nova senha</label>
+        <input id="rec-conf-senha" type="password" placeholder="Repita a nova senha"
+          onkeydown="if(event.key==='Enter')confirmarRecuperacao()"/>
+      </div>
+      <button class="auth-btn" id="rec-btn2" onclick="confirmarRecuperacao()">✔ Redefinir senha</button>
+      <div class="forgot-link" onclick="mostrarRecuperacao()">← Reenviar código</div>
+    </div>
+
+    <!-- PAINEL RECUPERAÇÃO — PASSO 3: sucesso -->
+    <div id="painel-rec3" style="display:none;text-align:center;padding:10px 0">
+      <div style="font-size:48px;margin-bottom:12px">✅</div>
+      <div style="font-size:16px;font-weight:700;color:var(--gn);margin-bottom:8px">Senha redefinida!</div>
+      <div style="font-size:12px;color:var(--tx2);margin-bottom:16px">
+        Sua nova senha foi salva. Faça login com a nova senha.
+      </div>
+      <button class="auth-btn" onclick="voltarLogin()">🔓 Ir para o login</button>
+    </div>
+
+    <div class="auth-footer">FigForge · Gestão para construtoras</div>
   </div>
 </div>
 
@@ -333,8 +391,7 @@ textarea{resize:vertical;min-height:60px}
 </div></div>
 
 <!-- MODAL RECUPERAR SENHA -->
-<div class="mo" id="mo-recuperar"><div class="mbox" style="max-width:400px">
-  <div class="mh"><span>🔐 Recuperar senha</span><div class="mx" onclick="fecharMo('mo-recuperar')">✕</div></div>
+
 
   <!-- Passo 1: informar e-mail -->
   <div class="rec-step ativo" id="rec-step1">
@@ -770,7 +827,8 @@ textarea{resize:vertical;min-height:60px}
     <div class="card">
       <div class="ct">⚙️ Sistema</div>
       <div style="display:flex;flex-direction:column;gap:8px;font-size:12px">
-        <div style="padding:8px;background:var(--bg3);border-radius:var(--r)"><div style="font-weight:600">💾 Backup de dados</div><div style="color:var(--tx2);font-size:11px;margin:4px 0">Exporta todos os dados do sistema em formato JSON</div><button class="btn sm bp" onclick="backupDados()" style="margin-top:4px">📥 Exportar backup</button></div>
+        <div style="padding:8px;background:var(--bg3);border-radius:var(--r)"><div style="font-weight:600">💾 Backup de dados</div><div style="color:var(--tx2);font-size:11px;margin:4px 0">Exporta todos os dados do sistema em formato JSON</div><button class="btn sm bp" onclick="backupDados()" style="margin-top:4px">📥 Exportar backup local</button>
+          <button class="btn sm" onclick="salvarBackupNuvem(false)" style="margin-top:4px">☁️ Salvar na nuvem agora</button></div>
         <div style="padding:8px;background:var(--bg3);border-radius:var(--r)"><div style="font-weight:600">📂 Restaurar dados</div><div style="color:var(--tx2);font-size:11px;margin:4px 0">Importa um backup JSON previamente exportado</div><input type="file" id="import-file" accept=".json" style="display:none" onchange="importarDados(this)"/><button class="btn sm" onclick="document.getElementById('import-file').click()" style="margin-top:4px">📤 Importar backup</button></div>
         <div style="padding:8px;background:rgba(232,75,75,.06);border:1px solid rgba(232,75,75,.2);border-radius:var(--r)"><div style="font-weight:600;color:var(--rd)">⚠️ Zona de perigo</div><div style="color:var(--tx2);font-size:11px;margin:4px 0">Apaga permanentemente todos os dados do sistema</div><button class="btn sm br-" onclick="if(confirm('ATENÇÃO! Isso apagará TODOS os dados permanentemente. Tem certeza?')){limparTudo()}" style="margin-top:4px">🗑 Limpar todos os dados</button></div>
 
@@ -2665,6 +2723,8 @@ function ativarLicenca(){
         mostrarLogin();
         setV('login-user',email);
         setTimeout(function(){el('login-pass').focus();},200);
+        // Verifica backup na nuvem para dispositivos novos
+        setTimeout(function(){ ofertarRestauracaoBackup(email); }, 3000);
       } else {
         err.textContent=(json&&json.msg)||'E-mail nao encontrado. Verifique ou adquira uma licenca.';
         err.style.display='block';
@@ -2773,7 +2833,7 @@ function fazerLogin(){
     if(typeof initExtras==='function')initExtras();
     aplicarBloqueiosPlano();
     aplicarRestricoesPorNivel();
-    // Revalida licença e verifica atualizações em background
+    iniciarBackupAutomatico();
     setTimeout(revalidarOnline, 2000);
     setTimeout(verificarAtualizacao, 4000);
   } else {
@@ -3354,26 +3414,34 @@ function aplicarRestricoesPorNivel(){
   });
 }
 
-// ── RECUPERAÇÃO DE SENHA ──────────────────────────────────────────────────────
+// ── RECUPERAÇÃO DE SENHA (inline na tela de login) ──────────────────────────
 var recEmailAtual = '';
 
-function abrirRecuperarSenha(){
-  // Preenche o e-mail com o que está no campo de login
-  var emailLogin = val('login-user')||'';
-  setV('rec-email', emailLogin);
-  // Reseta para passo 1
-  ['rec-step1','rec-step2','rec-step3'].forEach(function(id){
-    var el2=el(id);
-    if(el2){el2.classList.remove('ativo');}
-  });
-  el('rec-step1').classList.add('ativo');
-  el('rec-err1').style.display='none';
-  abrirMo('mo-recuperar');
-  setTimeout(function(){
-    if(!val('rec-email')) el('rec-email').focus();
-    else el('rec-email').focus();
-  },100);
+function mostrarPainelLogin(){
+  el('painel-login').style.display='block';
+  el('painel-rec1').style.display='none';
+  el('painel-rec2').style.display='none';
+  el('painel-rec3').style.display='none';
 }
+
+function voltarLogin(){
+  mostrarPainelLogin();
+  setTimeout(function(){el('login-user').focus();},100);
+}
+
+function mostrarRecuperacao(){
+  el('painel-login').style.display='none';
+  el('painel-rec1').style.display='block';
+  el('painel-rec2').style.display='none';
+  el('painel-rec3').style.display='none';
+  el('rec-err1').style.display='none';
+  // Preenche e-mail se já estava digitado no login
+  var emailLogin=val('login-user')||'';
+  if(emailLogin) setV('rec-email',emailLogin);
+  setTimeout(function(){el('rec-email').focus();},100);
+}
+
+function abrirRecuperarSenha(){ mostrarRecuperacao(); }
 
 function enviarCodigoRecuperacao(){
   var email = (val('rec-email')||'').trim().toLowerCase();
@@ -3396,8 +3464,8 @@ function enviarCodigoRecuperacao(){
     if(json&&json.ok){
       recEmailAtual = email;
       el('rec-email-display').textContent = email;
-      el('rec-step1').classList.remove('ativo');
-      el('rec-step2').classList.add('ativo');
+      el('painel-rec1').style.display='none';
+      el('painel-rec2').style.display='block';
       setTimeout(function(){el('rec-codigo').focus();},100);
     } else {
       err.textContent = (json&&json.msg)||'E-mail não encontrado na licença.';
@@ -3444,10 +3512,9 @@ function confirmarRecuperacao(){
       DB.config=DB.config||{};
       DB.config.adminSenha=nova;
       save();
-      // Mostra sucesso
-      el('rec-step2').classList.remove('ativo');
-      el('rec-step3').classList.add('ativo');
-      // Preenche o login com o e-mail
+      // Mostra painel de sucesso
+      el('painel-rec2').style.display='none';
+      el('painel-rec3').style.display='block';
       setV('login-user', recEmailAtual);
       setV('login-pass','');
     } else {
@@ -3468,6 +3535,105 @@ function voltarRec(){
   setV('rec-codigo','');
   setV('rec-nova-senha','');
   setV('rec-conf-senha','');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// BACKUP AUTOMÁTICO NA NUVEM
+// ═══════════════════════════════════════════════════════════════════════════
+var SK_BACKUP_TS = 'figforge_backup_ts';
+var backupTimer  = null;
+
+// Remove imagens base64 antes de salvar na nuvem (reduz tamanho)
+function compactarParaCloud(){
+  try{
+    var copia = JSON.parse(JSON.stringify(DB));
+    // Remove fotos do diário (base64 pesado)
+    if(copia.diario) copia.diario.forEach(function(d){ d.fotos=[]; });
+    // Remove logo e comprovantes
+    if(copia.config) copia.config.logo='';
+    if(copia.lancamentos) copia.lancamentos.forEach(function(l){ l.compImg=''; });
+    if(copia.pontos) copia.pontos.forEach(function(p){ p.compImg=''; });
+    return JSON.stringify(copia);
+  }catch(e){ return null; }
+}
+
+// Salva backup no servidor via POST
+function salvarBackupNuvem(silencioso){
+  try{
+    var lic=JSON.parse(localStorage.getItem(SK_LIC)||'{}');
+    if(!lic.email||!lic.ativa) return;
+    var backup = compactarParaCloud();
+    if(!backup) return;
+    if(backup.length > 40000){
+      if(!silencioso) alert('Backup muito grande para a nuvem. Use o backup local (JSON).');
+      return;
+    }
+    fetch(URL_SERVIDOR, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({action:'salvarBackup', email:lic.email, backup:backup})
+    }).then(function(r){ return r.json(); })
+    .then(function(json){
+      if(json.ok){
+        localStorage.setItem(SK_BACKUP_TS, new Date().toISOString());
+        if(!silencioso) alert('✔ Backup salvo na nuvem!\n'+json.msg);
+      } else {
+        if(!silencioso) alert('Erro ao salvar backup: '+(json.msg||''));
+      }
+    }).catch(function(){
+      // Tenta via JSONP se POST falhar
+      var url=URL_SERVIDOR+'?action=salvarBackup&email='+encodeURIComponent(lic.email);
+      if(!silencioso) console.log('POST falhou, backup não salvo');
+    });
+  }catch(e){}
+}
+
+// Agenda backup automático a cada 30 minutos
+function iniciarBackupAutomatico(){
+  if(backupTimer) clearInterval(backupTimer);
+  // Primeiro backup após 5 minutos de uso
+  setTimeout(function(){ salvarBackupNuvem(true); }, 5*60*1000);
+  // Depois a cada 30 minutos
+  backupTimer = setInterval(function(){ salvarBackupNuvem(true); }, 30*60*1000);
+}
+
+// Ao ativar licença em novo dispositivo — verifica se há backup na nuvem
+function verificarBackupNuvem(email, onComplete){
+  var url=URL_SERVIDOR+'?action=carregarBackup&email='+encodeURIComponent(email);
+  chamarServidorJSONP(url, function(json){
+    if(json&&json.ok&&json.backup){
+      onComplete(json.backup, json.dataBackup||'');
+    } else {
+      onComplete(null, '');
+    }
+  }, function(){ onComplete(null,''); });
+}
+
+// Pergunta ao usuário se quer restaurar o backup da nuvem
+function ofertarRestauracaoBackup(email){
+  verificarBackupNuvem(email, function(backup, dataBackup){
+    if(!backup) return;
+    // Verifica se os dados locais já têm conteúdo
+    var temDadosLocais = DB.obras.length>0||DB.clientes.length>0||DB.lancamentos.length>0;
+    if(temDadosLocais) return; // não pergunta se já tem dados
+    var msg = 'Foi encontrado um backup na nuvem!\n\n';
+    msg += 'Data: ' + (dataBackup||'desconhecida') + '\n\n';
+    msg += 'Deseja restaurar os dados do backup?';
+    if(confirm(msg)){
+      try{
+        var dados = JSON.parse(backup);
+        // Mantém config local (empresa configurada neste dispositivo)
+        var cfgLocal = DB.config||{};
+        Object.assign(DB, dados);
+        if(cfgLocal.logo) DB.config.logo = cfgLocal.logo;
+        save();
+        renderPanel('dashboard');
+        alert('✔ Dados restaurados com sucesso!');
+      }catch(e){
+        alert('Erro ao restaurar backup: '+e.message);
+      }
+    }
+  });
 }
 </script>
 
