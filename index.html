@@ -2011,6 +2011,7 @@ function renderUsers(){
     <td style="font-size:10px;color:var(--tx2)">${nivelDesc[u.nivel]||'—'}</td>
     <td><div style="display:flex;gap:4px">
       <button class="btn xs bp" onclick="editarUser('${u.id}')">✏️</button>
+      <button class="btn xs bg" onclick="enviarAcessoWhatsApp('${u.id}')">📱</button>
       <button class="btn xs br-" onclick="deletar('users','${u.id}');renderUsers()">🗑</button>
     </div></td>
   </tr>`).join('');
@@ -2668,11 +2669,8 @@ function ativarLicenca(){
           ativadoEm:new Date().toISOString()
         }));
         el('screen-license').style.display='none';
-        mostrarLogin();
-        setV('login-user',email);
-        setTimeout(function(){el('login-pass').focus();},200);
-        // Verifica backup na nuvem para dispositivos novos
-        setTimeout(function(){ ofertarRestauracaoBackup(email); }, 3000);
+        // Antes de mostrar o login, verifica backup na nuvem
+        restaurarBackupEMostrarLogin(email);
       } else {
         err.textContent=(json&&json.msg)||'E-mail nao encontrado. Verifique ou adquira uma licenca.';
         err.style.display='block';
@@ -3301,10 +3299,16 @@ function copiarLinkAcesso(){
 function lerEmailDaURL(){
   try{
     var params=new URLSearchParams(window.location.search);
-    var emailURL=params.get('email');
+    var emailURL = params.get('email');
+    var userURL  = params.get('user');
+    var passURL  = params.get('pass');
+
     if(emailURL){
       var inp=el('lic-email');
       if(inp) inp.value=decodeURIComponent(emailURL);
+      // Salva credenciais do usuário para preencher após ativação
+      if(userURL) sessionStorage.setItem('_pre_user', decodeURIComponent(userURL));
+      if(passURL) sessionStorage.setItem('_pre_pass', decodeURIComponent(passURL));
       // Ativa automaticamente após 1 segundo
       setTimeout(function(){
         var btn=el('lic-btn');
@@ -3619,6 +3623,126 @@ function autoEmailUsuario(){
   var dominio = (DB.config && DB.config.email) ? 
     DB.config.email.split('@')[1] || 'empresa.com' : 'empresa.com';
   el('us-email').value = email + '@' + dominio;
+}
+
+// ── RESTAURA BACKUP ANTES DE MOSTRAR LOGIN ──────────────────────────────────
+function restaurarBackupEMostrarLogin(email){
+  var temDadosLocais = (DB.obras&&DB.obras.length>0) ||
+                       (DB.users&&DB.users.length>0) ||
+                       (DB.clientes&&DB.clientes.length>0);
+
+  if(temDadosLocais){
+    // Já tem dados — vai direto para o login
+    mostrarLoginApos(email);
+    return;
+  }
+
+  // Mostra mensagem de carregamento
+  var loginBox = el('screen-login');
+  if(loginBox) loginBox.style.display='flex';
+  var painel = el('painel-login');
+  if(painel){
+    painel.innerHTML = '<div style="text-align:center;padding:20px 0">' +
+      '<div style="font-size:32px;margin-bottom:12px">⏳</div>' +
+      '<div style="font-size:14px;font-weight:600;margin-bottom:6px">Buscando dados da empresa...</div>' +
+      '<div style="font-size:12px;color:var(--tx2)">Aguarde um momento</div>' +
+      '</div>';
+  }
+
+  // Busca backup na nuvem
+  verificarBackupNuvem(email, function(backup, dataBackup){
+    // Restaura o HTML original do painel de login
+    if(painel){
+      painel.innerHTML =
+        '<div class="auth-sub">Faça login para continuar</div>' +
+        '<div class="auth-err" id="login-err"></div>' +
+        '<div class="auth-field"><label>E-mail ou usuário</label>' +
+        '<input id="login-user" type="text" placeholder="seu@email.com" autocomplete="username" onkeydown="if(event.key===\'Enter\')el(\'login-pass\').focus()"/></div>' +
+        '<div class="auth-field"><label>Senha</label>' +
+        '<input id="login-pass" type="password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key===\'Enter\')fazerLogin()"/></div>' +
+        '<button class="auth-btn" onclick="fazerLogin()">🔓 Entrar</button>' +
+        '<div class="forgot-link" onclick="mostrarRecuperacao()">Esqueci minha senha</div>';
+    }
+
+    if(backup){
+      try{
+        var dados = JSON.parse(backup);
+        Object.assign(DB, dados);
+        save();
+        console.log('✔ Backup restaurado automaticamente');
+      }catch(e){ console.log('Erro ao restaurar:', e); }
+    }
+
+    mostrarLoginApos(email);
+  });
+}
+
+function mostrarLoginApos(email){
+  mostrarLogin();
+  setTimeout(function(){
+    var preUser = sessionStorage.getItem('_pre_user')||'';
+    var prePass = sessionStorage.getItem('_pre_pass')||'';
+    var u = el('login-user');
+    var p = el('login-pass');
+    if(preUser && u){ u.value = preUser; }
+    else if(u){ u.value = ''; }
+    if(prePass && p){
+      p.value = prePass;
+      // Limpa da sessão após usar
+      sessionStorage.removeItem('_pre_user');
+      sessionStorage.removeItem('_pre_pass');
+      // Se tem os dois preenchidos, mostra botão de entrar em destaque
+      if(preUser){
+        setTimeout(function(){
+          var btn = document.querySelector('.auth-btn');
+          if(btn){ btn.style.animation='pulse 0.6s ease 2'; }
+        }, 300);
+      }
+    } else if(p){
+      p.value='';
+      if(u&&!u.value) u.focus();
+      else if(p) p.focus();
+    }
+  }, 300);
+}
+
+function enviarAcessoWhatsApp(uid){
+  var u = DB.users.find(function(x){ return x.id===uid; });
+  if(!u){ alert('Usuário não encontrado.'); return; }
+
+  var lic = {};
+  try{ lic = JSON.parse(localStorage.getItem(SK_LIC)||'{}'); }catch(e){}
+  var emailEmpresa = lic.email||'';
+
+  if(!emailEmpresa){
+    alert('Ative a licença primeiro para gerar o link.');
+    return;
+  }
+  if(!u.senha){
+    alert('Este usuário não tem senha cadastrada.\nEdite o usuário e defina uma senha antes de enviar.');
+    return;
+  }
+
+  var baseUrl = window.location.origin + window.location.pathname;
+  var link = baseUrl +
+    '?email=' + encodeURIComponent(emailEmpresa) +
+    '&user='  + encodeURIComponent(u.email||u.nome) +
+    '&pass='  + encodeURIComponent(u.senha);
+
+  var nivelNome = {adm:'Administrador',fin:'Financeiro',alm:'Almoxarifado',ges:'Gestor de obra'};
+  var msg =
+    'Olá, ' + u.nome + '! 👋\n\n' +
+    'Seu acesso ao FigForge está pronto.\n\n' +
+    '🔗 *Clique no link abaixo para entrar:*\n' +
+    link + '\n\n' +
+    '📋 *Seus dados de acesso:*\n' +
+    '• Usuário: ' + (u.email||u.nome) + '\n' +
+    '• Senha: ' + u.senha + '\n' +
+    '• Nível: ' + (nivelNome[u.nivel]||u.nivel) + '\n\n' +
+    'O link já vai preencher tudo automaticamente! ✅\n\n' +
+    'Suporte: WhatsApp (67) 9654-7866';
+
+  window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank');
 }
 </script>
 
