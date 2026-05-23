@@ -706,6 +706,21 @@ textarea{resize:vertical;min-height:60px}
         <div style="padding:8px;background:var(--bg3);border-radius:var(--r)"><div style="font-weight:600">📂 Restaurar dados</div><div style="color:var(--tx2);font-size:11px;margin:4px 0">Importa um backup JSON previamente exportado</div><input type="file" id="import-file" accept=".json" style="display:none" onchange="importarDados(this)"/><button class="btn sm" onclick="document.getElementById('import-file').click()" style="margin-top:4px">📤 Importar backup</button></div>
         <div style="padding:8px;background:rgba(232,75,75,.06);border:1px solid rgba(232,75,75,.2);border-radius:var(--r)"><div style="font-weight:600;color:var(--rd)">⚠️ Zona de perigo</div><div style="color:var(--tx2);font-size:11px;margin:4px 0">Apaga permanentemente todos os dados do sistema</div><button class="btn sm br-" onclick="if(confirm('ATENÇÃO! Isso apagará TODOS os dados permanentemente. Tem certeza?')){limparTudo()}" style="margin-top:4px">🗑 Limpar todos os dados</button></div>
 
+        <!-- COMPARTILHAR ACESSO -->
+        <div style="padding:8px;background:var(--bg3);border-radius:var(--r)">
+          <div style="font-weight:600">👥 Acesso da equipe</div>
+          <div style="color:var(--tx2);font-size:11px;margin:4px 0 8px">
+            Compartilhe este link com sua equipe. Eles usam o mesmo e-mail de ativação da empresa e fazem login com suas próprias credenciais.
+          </div>
+          <div id="link-acesso-box" style="display:flex;gap:6px;flex-wrap:wrap">
+            <input id="link-acesso" type="text" style="flex:1;font-size:10px;font-family:monospace" readonly/>
+            <button class="btn sm bp" onclick="copiarLinkAcesso()">📋 Copiar link</button>
+          </div>
+          <div style="font-size:10px;color:var(--tx3);margin-top:5px">
+            E-mail de ativação: <b id="email-licenca-display" style="color:var(--ac)">—</b>
+          </div>
+        </div>
+
         <!-- TROCAR SENHA -->
         <div style="padding:8px;background:var(--bg3);border-radius:var(--r)">
           <div style="font-weight:600">🔑 Segurança — Trocar senha</div>
@@ -1985,6 +2000,8 @@ function renderPerms(nivel){
 
 // ================================================================ CONFIG
 function renderConfig(){
+  // Gera o link de compartilhamento
+  setTimeout(gerarLinkAcesso, 100);
   const cfg=DB.config;
   setV('cfg-empresa',cfg.empresa);setV('cfg-cnpj',cfg.cnpj);setV('cfg-crea',cfg.crea);
   setV('cfg-resp',cfg.resp);setV('cfg-tel',cfg.tel);setV('cfg-email',cfg.email);
@@ -2783,7 +2800,10 @@ function initAuth(){
     el('screen-license').style.display='flex';
     el('screen-login').style.display='none';
     el('app-shell').style.display='none';
-    setTimeout(()=>{ if(el('lic-email')) el('lic-email').focus(); },200);
+    setTimeout(function(){
+      lerEmailDaURL();
+      if(el('lic-email')&&!el('lic-email').value) el('lic-email').focus();
+    },300);
     return;
   }
   const sess=verificarSessao();
@@ -3163,6 +3183,50 @@ function trocarSenhaCfg(){
 
   ['cfg-senha-atual','cfg-senha-nova','cfg-senha-conf'].forEach(function(i){setV(i,'');});
   alert('Senha alterada com sucesso!');
+}
+
+// ── COMPARTILHAR ACESSO ───────────────────────────────────────────────────────
+function gerarLinkAcesso(){
+  try{
+    var lic=JSON.parse(localStorage.getItem(SK_LIC)||'{}');
+    var email=lic.email||'';
+    if(!email) return;
+    var baseUrl=window.location.origin+window.location.pathname;
+    var link=baseUrl+'?email='+encodeURIComponent(email);
+    var inp=el('link-acesso');
+    if(inp) inp.value=link;
+    var disp=el('email-licenca-display');
+    if(disp) disp.textContent=email;
+  }catch(e){}
+}
+
+function copiarLinkAcesso(){
+  var inp=el('link-acesso');
+  if(!inp||!inp.value) return;
+  navigator.clipboard.writeText(inp.value).then(function(){
+    alert('Link copiado!\n\nCompartilhe com sua equipe:\n'+inp.value);
+  }).catch(function(){
+    inp.select();
+    document.execCommand('copy');
+    alert('Link copiado!');
+  });
+}
+
+// Lê email da URL e preenche automaticamente a tela de ativação
+function lerEmailDaURL(){
+  try{
+    var params=new URLSearchParams(window.location.search);
+    var emailURL=params.get('email');
+    if(emailURL){
+      var inp=el('lic-email');
+      if(inp) inp.value=decodeURIComponent(emailURL);
+      // Ativa automaticamente após 1 segundo
+      setTimeout(function(){
+        var btn=el('lic-btn');
+        if(btn) btn.click();
+      },1000);
+    }
+  }catch(e){}
 }
 </script>
 
