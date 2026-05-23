@@ -209,6 +209,9 @@ textarea{resize:vertical;min-height:60px}
 .upload-btn-wrap{position:relative;overflow:hidden;display:inline-block}
 .upload-btn-wrap input[type=file]{position:absolute;left:0;top:0;opacity:0;width:100%;height:100%;cursor:pointer}
 
+
+.rec-step{display:none}
+.rec-step.ativo{display:block}
 </style>
 </head>
 <body>
@@ -252,7 +255,7 @@ textarea{resize:vertical;min-height:60px}
         autocomplete="current-password" onkeydown="if(event.key==='Enter')fazerLogin()"/>
     </div>
     <button class="auth-btn" onclick="fazerLogin()">🔓 Entrar</button>
-    <div class="forgot-link" onclick="esqueciSenha()">Esqueci minha senha</div>
+    <div class="forgot-link" onclick="abrirRecuperarSenha()">Esqueci minha senha</div>
     <div class="auth-footer" id="login-footer">FigForge · Gestão para construtoras</div>
   </div>
 </div>
@@ -326,6 +329,71 @@ textarea{resize:vertical;min-height:60px}
   <div style="display:flex;justify-content:flex-end;gap:7px;margin-top:8px">
     <button class="btn" onclick="fecharMo('mo-trocar-senha')">Cancelar</button>
     <button class="btn bp" onclick="confirmarTrocarSenha()">💾 Salvar senha</button>
+  </div>
+</div></div>
+
+<!-- MODAL RECUPERAR SENHA -->
+<div class="mo" id="mo-recuperar"><div class="mbox" style="max-width:400px">
+  <div class="mh"><span>🔐 Recuperar senha</span><div class="mx" onclick="fecharMo('mo-recuperar')">✕</div></div>
+
+  <!-- Passo 1: informar e-mail -->
+  <div class="rec-step ativo" id="rec-step1">
+    <div style="font-size:12px;color:var(--tx2);margin-bottom:12px">
+      Informe seu e-mail cadastrado no sistema. Você receberá um código de 6 dígitos.
+    </div>
+    <div class="auth-err" id="rec-err1"></div>
+    <div class="fr"><div>
+      <label>E-mail cadastrado</label>
+      <input id="rec-email" type="email" placeholder="seu@email.com"
+        onkeydown="if(event.key==='Enter')enviarCodigoRecuperacao()"/>
+    </div></div>
+    <div style="display:flex;justify-content:flex-end;gap:7px;margin-top:8px">
+      <button class="btn" onclick="fecharMo('mo-recuperar')">Cancelar</button>
+      <button class="btn bp" id="rec-btn1" onclick="enviarCodigoRecuperacao()">📧 Enviar código</button>
+    </div>
+  </div>
+
+  <!-- Passo 2: código + nova senha -->
+  <div class="rec-step" id="rec-step2">
+    <div style="font-size:12px;color:var(--tx2);margin-bottom:12px">
+      Código enviado para <b id="rec-email-display" style="color:var(--ac)"></b>.
+      Verifique sua caixa de entrada (e o spam).
+    </div>
+    <div class="auth-err" id="rec-err2"></div>
+    <div class="fr"><div>
+      <label>Código de 6 dígitos</label>
+      <input id="rec-codigo" type="text" maxlength="6" placeholder="000000"
+        style="font-size:20px;letter-spacing:6px;text-align:center;font-family:monospace"
+        onkeydown="if(event.key==='Enter')el('rec-nova-senha').focus()"/>
+    </div></div>
+    <div class="fr"><div>
+      <label>Nova senha</label>
+      <input id="rec-nova-senha" type="password" placeholder="Mínimo 4 caracteres"
+        onkeydown="if(event.key==='Enter')confirmarRecuperacao()"/>
+    </div></div>
+    <div class="fr"><div>
+      <label>Confirmar nova senha</label>
+      <input id="rec-conf-senha" type="password" placeholder="Repita a nova senha"
+        onkeydown="if(event.key==='Enter')confirmarRecuperacao()"/>
+    </div></div>
+    <div style="font-size:10px;color:var(--tx3);margin-bottom:8px">
+      O código expira em 15 minutos.
+      <span style="color:var(--ac);cursor:pointer" onclick="voltarRec()">← Voltar</span>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:7px">
+      <button class="btn" onclick="fecharMo('mo-recuperar')">Cancelar</button>
+      <button class="btn bp" id="rec-btn2" onclick="confirmarRecuperacao()">✔ Redefinir senha</button>
+    </div>
+  </div>
+
+  <!-- Passo 3: sucesso -->
+  <div class="rec-step" id="rec-step3" style="text-align:center;padding:20px 0">
+    <div style="font-size:40px;margin-bottom:12px">✅</div>
+    <div style="font-size:16px;font-weight:700;color:var(--gn);margin-bottom:8px">Senha redefinida!</div>
+    <div style="font-size:12px;color:var(--tx2);margin-bottom:16px">
+      Sua nova senha foi salva. Faça login com a nova senha.
+    </div>
+    <button class="btn bp" onclick="fecharMo('mo-recuperar')">Ir para o login</button>
   </div>
 </div></div>
 </nav>
@@ -1933,7 +2001,7 @@ function renderUsers(){
     adm:'Acesso total ao sistema',
     fin:'Financeiro e relatórios',
     alm:'Estoque — entradas e saídas',
-    ges:'Obras, diário e funcionários'
+    ges:'Obras, diário (escrever), ponto de funcionários, estoque (ler)'
   };
   const adminRow=`<tr style="background:rgba(79,110,247,.04)">
     <td><strong>Administrador</strong> <span style="font-size:9px;color:var(--tx3)">(padrão do sistema)</span></td>
@@ -2679,8 +2747,12 @@ function fazerLogin(){
   if(!found){
     try{
       const lic=JSON.parse(localStorage.getItem(SK_LIC)||'{}');
-      if(lic.email&&lic.email===usuario&&senha==='admin123')
-        found={nome:lic.nome||'Usuario',nivel:'adm',email:lic.email};
+      // Login com e-mail da licença usa a senha do admin (não hardcoded)
+      if(lic.email&&lic.email===usuario){
+        var senhaLic=(DB.config&&DB.config.adminSenha)||'admin123';
+        if(senha===senhaLic)
+          found={nome:lic.nome||'Usuario',nivel:'adm',email:lic.email};
+      }
     }catch(e){}
   }
 
@@ -2700,6 +2772,7 @@ function fazerLogin(){
     renderPanel('dashboard');
     if(typeof initExtras==='function')initExtras();
     aplicarBloqueiosPlano();
+    aplicarRestricoesPorNivel();
     // Revalida licença e verifica atualizações em background
     setTimeout(revalidarOnline, 2000);
     setTimeout(verificarAtualizacao, 4000);
@@ -2822,6 +2895,7 @@ function initAuth(){
   el('sb-nivel').textContent=sess.nivel==='adm'?'Administrador':sess.nivel==='fin'?'Financeiro':'Gestor';
   el('sb-av').textContent=(sess.nome||'AD').split(' ').slice(0,2).map(w=>w[0]||'').join('').toUpperCase();
   aplicarBloqueiosPlano();
+  aplicarRestricoesPorNivel();
   renderPanel('dashboard');
   if(typeof initExtras==='function')initExtras();
   setTimeout(verificarAtualizacao, 4000);
@@ -3168,7 +3242,7 @@ function trocarSenhaCfg(){
     var u=DB.users.find(function(x){return (x.email||'').toLowerCase()===sess.email;});
     if(u) senhaOk=(u.senha===atual);
   }
-  if(!senhaOk&&atual==='admin123'&&sess.nivel==='adm') senhaOk=true;
+  // fallback admin123 removido por seguranca
 
   if(!senhaOk){ alert('Senha atual incorreta.'); return; }
 
@@ -3227,6 +3301,173 @@ function lerEmailDaURL(){
       },1000);
     }
   }catch(e){}
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CONTROLE DE ACESSO POR NÍVEL DE USUÁRIO
+// ═══════════════════════════════════════════════════════════════════════════
+var PERMISSOES = {
+  adm: {
+    modulos:  ['dashboard','obras','orcamentos','clientes','funcionarios',
+               'estoque','financeiro','diario','relatorios','usuarios','config'],
+    acoes:    ['salvar','editar','excluir','lancar_ponto','lancar_diario',
+               'lancar_financeiro','gerenciar_usuarios','configurar']
+  },
+  fin: {
+    modulos:  ['dashboard','obras','orcamentos','clientes','financeiro','relatorios'],
+    acoes:    ['salvar','editar','lancar_financeiro']
+  },
+  alm: {
+    modulos:  ['dashboard','obras','estoque'],
+    acoes:    ['salvar','editar','lancar_estoque']
+  },
+  ges: {
+    modulos:  ['dashboard','obras','clientes','funcionarios','estoque','diario'],
+    acoes:    ['salvar_obra','lancar_ponto','lancar_diario','ver_estoque']
+  }
+};
+
+function podeAcessar(modulo){
+  var nivel = nivelUsuario || 'adm';
+  var perms = PERMISSOES[nivel] || PERMISSOES['adm'];
+  return perms.modulos.includes(modulo);
+}
+
+function podeExecutar(acao){
+  var nivel = nivelUsuario || 'adm';
+  var perms = PERMISSOES[nivel] || PERMISSOES['adm'];
+  return perms.acoes.includes(acao) || perms.acoes.includes('salvar');
+}
+
+// Aplica restrições de nível na interface após login
+function aplicarRestricoesPorNivel(){
+  var nivel = nivelUsuario || 'adm';
+  if(nivel === 'adm') return; // admin vê tudo
+
+  // Restringe itens do menu conforme o nível
+  document.querySelectorAll('.sbi').forEach(function(sbi){
+    var p = sbi.getAttribute('data-p');
+    if(!p) return;
+    if(!podeAcessar(p)){
+      sbi.style.display = 'none';
+    }
+  });
+}
+
+// ── RECUPERAÇÃO DE SENHA ──────────────────────────────────────────────────────
+var recEmailAtual = '';
+
+function abrirRecuperarSenha(){
+  // Preenche o e-mail com o que está no campo de login
+  var emailLogin = val('login-user')||'';
+  setV('rec-email', emailLogin);
+  // Reseta para passo 1
+  ['rec-step1','rec-step2','rec-step3'].forEach(function(id){
+    var el2=el(id);
+    if(el2){el2.classList.remove('ativo');}
+  });
+  el('rec-step1').classList.add('ativo');
+  el('rec-err1').style.display='none';
+  abrirMo('mo-recuperar');
+  setTimeout(function(){
+    if(!val('rec-email')) el('rec-email').focus();
+    else el('rec-email').focus();
+  },100);
+}
+
+function enviarCodigoRecuperacao(){
+  var email = (val('rec-email')||'').trim().toLowerCase();
+  var err   = el('rec-err1');
+  var btn   = el('rec-btn1');
+  err.style.display='none';
+
+  if(!email||!email.includes('@')){
+    err.textContent='Digite um e-mail válido.';
+    err.style.display='block';return;
+  }
+
+  btn.disabled=true;
+  btn.textContent='Enviando...';
+
+  var url = URL_SERVIDOR+'?action=recuperarSenha&email='+encodeURIComponent(email);
+  chamarServidorJSONP(url, function(json){
+    btn.disabled=false;
+    btn.textContent='Enviar código';
+    if(json&&json.ok){
+      recEmailAtual = email;
+      el('rec-email-display').textContent = email;
+      el('rec-step1').classList.remove('ativo');
+      el('rec-step2').classList.add('ativo');
+      setTimeout(function(){el('rec-codigo').focus();},100);
+    } else {
+      err.textContent = (json&&json.msg)||'E-mail não encontrado na licença.';
+      err.style.display='block';
+    }
+  }, function(){
+    btn.disabled=false;
+    btn.textContent='Enviar código';
+    err.textContent='Sem conexão com o servidor. Verifique sua internet.';
+    err.style.display='block';
+  });
+}
+
+function confirmarRecuperacao(){
+  var codigo = (val('rec-codigo')||'').trim();
+  var nova   = val('rec-nova-senha')||'';
+  var conf   = val('rec-conf-senha')||'';
+  var err    = el('rec-err2');
+  var btn    = el('rec-btn2');
+  err.style.display='none';
+
+  if(!codigo||codigo.length!==6){
+    err.textContent='Digite o código de 6 dígitos.';
+    err.style.display='block';return;
+  }
+  if(!nova||nova.length<4){
+    err.textContent='A nova senha deve ter pelo menos 4 caracteres.';
+    err.style.display='block';return;
+  }
+  if(nova!==conf){
+    err.textContent='As senhas não coincidem.';
+    err.style.display='block';return;
+  }
+
+  btn.disabled=true;
+  btn.textContent='Validando...';
+
+  var url=URL_SERVIDOR+'?action=validarCodigo&email='+encodeURIComponent(recEmailAtual)+'&codigo='+encodeURIComponent(codigo);
+  chamarServidorJSONP(url, function(json){
+    btn.disabled=false;
+    btn.textContent='Redefinir senha';
+    if(json&&json.ok){
+      // Salva nova senha localmente
+      DB.config=DB.config||{};
+      DB.config.adminSenha=nova;
+      save();
+      // Mostra sucesso
+      el('rec-step2').classList.remove('ativo');
+      el('rec-step3').classList.add('ativo');
+      // Preenche o login com o e-mail
+      setV('login-user', recEmailAtual);
+      setV('login-pass','');
+    } else {
+      err.textContent=(json&&json.msg)||'Código inválido ou expirado.';
+      err.style.display='block';
+    }
+  }, function(){
+    btn.disabled=false;
+    btn.textContent='Redefinir senha';
+    err.textContent='Sem conexão. Tente novamente.';
+    err.style.display='block';
+  });
+}
+
+function voltarRec(){
+  el('rec-step2').classList.remove('ativo');
+  el('rec-step1').classList.add('ativo');
+  setV('rec-codigo','');
+  setV('rec-nova-senha','');
+  setV('rec-conf-senha','');
 }
 </script>
 
