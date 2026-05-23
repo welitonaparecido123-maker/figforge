@@ -3298,22 +3298,34 @@ function copiarLinkAcesso(){
 // Lê email da URL e preenche automaticamente a tela de ativação
 function lerEmailDaURL(){
   try{
-    var params=new URLSearchParams(window.location.search);
+    var params  = new URLSearchParams(window.location.search);
     var emailURL = params.get('email');
-    var userURL  = params.get('user');
-    var passURL  = params.get('pass');
+    var userURL  = params.get('user')  ? decodeURIComponent(params.get('user'))  : '';
+    var passURL  = params.get('pass')  ? decodeURIComponent(params.get('pass'))  : '';
+    var nomeURL  = params.get('nome')  ? decodeURIComponent(params.get('nome'))  : '';
+    var nivelURL = params.get('nivel') ? decodeURIComponent(params.get('nivel')) : 'ges';
 
     if(emailURL){
-      var inp=el('lic-email');
-      if(inp) inp.value=decodeURIComponent(emailURL);
-      // Salva credenciais do usuário para preencher após ativação
-      if(userURL) sessionStorage.setItem('_pre_user', decodeURIComponent(userURL));
-      if(passURL) sessionStorage.setItem('_pre_pass', decodeURIComponent(passURL));
+      var inp = el('lic-email');
+      if(inp) inp.value = decodeURIComponent(emailURL);
+
+      // Salva credenciais na sessão para preencher o login depois
+      if(userURL) sessionStorage.setItem('_pre_user', userURL);
+      if(passURL) sessionStorage.setItem('_pre_pass', passURL);
+
+      // Salva dados do usuário para registrar localmente após ativação
+      if(userURL && passURL){
+        sessionStorage.setItem('_pre_usr_obj', JSON.stringify({
+          email: userURL, senha: passURL,
+          nome: nomeURL||userURL, nivel: nivelURL
+        }));
+      }
+
       // Ativa automaticamente após 1 segundo
       setTimeout(function(){
-        var btn=el('lic-btn');
+        var btn = el('lic-btn');
         if(btn) btn.click();
-      },1000);
+      }, 1000);
     }
   }catch(e){}
 }
@@ -3673,6 +3685,8 @@ function restaurarBackupEMostrarLogin(email){
       }catch(e){ console.log('Erro ao restaurar:', e); }
     }
 
+    // Garante que o usuário do link está registrado localmente
+    registrarUsuarioDoLink();
     mostrarLoginApos(email);
   });
 }
@@ -3727,7 +3741,9 @@ function enviarAcessoWhatsApp(uid){
   var link = baseUrl +
     '?email=' + encodeURIComponent(emailEmpresa) +
     '&user='  + encodeURIComponent(u.email||u.nome) +
-    '&pass='  + encodeURIComponent(u.senha);
+    '&pass='  + encodeURIComponent(u.senha) +
+    '&nome='  + encodeURIComponent(u.nome||'') +
+    '&nivel=' + encodeURIComponent(u.nivel||'ges');
 
   var nivelNome = {adm:'Administrador',fin:'Financeiro',alm:'Almoxarifado',ges:'Gestor de obra'};
   var msg =
@@ -3743,6 +3759,39 @@ function enviarAcessoWhatsApp(uid){
     'Suporte: WhatsApp (67) 9654-7866';
 
   window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank');
+}
+
+function registrarUsuarioDoLink(){
+  try{
+    var objStr = sessionStorage.getItem('_pre_usr_obj');
+    if(!objStr) return;
+    var obj = JSON.parse(objStr);
+    if(!obj.email||!obj.senha) return;
+
+    // Verifica se o usuário já existe
+    var jaExiste = DB.users && DB.users.find(function(u){
+      return (u.email||'').toLowerCase() === obj.email.toLowerCase();
+    });
+
+    if(!jaExiste){
+      if(!DB.users) DB.users = [];
+      DB.users.push({
+        id:    'u_' + Date.now(),
+        nome:  obj.nome  || obj.email,
+        email: obj.email,
+        senha: obj.senha,
+        nivel: obj.nivel || 'ges',
+        status:'Ativo'
+      });
+      save();
+      console.log('✔ Usuário registrado localmente a partir do link');
+    } else {
+      // Atualiza a senha caso tenha mudado
+      jaExiste.senha = obj.senha;
+      save();
+    }
+    sessionStorage.removeItem('_pre_usr_obj');
+  }catch(e){ console.log('Erro ao registrar usuário do link:', e); }
 }
 </script>
 
