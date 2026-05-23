@@ -290,11 +290,46 @@ textarea{resize:vertical;min-height:60px}
     </div>
   </div>
   <div class="sb-foot">
-    <div class="sb-usr">
-      <div class="sb-av" id="sb-av" >AD</div>
-      <div style="overflow:hidden"><div style="font-size:11px;font-weight:600;white-space:nowrap" id="sb-nome">Administrador</div><div style="font-size:9px;color:var(--tx2)" id="sb-nivel">Administrador</div></div>
+    <div class="sb-usr" style="cursor:pointer" onclick="fazerLogout()" title="Clique para sair">
+      <div class="sb-av" id="sb-av">AD</div>
+      <div style="overflow:hidden;flex:1">
+        <div style="font-size:11px;font-weight:600;white-space:nowrap" id="sb-nome">Administrador</div>
+        <div style="font-size:9px;color:var(--tx2)" id="sb-nivel">Administrador</div>
+      </div>
+      <div style="font-size:12px;color:var(--tx3)" title="Sair">⬚</div>
+    </div>
+    <div style="padding:6px 10px;border-top:1px solid var(--br)">
+      <button class="btn sm" style="width:100%;font-size:10px;color:var(--tx2)" onclick="abrirTrocarSenha()">🔑 Trocar senha</button>
     </div>
   </div>
+
+<!-- MODAL TROCAR SENHA -->
+<div class="mo" id="mo-trocar-senha"><div class="mbox" style="max-width:380px">
+  <div class="mh"><span>🔑 Trocar senha</span><div class="mx" onclick="fecharMo('mo-trocar-senha')">✕</div></div>
+  <div class="auth-err" id="senha-err" style="margin-bottom:10px"></div>
+  <div class="fr">
+    <div>
+      <label>Senha atual</label>
+      <input id="senha-atual" type="password" placeholder="Digite a senha atual"/>
+    </div>
+  </div>
+  <div class="fr">
+    <div>
+      <label>Nova senha</label>
+      <input id="senha-nova" type="password" placeholder="Mínimo 4 caracteres"/>
+    </div>
+  </div>
+  <div class="fr">
+    <div>
+      <label>Confirmar nova senha</label>
+      <input id="senha-conf" type="password" placeholder="Repita a nova senha"/>
+    </div>
+  </div>
+  <div style="display:flex;justify-content:flex-end;gap:7px;margin-top:8px">
+    <button class="btn" onclick="fecharMo('mo-trocar-senha')">Cancelar</button>
+    <button class="btn bp" onclick="confirmarTrocarSenha()">💾 Salvar senha</button>
+  </div>
+</div></div>
 </nav>
 
 <!-- MAIN -->
@@ -2610,7 +2645,8 @@ function fazerLogin(){
   if(!usuario||!senha){err.textContent='Preencha usuario e senha.';err.style.display='block';return;}
 
   let found=null;
-  if((usuario==='admin'||usuario==='administrador')&&senha==='admin123')
+  var senhaAdmin = (DB.config&&DB.config.adminSenha)||'admin123';
+  if((usuario==='admin'||usuario==='administrador')&&senha===senhaAdmin)
     found={nome:'Administrador',nivel:'adm',email:'admin'};
 
   if(!found){
@@ -3026,6 +3062,57 @@ function verComprovante(lancId){
   }
   const w=window.open('','_blank');
   w.document.write('<html><body style="margin:0;background:#000;display:flex;align-items:center;justify-content:center;min-height:100vh"><img src="'+l.compImg+'" style="max-width:100%;max-height:100vh"/></body></html>');
+}
+
+// ── TROCAR SENHA ─────────────────────────────────────────────────────────────
+function abrirTrocarSenha(){
+  ['senha-atual','senha-nova','senha-conf'].forEach(i=>setV(i,''));
+  el('senha-err').style.display='none';
+  abrirMo('mo-trocar-senha');
+  setTimeout(()=>el('senha-atual').focus(),100);
+}
+
+function confirmarTrocarSenha(){
+  var atual = val('senha-atual');
+  var nova  = val('senha-nova');
+  var conf  = val('senha-conf');
+  var err   = el('senha-err');
+  err.style.display='none';
+
+  // Pega sessão atual
+  var sess = null;
+  try{ sess=JSON.parse(sessionStorage.getItem(SK_SESS)||'null'); }catch(e){}
+  if(!sess){ err.textContent='Sessão expirada. Faça login novamente.'; err.style.display='block'; return; }
+
+  // Verifica senha atual
+  var senhaOk = false;
+  if(sess.nivel==='adm' && (sess.email==='admin'||sess.email==='administrador')){
+    senhaOk = (atual==='admin123');
+  }
+  if(!senhaOk && DB.users){
+    var u = DB.users.find(function(x){ return (x.email||'').toLowerCase()===sess.email; });
+    if(u) senhaOk = (u.senha===atual);
+  }
+  // Verifica admin padrão
+  if(!senhaOk && atual==='admin123' && sess.nivel==='adm') senhaOk=true;
+
+  if(!senhaOk){ err.textContent='Senha atual incorreta.'; err.style.display='block'; return; }
+  if(!nova||nova.length<4){ err.textContent='A nova senha deve ter pelo menos 4 caracteres.'; err.style.display='block'; return; }
+  if(nova!==conf){ err.textContent='As senhas não coincidem.'; err.style.display='block'; return; }
+
+  // Salva nova senha
+  if(sess.email==='admin'||sess.email==='administrador'){
+    // Admin padrão — salva nas configurações
+    DB.config = DB.config||{};
+    DB.config.adminSenha = nova;
+    save();
+  } else {
+    var u2 = DB.users.find(function(x){ return (x.email||'').toLowerCase()===sess.email; });
+    if(u2){ u2.senha=nova; save(); }
+  }
+
+  fecharMo('mo-trocar-senha');
+  alert('✔ Senha alterada com sucesso!');
 }
 </script>
 
