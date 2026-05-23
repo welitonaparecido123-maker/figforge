@@ -2635,9 +2635,8 @@ function ativarLicenca(){
       ativadoEm:new Date().toISOString()
     }));
     el('screen-license').style.display='none';
-    mostrarLogin();
-    setV('login-user',email);
-    setTimeout(function(){el('login-pass').focus();},200);
+    registrarUsuarioDoLink();
+    mostrarLoginApos(email);
     return;
   }
 
@@ -2648,7 +2647,10 @@ function ativarLicenca(){
       var obj=JSON.parse(licLocal);
       if(obj.email===email&&obj.ativa){
         el('screen-license').style.display='none';
-        mostrarLogin();return;
+        // Registra usuário do link mesmo vindo do cache
+        registrarUsuarioDoLink();
+        mostrarLoginApos(email);
+        return;
       }
     }catch(e){}
   }
@@ -2791,13 +2793,26 @@ function fazerLogin(){
 
 function fazerLogout(){
   if(!confirm('Deseja sair do sistema?'))return;
+  // Guarda e-mail do usuário atual antes de limpar
+  var sessAtual = null;
+  try{ sessAtual = JSON.parse(sessionStorage.getItem(SK_SESS)||'null'); }catch(e){}
   sessionStorage.removeItem(SK_SESS);
+  sessionStorage.removeItem('_pre_user');
+  sessionStorage.removeItem('_pre_pass');
+  sessionStorage.removeItem('_pre_usr_obj');
   el('app-shell').style.display='none';
-  setV('login-user','');setV('login-pass','');
   el('login-err').style.display='none';
-  try{const lic=JSON.parse(localStorage.getItem(SK_LIC)||'{}');if(lic.email)setV('login-user',lic.email);}catch(e){}
+  // Preenche com o e-mail do usuário que acabou de sair (não o da empresa)
+  var emailParaLogin = (sessAtual && sessAtual.email && sessAtual.email !== 'admin')
+    ? sessAtual.email : '';
+  setV('login-user', emailParaLogin);
+  setV('login-pass','');
   el('screen-login').style.display='flex';
-  setTimeout(()=>el('login-pass').focus(),100);
+  mostrarPainelLogin();
+  setTimeout(function(){
+    if(emailParaLogin) el('login-pass').focus();
+    else el('login-user').focus();
+  },100);
 }
 
 function esqueciSenha(){
@@ -3698,23 +3713,23 @@ function mostrarLoginApos(email){
     var prePass = sessionStorage.getItem('_pre_pass')||'';
     var u = el('login-user');
     var p = el('login-pass');
-    if(preUser && u){ u.value = preUser; }
-    else if(u){ u.value = ''; }
+
+    if(preUser && u){
+      u.value = preUser;
+      sessionStorage.removeItem('_pre_user');
+    } else if(u){
+      u.value = '';
+    }
+
     if(prePass && p){
       p.value = prePass;
-      // Limpa da sessão após usar
-      sessionStorage.removeItem('_pre_user');
       sessionStorage.removeItem('_pre_pass');
-      // Se tem os dois preenchidos, mostra botão de entrar em destaque
-      if(preUser){
-        setTimeout(function(){
-          var btn = document.querySelector('.auth-btn');
-          if(btn){ btn.style.animation='pulse 0.6s ease 2'; }
-        }, 300);
-      }
+      // Foca no botão de entrar
+      var btn = document.querySelector('.auth-btn');
+      if(btn) setTimeout(function(){ btn.focus(); }, 100);
     } else if(p){
-      p.value='';
-      if(u&&!u.value) u.focus();
+      p.value = '';
+      if(u && !u.value) u.focus();
       else if(p) p.focus();
     }
   }, 300);
