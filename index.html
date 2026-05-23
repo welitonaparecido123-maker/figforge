@@ -2479,11 +2479,11 @@ var URL_SERVIDOR = URL_SERVIDOR_CFG;
 var SK_LIC  = SK_LIC_GLOBAL;
 var SK_SESS = SK_SESS_GLOBAL;
 
-async function ativarLicenca(){
-  const email=(el('lic-email').value||'').trim().toLowerCase();
-  const err=el('lic-err');
-  const btn=el('lic-btn');
-  const status=el('lic-status');
+function ativarLicenca(){
+  var email=(el('lic-email').value||'').trim().toLowerCase();
+  var err=el('lic-err');
+  var btn=el('lic-btn');
+  var status=el('lic-status');
   err.style.display='none';
 
   if(!email||!email.includes('@')){
@@ -2491,11 +2491,24 @@ async function ativarLicenca(){
     err.style.display='block';return;
   }
 
-  // Verifica cache local primeiro
-  const licLocal=localStorage.getItem(SK_LIC);
+  // Modo teste
+  if(isModoTeste()){
+    localStorage.setItem(SK_LIC,JSON.stringify({
+      email,ativa:true,nome:'Teste',plano:'pro',
+      ativadoEm:new Date().toISOString()
+    }));
+    el('screen-license').style.display='none';
+    mostrarLogin();
+    setV('login-user',email);
+    setTimeout(function(){el('login-pass').focus();},200);
+    return;
+  }
+
+  // Cache local
+  var licLocal=localStorage.getItem(SK_LIC);
   if(licLocal){
     try{
-      const obj=JSON.parse(licLocal);
+      var obj=JSON.parse(licLocal);
       if(obj.email===email&&obj.ativa){
         el('screen-license').style.display='none';
         mostrarLogin();return;
@@ -2507,50 +2520,65 @@ async function ativarLicenca(){
   btn.textContent='Verificando...';
   if(status) status.textContent='Consultando servidor...';
 
-  try{
-    const url=URL_SERVIDOR+'?action=validar&email='+encodeURIComponent(email);
-    const resp=await fetch(url, {
-      method:'GET',
-      redirect:'follow',
-      mode:'cors',
-      headers:{'Content-Type':'application/json'}
-    });
-    const json=await resp.json();
-
-    if(json.ok){
-      localStorage.setItem(SK_LIC,JSON.stringify({
-        email,ativa:true,nome:json.nome||'',plano:json.plano||'Basico',
-        ativadoEm:new Date().toISOString()
-      }));
+  var url=URL_SERVIDOR+'?action=validar&email='+encodeURIComponent(email);
+  chamarServidorJSONP(url,
+    function(json){
       btn.disabled=false;btn.textContent='Ativar agora';
       if(status) status.textContent='';
-      el('screen-license').style.display='none';
-      mostrarLogin();
-      setV('login-user',email);
-      setTimeout(()=>el('login-pass').focus(),200);
-    } else {
-      err.textContent=json.msg||'Licenca nao encontrada. Verifique o e-mail ou adquira uma licenca.';
+      if(json&&json.ok){
+        localStorage.setItem(SK_LIC,JSON.stringify({
+          email,ativa:true,nome:json.nome||'',
+          plano:json.plano||'Basico',
+          ativadoEm:new Date().toISOString()
+        }));
+        el('screen-license').style.display='none';
+        mostrarLogin();
+        setV('login-user',email);
+        setTimeout(function(){el('login-pass').focus();},200);
+      } else {
+        err.textContent=(json&&json.msg)||'E-mail nao encontrado. Verifique ou adquira uma licenca.';
+        err.style.display='block';
+      }
+    },
+    function(){
+      btn.disabled=false;btn.textContent='Ativar agora';
+      if(status) status.textContent='';
+      if(licLocal){
+        try{
+          var o=JSON.parse(licLocal);
+          if(o.email===email&&o.ativa){
+            el('screen-license').style.display='none';
+            mostrarLogin();return;
+          }
+        }catch(e2){}
+      }
+      err.textContent='Nao foi possivel conectar ao servidor. Verifique sua internet.';
       err.style.display='block';
-      if(status) status.textContent='';
-      btn.disabled=false;btn.textContent='Ativar agora';
     }
-  }catch(e){
-    // Fallback offline
-    if(licLocal){
-      try{
-        const obj=JSON.parse(licLocal);
-        if(obj.email===email&&obj.ativa){
-          el('screen-license').style.display='none';
-          mostrarLogin();btn.disabled=false;btn.textContent='Ativar agora';return;
-        }
-      }catch(e2){}
-    }
-    err.textContent='Sem conexao com a internet. Conecte-se para ativar pela primeira vez.';
-    err.style.display='block';
-    if(status) status.textContent='';
-    btn.disabled=false;btn.textContent='Ativar agora';
-  }
+  );
 }
+
+// JSONP — funciona de arquivo local sem restricao de CORS
+function chamarServidorJSONP(url, onSucesso, onErro){
+  var cbName='figforge_cb_'+Date.now()+'_'+Math.floor(Math.random()*9999);
+  var script=document.createElement('script');
+  var done=false;
+  var timer=setTimeout(function(){
+    if(!done){done=true;cleanup();if(onErro)onErro();}
+  },12000);
+  window[cbName]=function(data){
+    if(!done){done=true;cleanup();if(onSucesso)onSucesso(data);}
+  };
+  function cleanup(){
+    clearTimeout(timer);
+    delete window[cbName];
+    if(script.parentNode)script.parentNode.removeChild(script);
+  }
+  script.onerror=function(){if(!done){done=true;cleanup();if(onErro)onErro();}};
+  script.src=url+'&callback='+cbName;
+  document.head.appendChild(script);
+}
+
 
 function verificarLicenca(){
   try{const obj=JSON.parse(localStorage.getItem(SK_LIC)||'{}');return obj.ativa===true;}
@@ -2634,43 +2662,40 @@ function esqueciSenha(){
   alert('Senha padrao de acesso: admin123\n\nPara suporte entre em contato:\nWhatsApp: (67) 9654-7866');
 }
 
-async function revalidarOnline(){
+function revalidarOnline(){
   try{
-    const lic=JSON.parse(localStorage.getItem(SK_LIC)||'{}');
+    var licStr=localStorage.getItem(SK_LIC);
+    if(!licStr) return;
+    var lic=JSON.parse(licStr);
     if(!lic.email) return;
-    const ultimaVal=lic.ultimaValidacao?new Date(lic.ultimaValidacao):null;
-    const agora=new Date();
-    // Revalida a cada 3 dias
+    var ultimaVal=lic.ultimaValidacao?new Date(lic.ultimaValidacao):null;
+    var agora=new Date();
     if(ultimaVal&&(agora-ultimaVal)<3*24*60*60*1000) return;
-    const url=URL_SERVIDOR+'?action=validar&email='+encodeURIComponent(lic.email);
-    const resp=await fetch(url,{
-      method:'GET', redirect:'follow', mode:'cors',
-      signal:AbortSignal.timeout(6000)
-    });
-    const json=await resp.json();
-    if(!json.ok){
-      // Licenca cancelada ou expirada
-      localStorage.removeItem(SK_LIC);
-      sessionStorage.removeItem(SK_SESS);
-      el('app-shell').style.display='none';
-      el('screen-login').style.display='none';
-      el('screen-license').style.display='flex';
-      el('lic-err').textContent=json.msg||'Sua licenca expirou. Renove para continuar.';
-      el('lic-err').style.display='block';
-    } else {
-      // Atualiza timestamp de validacao
-      lic.ultimaValidacao=agora.toISOString();
-      lic.nome=json.nome||lic.nome;
-      lic.plano=json.plano||lic.plano;
-      localStorage.setItem(SK_LIC,JSON.stringify(lic));
-    }
-  }catch(e){ /* sem conexao — ignora */ }
+    var url=URL_SERVIDOR+'?action=validar&email='+encodeURIComponent(lic.email);
+    chamarServidorJSONP(url,function(json){
+      if(!json||!json.ok){
+        localStorage.removeItem(SK_LIC);
+        sessionStorage.removeItem(SK_SESS);
+        el('app-shell').style.display='none';
+        el('screen-login').style.display='none';
+        el('screen-license').style.display='flex';
+        var le=el('lic-err');
+        if(le){le.textContent=(json&&json.msg)||'Licenca expirada.';le.style.display='block';}
+      } else {
+        lic.ultimaValidacao=agora.toISOString();
+        lic.nome=json.nome||lic.nome;
+        lic.plano=json.plano||lic.plano;
+        localStorage.setItem(SK_LIC,JSON.stringify(lic));
+      }
+    },function(){/* sem conexao, ignora */});
+  }catch(e){}
 }
 
+
 function isModoTeste(){
-  // Modo teste: ativa automaticamente quando o servidor ainda não foi configurado
   return URL_SERVIDOR === 'COLE_AQUI_A_URL_DO_GOOGLE_APPS_SCRIPT' ||
-         URL_SERVIDOR === '' || URL_SERVIDOR === null;
+         URL_SERVIDOR === '' || URL_SERVIDOR === null ||
+         URL_SERVIDOR_CFG === 'COLE_AQUI_A_URL_DO_GOOGLE_APPS_SCRIPT';
 }
 
 function initAuth(){
