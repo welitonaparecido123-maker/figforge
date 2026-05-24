@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -107,9 +108,13 @@ textarea{resize:vertical;min-height:60px}
 .prog{height:4px;background:var(--bg4);border-radius:4px;overflow:hidden;margin-top:5px}
 .pf{height:100%;border-radius:4px;background:var(--ac)}
 /* MODAL */
-.mo{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:200;display:none;align-items:flex-start;justify-content:center;padding:28px 14px;overflow-y:auto}
+.mo{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:1000;display:none;
+     align-items:flex-start;justify-content:center;padding:20px 12px;
+     overflow-y:auto;-webkit-overflow-scrolling:touch}
 .mo.op{display:flex}
-.mbox{background:var(--bg2);border:1px solid var(--br2);border-radius:var(--r2);padding:20px;width:100%;max-width:500px}
+.mbox{background:var(--bg2);border:1px solid var(--br2);border-radius:var(--r2);
+      padding:20px;width:100%;max-width:500px;position:relative;
+      margin:auto;flex-shrink:0}
 .mh{font-size:15px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between}
 .mx{cursor:pointer;width:26px;height:26px;border-radius:var(--r);background:var(--bg3);border:1px solid var(--br);display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--tx2)}
 .mx:hover{color:var(--rd)}
@@ -303,8 +308,12 @@ textarea{resize:vertical;min-height:60px}
   .g2,.g3,.g4{grid-template-columns:1fr!important}
   .fr2,.fr3,.fr4{grid-template-columns:1fr!important}
   .card{padding:10px}
-  .mbox{width:95vw!important;max-width:95vw!important;max-height:88vh;overflow-y:auto;margin:5vh auto}
-  .mo{padding:6px;padding-top:4vh}
+  .mbox{width:92vw!important;max-width:92vw!important;
+        max-height:85vh;overflow-y:auto;
+        margin:0 auto}
+  .mo{padding:8px;
+      align-items:flex-start;
+      padding-top:6vh}
   .tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
   .itabs{overflow-x:auto;-webkit-overflow-scrolling:touch}
   .itab{white-space:nowrap;padding:6px 10px;font-size:11px}
