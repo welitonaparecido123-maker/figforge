@@ -25,11 +25,11 @@
   --r:8px;--r2:13px;
 }
 *{box-sizing:border-box;margin:0;padding:0;font-family:'Calibri','Calibri',Calibri,sans-serif}
-body{background:var(--bg);color:var(--tx);font-size:13px;height:100vh;overflow:hidden}
+body{background:var(--bg);color:var(--tx);font-size:13px;height:100%;min-height:100vh;overflow:hidden}
 ::-webkit-scrollbar{width:4px;height:4px}
 ::-webkit-scrollbar-thumb{background:var(--br2);border-radius:4px}
 /* LAYOUT */
-.shell{display:flex;height:100vh}
+.shell{display:flex;height:100vh;min-height:100vh}
 /* SIDEBAR */
 .sb{width:210px;min-width:210px;background:var(--bg2);border-right:1px solid var(--br);display:flex;flex-direction:column;transition:min-width .2s,width .2s;overflow:hidden}
 .sb.mini{width:50px;min-width:50px}
@@ -2161,9 +2161,46 @@ function renderConfig(){
   el('sb-av').textContent=av||'OB';
 }
 function salvarConfig(){
-  DB.config={empresa:val('cfg-empresa'),cnpj:val('cfg-cnpj'),crea:val('cfg-crea'),resp:val('cfg-resp'),tel:val('cfg-tel'),email:val('cfg-email'),bdi:Number(val('cfg-bdi'))||25,end:val('cfg-end')};
+  // Preserva logo e adminSenha que são salvos separadamente
+  var logoAtual   = (DB.config && DB.config.logo)       || '';
+  var senhaAtual  = (DB.config && DB.config.adminSenha) || '';
+  DB.config = {
+    empresa: val('cfg-empresa'),
+    cnpj:    val('cfg-cnpj'),
+    crea:    val('cfg-crea'),
+    resp:    val('cfg-resp'),
+    tel:     val('cfg-tel'),
+    email:   val('cfg-email'),
+    bdi:     Number(val('cfg-bdi'))||25,
+    end:     val('cfg-end'),
+    logo:    logoAtual,      // ← preserva o logo
+    adminSenha: senhaAtual   // ← preserva a senha
+  };
   save();
-  setTimeout(atualizarIconesPWA, 500);renderConfig();alert('✔ Configurações salvas!');
+  // Atualiza logo na sidebar e ícone PWA
+  atualizarLogoSidebar();
+  setTimeout(atualizarIconesPWA, 500);
+  renderConfig();
+  alert('✔ Configurações salvas!');
+}
+
+// Atualiza o logo na sidebar imediatamente
+function atualizarLogoSidebar(){
+  var logo  = DB.config && DB.config.logo ? DB.config.logo : '';
+  var imgSb = el('sb-logo-img');
+  var defSb = el('sb-logo-def');
+  if(logo && logo.startsWith('data:')){
+    if(imgSb){ imgSb.src=logo; imgSb.style.display='block'; }
+    if(defSb) defSb.style.display='none';
+  } else {
+    if(imgSb){ imgSb.src=''; imgSb.style.display='none'; }
+    if(defSb) defSb.style.display='block';
+  }
+  // Atualiza título da empresa na tela de login
+  var nomeEl = el('login-empresa-nome');
+  if(nomeEl && DB.config && DB.config.empresa){
+    nomeEl.textContent = DB.config.empresa;
+  }
 }
 
 // ================================================================ BACKUP
@@ -2870,7 +2907,10 @@ function fazerLogin(){
     aplicarRestricoesPorNivel();
     iniciarBackupAutomatico();
     iniciarSyncAutomatico();
-    setTimeout(atualizarIconesPWA, 1500);
+    setTimeout(function(){
+      atualizarLogoSidebar();
+      atualizarIconesPWA();
+    }, 1000);
     setTimeout(revalidarOnline, 2000);
     setTimeout(verificarAtualizacao, 4000);
   } else {
@@ -4137,12 +4177,18 @@ function fecharMenuMobile(){
 // ── REGISTRA SERVICE WORKER (PWA) ────────────────────────────────────────────
 if('serviceWorker' in navigator){
   window.addEventListener('load', function(){
+    // Só registra no GitHub Pages — não em outros domínios
+    var host = window.location.hostname;
+    var isGithub = host.includes('github.io');
+    var isLocalhost = host === 'localhost' || host === '127.0.0.1';
+    if(!isGithub && !isLocalhost) return;
+
     navigator.serviceWorker.register('sw.js')
       .then(function(reg){
         console.log('FigForge PWA: Service Worker registrado');
       })
       .catch(function(err){
-        console.log('SW não registrado:', err);
+        // Silencia o erro — não afeta o funcionamento
       });
   });
 }
