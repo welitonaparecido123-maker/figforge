@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>FigForge — Escolha seu plano</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',Arial,sans-serif;background:#0a0d14;color:#eef0f8;
+     min-height:100vh;display:flex;flex-direction:column;align-items:center;
+     justify-content:center;padding:30px 16px}
+
+.logo{font-size:28px;font-weight:800;margin-bottom:6px;text-align:center}
+.logo span{color:#4F6EF7}
+.tagline{color:#8d95b0;font-size:15px;text-align:center;margin-bottom:40px}
+
+.plans{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+       gap:20px;width:100%;max-width:700px}
+
+.plan{background:#181c27;border:1px solid #2d3348;border-radius:18px;
+      padding:32px 28px;position:relative;transition:.2s}
+.plan:hover{transform:translateY(-4px);box-shadow:0 16px 40px rgba(0,0,0,.4)}
+
+.plan.destaque{border-color:#4F6EF7;box-shadow:0 0 30px rgba(79,110,247,.2)}
+.badge{position:absolute;top:-14px;left:50%;transform:translateX(-50%);
+       background:#4F6EF7;color:#fff;padding:5px 18px;border-radius:20px;
+       font-size:12px;font-weight:700;white-space:nowrap}
+
+.plan-name{font-size:13px;font-weight:600;color:#8d95b0;
+           text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+.plan-price{font-size:52px;font-weight:800;line-height:1;margin-bottom:4px}
+.plan-price span{font-size:16px;font-weight:400;color:#8d95b0}
+.plan-desc{color:#8d95b0;font-size:13px;margin-bottom:24px;
+           padding-bottom:20px;border-bottom:1px solid #2d3348}
+
+.item{display:flex;gap:10px;align-items:flex-start;
+      margin-bottom:9px;font-size:14px}
+.item .ok{color:#18B06A;font-size:15px;flex-shrink:0;margin-top:1px}
+
+.btn{display:block;text-align:center;padding:15px;border-radius:12px;
+     font-weight:700;font-size:17px;margin-top:28px;transition:.2s;cursor:pointer}
+.btn-pri{background:linear-gradient(135deg,#4F6EF7,#3558E0);color:#fff;
+         box-shadow:0 8px 24px rgba(79,110,247,.35)}
+.btn-pri:hover{box-shadow:0 12px 32px rgba(79,110,247,.5);transform:translateY(-1px)}
+.btn-sec{background:transparent;border:2px solid #4F6EF7;color:#4F6EF7}
+.btn-sec:hover{background:rgba(79,110,247,.1)}
+
+.garantia{text-align:center;margin-top:28px;font-size:12px;color:#555f7a}
+.garantia span{color:#18B06A}
+
+.suporte{text-align:center;margin-top:20px;font-size:13px;color:#555f7a}
+.suporte a{color:#4F6EF7}
+
+/* WhatsApp fixo */
+.wpp{position:fixed;bottom:20px;right:20px;background:#25D366;color:#fff;
+     width:52px;height:52px;border-radius:50%;display:flex;align-items:center;
+     justify-content:center;font-size:26px;box-shadow:0 4px 16px rgba(37,211,102,.4);
+     text-decoration:none;transition:.2s}
+.wpp:hover{transform:scale(1.1)}
+
+@media(max-width:400px){
+  .plan-price{font-size:42px}
+  .plans{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<div class="logo">Fig<span>Forge</span></div>
+<p class="tagline">Escolha o plano ideal para sua construtora</p>
+
+<div class="plans">
+
+  <!-- STARTER -->
+  <div class="plan">
+    <div class="plan-name">⭐ Starter</div>
+    <div class="plan-price">R$ 47<span>/mês</span></div>
+    <div class="plan-desc">Obras, orçamentos e financeiro em um só lugar</div>
+    <div class="item"><span class="ok">✔</span>Dashboard completo</div>
+    <div class="item"><span class="ok">✔</span>Gestão de obras</div>
+    <div class="item"><span class="ok">✔</span>Orçamentos com PDF profissional</div>
+    <div class="item"><span class="ok">✔</span>Clientes</div>
+    <div class="item"><span class="ok">✔</span>Controle financeiro</div>
+    <div class="item"><span class="ok">✔</span>Relatórios PDF e Excel</div>
+    <a href="https://pay.kiwify.com.br/yZDZGdH" class="btn btn-sec">
+      Assinar Starter — R$ 47/mês
+    </a>
+  </div>
+
+  <!-- PROFISSIONAL -->
+  <div class="plan destaque">
+    <div class="badge">🔥 Mais escolhido</div>
+    <div class="plan-name">🚀 Profissional</div>
+    <div class="plan-price">R$ 97<span>/mês</span></div>
+    <div class="plan-desc">Controle total da obra, equipe e materiais</div>
+    <div class="item"><span class="ok">✔</span>Tudo do Starter</div>
+    <div class="item"><span class="ok">✔</span>Funcionários CLT + ponto</div>
+    <div class="item"><span class="ok">✔</span>Holerite em PDF</div>
+    <div class="item"><span class="ok">✔</span>Estoque completo</div>
+    <div class="item"><span class="ok">✔</span>Diário de obra com fotos</div>
+    <div class="item"><span class="ok">✔</span>Múltiplos usuários</div>
+    <div class="item"><span class="ok">✔</span>Sync celular e computador</div>
+    <a href="https://pay.kiwify.com.br/yZDZGdH" class="btn btn-pri">
+      Assinar Profissional — R$ 97/mês
+    </a>
+  </div>
+
+</div>
+
+<p class="garantia">
+  <span>✔</span> 7 dias de garantia &nbsp;·&nbsp;
+  <span>✔</span> Acesso imediato &nbsp;·&nbsp;
+  <span>✔</span> Cancele quando quiser
+</p>
+
+<p class="suporte">
+  Dúvidas? 
+  <a href="https://wa.me/5567965478666?text=Olá!%20Tenho%20dúvidas%20sobre%20o%20FigForge" 
+     target="_blank">Fale no WhatsApp</a>
+</p>
+
+<a href="https://wa.me/5567965478666?text=Olá!%20Tenho%20interesse%20no%20FigForge" 
+   class="wpp" target="_blank">💬</a>
+
+</body>
+</html>
