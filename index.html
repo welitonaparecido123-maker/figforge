@@ -3,6 +3,14 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=1024"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="FigForge"/>
+<meta name="theme-color" content="#4F6EF7"/>
+<link rel="manifest" href="manifest.json"/>
+<link rel="apple-touch-icon" href="icon-192.png"/>
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png"/>
 <title>FigForge — Gestão para Construtoras</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
@@ -2154,7 +2162,8 @@ function renderConfig(){
 }
 function salvarConfig(){
   DB.config={empresa:val('cfg-empresa'),cnpj:val('cfg-cnpj'),crea:val('cfg-crea'),resp:val('cfg-resp'),tel:val('cfg-tel'),email:val('cfg-email'),bdi:Number(val('cfg-bdi'))||25,end:val('cfg-end')};
-  save();renderConfig();alert('✔ Configurações salvas!');
+  save();
+  setTimeout(atualizarIconesPWA, 500);renderConfig();alert('✔ Configurações salvas!');
 }
 
 // ================================================================ BACKUP
@@ -2861,6 +2870,7 @@ function fazerLogin(){
     aplicarRestricoesPorNivel();
     iniciarBackupAutomatico();
     iniciarSyncAutomatico();
+    setTimeout(atualizarIconesPWA, 1500);
     setTimeout(revalidarOnline, 2000);
     setTimeout(verificarAtualizacao, 4000);
   } else {
@@ -4122,6 +4132,213 @@ function fecharMenuMobile(){
   if(sb) sb.classList.remove('mob-open');
   if(ov) ov.classList.remove('ativo');
   document.body.style.overflow = '';
+}
+
+// ── REGISTRA SERVICE WORKER (PWA) ────────────────────────────────────────────
+if('serviceWorker' in navigator){
+  window.addEventListener('load', function(){
+    navigator.serviceWorker.register('sw.js')
+      .then(function(reg){
+        console.log('FigForge PWA: Service Worker registrado');
+      })
+      .catch(function(err){
+        console.log('SW não registrado:', err);
+      });
+  });
+}
+
+// Prompt de instalação
+var deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', function(e){
+  e.preventDefault();
+  deferredPrompt = e;
+  // Mostra banner de instalação após 30 segundos de uso
+  setTimeout(function(){
+    if(deferredPrompt) mostrarBannerInstalar();
+  }, 30000);
+});
+
+function mostrarBannerInstalar(){
+  var banner = document.createElement('div');
+  banner.id = 'pwa-banner';
+  banner.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:var(--ac);color:#fff;' +
+    'padding:12px 16px;display:flex;align-items:center;justify-content:space-between;' +
+    'z-index:99999;font-size:13px;box-shadow:0 -2px 10px rgba(0,0,0,.3)';
+  banner.innerHTML = '<span>📱 Instalar FigForge como app?</span>' +
+    '<div style="display:flex;gap:8px">' +
+    '<button onclick="instalarPWA()" style="background:#fff;color:var(--ac);border:none;' +
+    'padding:6px 14px;border-radius:6px;font-weight:700;cursor:pointer">Instalar</button>' +
+    '<button onclick="fecharBannerPWA()" style="background:transparent;color:#fff;border:1px solid rgba(255,255,255,.5);' +
+    'padding:6px 10px;border-radius:6px;cursor:pointer">Agora não</button>' +
+    '</div>';
+  document.body.appendChild(banner);
+}
+
+function instalarPWA(){
+  if(!deferredPrompt) return;
+  deferredPrompt.prompt();
+  deferredPrompt.userChoice.then(function(r){
+    deferredPrompt = null;
+    fecharBannerPWA();
+  });
+}
+
+function fecharBannerPWA(){
+  var b = document.getElementById('pwa-banner');
+  if(b) b.remove();
+}
+
+window.addEventListener('appinstalled', function(){
+  fecharBannerPWA();
+  console.log('FigForge instalado como PWA!');
+});
+
+// ── ÍCONE PWA DINÂMICO (usa logo da empresa) ─────────────────────────────────
+function atualizarIconesPWA(){
+  try{
+    var logo = DB.config && DB.config.logo ? DB.config.logo : null;
+    var empresa = DB.config && DB.config.nome ? DB.config.nome : 'FigForge';
+
+    if(logo && logo.startsWith('data:')){
+      // Usa o logo da empresa como ícone
+      gerarIconeComLogo(logo, empresa, function(icon192, icon512){
+        aplicarIconesPWA(icon192, icon512, empresa);
+      });
+    } else {
+      // Sem logo — usa iniciais da empresa
+      var iniciais = empresa.split(' ').map(function(p){ return p[0]; })
+                     .join('').toUpperCase().slice(0,2) || 'FF';
+      var icon192 = gerarIconeTexto(192, iniciais);
+      var icon512 = gerarIconeTexto(512, iniciais);
+      aplicarIconesPWA(icon192, icon512, empresa);
+    }
+  }catch(e){ console.log('Erro ao atualizar ícone PWA:', e); }
+}
+
+// Gera ícone com imagem do logo da empresa
+function gerarIconeComLogo(logoDataUrl, empresa, callback){
+  var img = new Image();
+  img.onload = function(){
+    var c192 = _desenharIcone(192, img, empresa);
+    var c512 = _desenharIcone(512, img, empresa);
+    callback(c192, c512);
+  };
+  img.onerror = function(){
+    // Fallback para iniciais
+    var iniciais = empresa.split(' ').map(function(p){return p[0];})
+                   .join('').toUpperCase().slice(0,2)||'FF';
+    callback(gerarIconeTexto(192, iniciais), gerarIconeTexto(512, iniciais));
+  };
+  img.src = logoDataUrl;
+}
+
+function _desenharIcone(size, img, empresa){
+  var cv = document.createElement('canvas');
+  cv.width = cv.height = size;
+  var ctx = cv.getContext('2d');
+  var r = size * 0.18; // borda arredondada
+
+  // Fundo azul arredondado
+  ctx.beginPath();
+  ctx.moveTo(r, 0);
+  ctx.lineTo(size-r, 0);
+  ctx.quadraticCurveTo(size, 0, size, r);
+  ctx.lineTo(size, size-r);
+  ctx.quadraticCurveTo(size, size, size-r, size);
+  ctx.lineTo(r, size);
+  ctx.quadraticCurveTo(0, size, 0, size-r);
+  ctx.lineTo(0, r);
+  ctx.quadraticCurveTo(0, 0, r, 0);
+  ctx.closePath();
+  ctx.fillStyle = '#4F6EF7';
+  ctx.fill();
+
+  // Logo centralizado com margem
+  var margem = size * 0.15;
+  var logoSize = size - margem * 2;
+  var ratio = Math.min(logoSize / img.width, logoSize / img.height);
+  var lw = img.width * ratio;
+  var lh = img.height * ratio;
+  var lx = (size - lw) / 2;
+  var ly = (size - lh) / 2;
+  ctx.drawImage(img, lx, ly, lw, lh);
+
+  return cv.toDataURL('image/png');
+}
+
+// Gera ícone com iniciais (quando não há logo)
+function gerarIconeTexto(size, texto){
+  var cv = document.createElement('canvas');
+  cv.width = cv.height = size;
+  var ctx = cv.getContext('2d');
+  var r = size * 0.18;
+
+  // Fundo arredondado
+  ctx.beginPath();
+  ctx.moveTo(r, 0);
+  ctx.lineTo(size-r, 0);
+  ctx.quadraticCurveTo(size, 0, size, r);
+  ctx.lineTo(size, size-r);
+  ctx.quadraticCurveTo(size, size, size-r, size);
+  ctx.lineTo(r, size);
+  ctx.quadraticCurveTo(0, size, 0, size-r);
+  ctx.lineTo(0, r);
+  ctx.quadraticCurveTo(0, 0, r, 0);
+  ctx.closePath();
+
+  // Gradiente
+  var grad = ctx.createLinearGradient(0, 0, size, size);
+  grad.addColorStop(0, '#4F6EF7');
+  grad.addColorStop(1, '#3558E0');
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+  // Texto centralizado
+  ctx.fillStyle = '#FFFFFF';
+  ctx.font = 'bold ' + Math.floor(size * 0.38) + 'px Arial, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(texto, size/2, size/2);
+
+  return cv.toDataURL('image/png');
+}
+
+// Aplica os ícones no PWA dinamicamente
+function aplicarIconesPWA(icon192, icon512, nomeEmpresa){
+  // Atualiza apple-touch-icon
+  var touchIcon = document.querySelector('link[rel="apple-touch-icon"]');
+  if(touchIcon) touchIcon.href = icon192;
+
+  // Atualiza favicon
+  var favicon = document.querySelector('link[rel="icon"]');
+  if(favicon) favicon.href = icon192;
+
+  // Cria manifest dinâmico
+  var manifestData = {
+    name: nomeEmpresa + ' — FigForge',
+    short_name: nomeEmpresa.split(' ')[0] || 'FigForge',
+    description: 'Gestão para construtoras — ' + nomeEmpresa,
+    start_url: '/figforge/',
+    scope: '/figforge/',
+    display: 'standalone',
+    background_color: '#0F1117',
+    theme_color: '#4F6EF7',
+    orientation: 'any',
+    lang: 'pt-BR',
+    icons: [
+      { src: icon192, sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
+      { src: icon512, sizes: '512x512', type: 'image/png', purpose: 'any maskable' }
+    ]
+  };
+
+  var blob = new Blob([JSON.stringify(manifestData)], {type:'application/json'});
+  var url  = URL.createObjectURL(blob);
+  var manifestLink = document.querySelector('link[rel="manifest"]');
+  if(manifestLink){
+    if(manifestLink._oldUrl) URL.revokeObjectURL(manifestLink._oldUrl);
+    manifestLink._oldUrl = url;
+    manifestLink.href = url;
+  }
 }
 </script>
 
