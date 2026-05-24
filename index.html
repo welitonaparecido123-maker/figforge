@@ -1353,13 +1353,18 @@ function renderPonto(){
   var base = 0, valorHora = 0, vHex = 0, descFaltas = 0;
 
   if(isCLT || vinculo==='mensal'){
-    // SEMPRE proporcional: salário / 30 × dias presentes
-    // Desconto de faltas injustificadas além dos presentes
+    // SEMPRE proporcional: salário / 30 × dias presentes no ponto
     descFaltas = valorDia * faltasInj;
-    base = valorDia * presentes;
-    // Se mês completo (presentes + faltas >= 25), usa salário base menos faltas
-    if((presentes + faltasInj + faltasJus) >= 25 && faltasInj > 0){
-      base = salario - descFaltas;
+    // Se tem registros no ponto → calcula proporcional
+    if(pontos.length > 0){
+      base = valorDia * presentes;
+      // Mês quase completo (>=25 dias lançados) com faltas → desconta só as faltas
+      if((presentes + faltasInj + faltasJus) >= 25 && faltasInj > 0){
+        base = salario - descFaltas;
+      }
+    } else {
+      // Sem nenhum registro no ponto → base zero (não calcula mês inteiro)
+      base = 0;
     }
     const hMes = Number(func?.horasMes||220);
     valorHora = hMes > 0 ? salario / hMes : 0;
@@ -2380,7 +2385,8 @@ function calcPagamento(){
   });
   var presentes   = pontos.filter(function(p){return p.tipo==='Presente';}).length;
   var faltasInj   = pontos.filter(function(p){return p.tipo==='Falta injustificada';}).length;
-  var faltasJust  = pontos.filter(function(p){return p.tipo==='Falta justificada';}).length;
+  var faltasJus   = pontos.filter(function(p){return p.tipo==='Falta justificada';}).length;
+  var faltasJust  = faltasJus; // alias para compatibilidade
   var hexTotal    = pontos.reduce(function(s,p){return s+Number(p.hex||0);},0);
   var vd          = Number(func.val||0);
   var horasDia    = Number(func.horasDia||8);
@@ -3750,9 +3756,20 @@ function ofertarRestauracaoBackup(email){
       try{
         var dados = JSON.parse(backup);
         // Mantém config local (empresa configurada neste dispositivo)
-        var cfgLocal = DB.config||{};
+        var cfgLocal  = DB.config||{};
+        var deletados = DB._deletedIds||[];
         Object.assign(DB, dados);
         if(cfgLocal.logo) DB.config.logo = cfgLocal.logo;
+        // Preserva IDs deletados e remove itens que o usuário havia apagado
+        DB._deletedIds = deletados;
+        var campos = ['obras','clientes','orcamentos','lancamentos',
+                      'pontos','diario','estoque','funcionarios','users'];
+        campos.forEach(function(campo){
+          if(!DB[campo]) return;
+          DB[campo] = DB[campo].filter(function(item){
+            return deletados.indexOf(item.id) < 0;
+          });
+        });
         save();
         renderPanel('dashboard');
         alert('✔ Dados restaurados com sucesso!');
