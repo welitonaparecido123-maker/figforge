@@ -325,6 +325,49 @@ textarea{resize:vertical;min-height:60px}
   .auth-box{padding:16px 12px}
 }
 @keyframes spin{to{transform:rotate(360deg)}}
+/* ── TABLET ── */
+@media(max-width:768px){
+  .g4{grid-template-columns:1fr 1fr}
+  .fr4,.fr3{grid-template-columns:1fr 1fr}
+}
+/* ── MOBILE ── */
+@media(max-width:600px){
+  /* Sidebar some — abre como drawer pelo botão ☰ */
+  .sb{position:fixed;top:0;left:-220px;height:100%;z-index:8000;
+      transition:left .25s ease;box-shadow:none}
+  .sb.mob-open{left:0;box-shadow:4px 0 20px rgba(0,0,0,.6)}
+  /* Overlay escuro atrás do drawer */
+  .sb-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);
+               z-index:7999}
+  .sb-overlay.ativo{display:block}
+  /* Main ocupa tela toda */
+  .main{width:100%;min-width:0;overflow-x:hidden}
+  .shell{overflow:hidden}
+  /* Topbar */
+  .topbar{padding:0 8px;gap:6px}
+  #ttl{font-size:13px;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  /* Conteúdo */
+  .content{padding:10px!important}
+  /* Grids — 1 coluna */
+  .g2,.g3,.g4{grid-template-columns:1fr!important}
+  .fr2,.fr3,.fr4{grid-template-columns:1fr!important}
+  /* Cards */
+  .card{padding:10px}
+  /* Tabelas */
+  .tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  /* Abas */
+  .itabs{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .itab{white-space:nowrap;padding:6px 10px}
+  /* Modais */
+  .mbox{width:94vw!important;max-width:94vw!important;max-height:82vh;overflow-y:auto}
+  /* Auth */
+  .auth-box{width:92vw!important;max-width:400px;padding:20px 16px}
+}
+@media(max-width:380px){
+  .g2{grid-template-columns:1fr!important}
+  .auth-box{padding:16px 12px}
+}
+@keyframes spin{to{transform:rotate(360deg)}}
 </style>
 </head>
 <body>
@@ -910,6 +953,8 @@ textarea{resize:vertical;min-height:60px}
 </div><!-- /main -->
 </div><!-- /shell -->
 
+<div class="sb-overlay" id="sb-overlay" onclick="fecharMenuMobile()"></div>
+
 <!-- ===== MODAIS ===== -->
 <div class="mo" id="mo-obra"><div class="mbox">
   <div class="mh"><span id="mo-obra-titulo">Nova obra</span><div class="mx" onclick="fecharMo('mo-obra')">✕</div></div>
@@ -1145,6 +1190,8 @@ document.querySelectorAll('.sbi').forEach(s=>{
 });
 
 function navegar(p){
+  // Fecha drawer mobile ao navegar
+  if(window.innerWidth <= 600) fecharMenuMobile();
   // Verifica plano antes de navegar
   if(!moduloDisponivel(p)){
     mostrarUpgradeBanner(p);
@@ -1161,7 +1208,18 @@ function navegar(p){
   renderPanel(p);
 }
 
-el('btn-sb').addEventListener('click',()=>el('sb').classList.toggle('mini'));
+el('btn-sb').addEventListener('click',function(){
+  var sb = el('sb');
+  var ov = el('sb-overlay');
+  var isMobile = window.innerWidth <= 600;
+  if(isMobile){
+    sb.classList.toggle('mob-open');
+    if(ov) ov.classList.toggle('ativo');
+    document.body.style.overflow = sb.classList.contains('mob-open') ? 'hidden' : '';
+  } else {
+    sb.classList.toggle('mini');
+  }
+});
 el('btn-acao').addEventListener('click',()=>{
   const mo={obras:'mo-obra',orcamentos:null,clientes:'mo-cli',funcionarios:'mo-func',estoque:'mo-estq',diario:'mo-diario',usuarios:'mo-user'};
   if(panelAtual==='orcamentos'){ itab('orc','novo',document.querySelectorAll('.itab')[0]); return; }
@@ -4187,6 +4245,14 @@ function iniciarSyncAutomatico(){
 }
 
 // save() nativo mantido sem wrapper
+
+function fecharMenuMobile(){
+  var sb = el('sb');
+  var ov = el('sb-overlay');
+  if(sb) sb.classList.remove('mob-open');
+  if(ov) ov.classList.remove('ativo');
+  document.body.style.overflow = '';
+}
 </script>
 
 <div class="mo" id="mo-estq-edit"><div class="mbox">
