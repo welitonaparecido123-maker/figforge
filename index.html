@@ -248,7 +248,7 @@ textarea{resize:vertical;min-height:60px}
 <!-- ═══ TELA DE LICENÇA / ATIVAÇÃO ═════════════════════════════════════ -->
 <div class="auth-screen" id="screen-license">
   <div class="auth-box">
-    <div class="auth-logo" id="lic-logo-box">FF</div>
+    <div class="auth-logo" id="lic-logo-box" style="background:none;border:none;padding:4px"><img src="https://welitonaparecido123-maker.github.io/figforge/logo-figforge.jpg" style="width:72px;height:72px;object-fit:contain"/></div>
     <div class="auth-title">Ativar FigForge</div>
     <div class="auth-sub">Digite o e-mail usado na compra para ativar</div>
     <div class="auth-err" id="lic-err">E-mail não encontrado ou licença inválida.</div>
@@ -270,7 +270,7 @@ textarea{resize:vertical;min-height:60px}
 <!-- ═══ TELA DE LOGIN ════════════════════════════════════════════════════ -->
 <div class="auth-screen" id="screen-login" style="display:none">
   <div class="auth-box">
-    <div class="auth-logo" id="login-logo-box">FF</div>
+    <div class="auth-logo" id="login-logo-box" style="background:none;border:none;padding:4px"><img src="https://welitonaparecido123-maker.github.io/figforge/logo-figforge.jpg" style="width:72px;height:72px;object-fit:contain"/></div>
     <div class="auth-title" id="login-empresa-nome">FigForge</div>
 
     <!-- PAINEL LOGIN -->
@@ -2186,7 +2186,8 @@ function salvarConfig(){
 
 // Atualiza o logo na sidebar imediatamente
 function atualizarLogoSidebar(){
-  var logo  = DB.config && DB.config.logo ? DB.config.logo : '';
+  // Usa logo da empresa ou o logo padrão do FigForce
+  var logo  = DB.config && DB.config.logo ? DB.config.logo : LOGO_PADRAO;
   var imgSb = el('sb-logo-img');
   var defSb = el('sb-logo-def');
   if(logo && logo.startsWith('data:')){
@@ -2196,7 +2197,6 @@ function atualizarLogoSidebar(){
     if(imgSb){ imgSb.src=''; imgSb.style.display='none'; }
     if(defSb) defSb.style.display='block';
   }
-  // Atualiza título da empresa na tela de login
   var nomeEl = el('login-empresa-nome');
   if(nomeEl && DB.config && DB.config.empresa){
     nomeEl.textContent = DB.config.empresa;
@@ -2910,6 +2910,15 @@ function fazerLogin(){
     setTimeout(function(){
       atualizarLogoSidebar();
       atualizarIconesPWA();
+      // Mostra logo padrão na tela de login
+      var loginLogo = el('login-logo-box');
+      if(loginLogo && LOGO_PADRAO){
+        loginLogo.style.backgroundImage='url('+LOGO_PADRAO+')';
+        loginLogo.style.backgroundSize='contain';
+        loginLogo.style.backgroundRepeat='no-repeat';
+        loginLogo.style.backgroundPosition='center';
+        loginLogo.textContent='';
+      }
     }, 1000);
     setTimeout(revalidarOnline, 2000);
     setTimeout(verificarAtualizacao, 4000);
