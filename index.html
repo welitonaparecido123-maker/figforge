@@ -1812,7 +1812,8 @@ function renderOrcLista(){
   const q=val('orc-busca')?.toLowerCase()||'';
   const lista=DB.orcamentos.filter(o=>!q||nomeCl(o.cli).toLowerCase().includes(q)||String(o.num).includes(q));
   lista.sort((a,b)=>b.num-a.num);
-  set('tbl-orcs',lista.length?lista.map(o=>`<tr><td><strong>#${o.num}</strong></td><td>${fmtData(o.data)}</td><td>${nomeCl(o.cli)}</td><td>${nomeOb(o.obra)}</td><td style="font-weight:600;color:var(--gn)">${fmt(o.total)}</td><td><select onchange="alterarStatusOrc('${o.id}',this.value)" class="btn xs"><option ${o.status==='Pendente'?'selected':''}>Pendente</option><option ${o.status==='Aprovado'?'selected':''}>Aprovado</option><option ${o.status==='Reprovado'?'selected':''}>Reprovado</option></select></td><td><div style="display:flex;gap:4px"><button class="btn xs bp" onclick="exportarOrcPDFById('${o.id}')">📄 PDF</button><button class="btn xs br-" onclick="deletar('orcamentos','${o.id}');renderOrcLista()">🗑</button></div></td></tr>`).join(''):`<tr><td colspan="7" class="empty">Nenhum orçamento salvo</td></tr>`);
+  set('tbl-orcs',lista.length?lista.map(o=>`<tr><td><strong>#${o.num}</strong></td><td>${fmtData(o.data)}</td><td>${nomeCl(o.cli)}</td><td>${nomeOb(o.obra)}</td><td style="font-weight:600;color:var(--gn)">${fmt(o.total)}</td><td><select onchange="alterarStatusOrc('${o.id}',this.value)" class="btn xs"><option ${o.status==='Pendente'?'selected':''}>Pendente</option><option ${o.status==='Aprovado'?'selected':''}>Aprovado</option><option ${o.status==='Reprovado'?'selected':''}>Reprovado</option></select></td><td><div style="display:flex;gap:4px"><button class="btn xs bp" onclick="exportarOrcPDFById('${o.id}')">📄 PDF</button>
+          <button class="btn xs bg" onclick="enviarOrcWhatsApp('${o.id}')">💬 WhatsApp</button><button class="btn xs br-" onclick="deletar('orcamentos','${o.id}');renderOrcLista()">🗑</button></div></td></tr>`).join(''):`<tr><td colspan="7" class="empty">Nenhum orçamento salvo</td></tr>`);
 }
 function alterarStatusOrc(id,status){
   const o=DB.orcamentos.find(x=>x.id===id);if(!o)return;
@@ -2229,6 +2230,8 @@ function deletar(colecao,id_){
   if(!DB._deletedIds) DB._deletedIds=[];
   if(!DB._deletedIds.includes(id_)) DB._deletedIds.push(id_);
   save();
+  // Sync imediato para propagar delete aos outros dispositivos
+  setTimeout(function(){ sincronizarCompleto(true); }, 800);
 }
 function limparTudo(){ DB={obras:[],clientes:[],funcionarios:[],pontos:[],materiais:[],movEstq:[],lancamentos:[],fixas:[],diario:[],orcamentos:[],users:[],config:{}}; save(); navegar('dashboard'); alert('Dados apagados.'); }
 
@@ -2507,10 +2510,19 @@ function confirmarPagamentoFunc(){
   // Zera folha de ponto do mês após pagar
   var fid_pago = pgCalcAtual.func.id;
   var mes_pago = pgCalcAtual.mes;
+  // Adiciona IDs ao _deletedIds para que sync não restaure
+  if(!DB._deletedIds) DB._deletedIds = [];
+  DB.pontos.forEach(function(p){
+    if(p.func===fid_pago && p.data && p.data.slice(0,7)===mes_pago){
+      if(DB._deletedIds.indexOf(p.id) < 0) DB._deletedIds.push(p.id);
+    }
+  });
   DB.pontos = DB.pontos.filter(function(p){
     return !(p.func===fid_pago && p.data && p.data.slice(0,7)===mes_pago);
   });
   save();
+  // Sincroniza imediatamente para propagar a zeragem
+  setTimeout(function(){ sincronizarCompleto(true); }, 500);
   alert('Pagamento de '+fmt(pgCalcAtual.valor)+' lançado!\nFolha de ponto de '+mes_pago+' foi zerada automaticamente.');
   el('pg-pago-area').style.display='none';
   setV('pg-pago','nao');
@@ -4422,6 +4434,45 @@ function aplicarIconesPWA(icon192, icon512, nomeEmpresa){
     manifestLink._oldUrl = url;
     manifestLink.href = url;
   }
+}
+
+// ── ENVIAR ORÇAMENTO PARA WHATSAPP ─────────────────────────────────────────
+function enviarOrcWhatsApp(id){
+  var o = DB.orcamentos.find(function(x){ return x.id===id; });
+  if(!o){ alert('Orçamento não encontrado.'); return; }
+  var cli = DB.clientes.find(function(c){ return c.id===o.cli; });
+  var tel = (cli && cli.tel) ? cli.tel : '';
+
+  if(!tel){
+    tel = prompt('Telefone do cliente não cadastrado.\nDigite o número (com DDD):','');
+    if(!tel) return;
+  }
+
+  // Limpa o telefone — mantém só números
+  var num = tel.replace(/\D/g,'');
+  if(num.length < 10){
+    alert('Número inválido. Use o formato: (67) 99999-9999');
+    return;
+  }
+  // Adiciona 55 (Brasil) se não tiver
+  if(!num.startsWith('55')) num = '55' + num;
+
+  var cfg = DB.config||{};
+  var empresa = cfg.empresa || 'FigForge';
+  var total = o.itens ? o.itens.reduce(function(s,i){ return s + (Number(i.total)||0); }, 0) : 0;
+  var msg = 'Olá ' + (cli && cli.nome ? cli.nome : '') + '! 👋\n\n' +
+    '*' + empresa + '* enviou seu orçamento:\n\n' +
+    '📋 *' + (o.titulo||'Orçamento') + '*\n' +
+    '💰 *Total: R$ ' + total.toLocaleString('pt-BR',{minimumFractionDigits:2}) + '*\n\n' +
+    'Para visualizar ou assinar o orçamento completo em PDF, acesse o link ou entre em contato.\n\n' +
+    'Qualquer dúvida estamos à disposição! 😊';
+
+  // Abre WhatsApp com a mensagem
+  var url = 'https://wa.me/' + num + '?text=' + encodeURIComponent(msg);
+  window.open(url, '_blank');
+
+  // Também gera o PDF para o cliente poder baixar
+  exportarOrcPDFById(id);
 }
 </script>
 
