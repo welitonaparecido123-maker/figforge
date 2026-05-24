@@ -4170,11 +4170,26 @@ function _puxarDaNuvem(email, silencioso){
         var novosItens = 0;
         var campos = ['obras','clientes','orcamentos','lancamentos',
                       'pontos','diario','estoque','funcionarios','users'];
+
+        // Mescla _deletedIds do cloud + local (outros dispositivos podem ter deletado)
+        var delLocal = DB._deletedIds || [];
+        var delCloud = dados._deletedIds || [];
+        var todosDeleted = delLocal.slice();
+        delCloud.forEach(function(id){ if(todosDeleted.indexOf(id)<0) todosDeleted.push(id); });
+        DB._deletedIds = todosDeleted;
+
+        // Remove localmente itens deletados em outros dispositivos
+        campos.forEach(function(campo){
+          if(DB[campo]) DB[campo] = DB[campo].filter(function(i){
+            return todosDeleted.indexOf(i.id) < 0;
+          });
+        });
+
         campos.forEach(function(campo){
           if(!dados[campo]) return;
           if(!DB[campo]) DB[campo]=[];
           dados[campo].forEach(function(item){
-          if((DB._deletedIds||[]).indexOf(item.id)>=0) return;
+            if(todosDeleted.indexOf(item.id) >= 0) return;
             var jaExiste = DB[campo].find(function(l){ return l.id===item.id; });
             if(!jaExiste){ DB[campo].push(item); novosItens++; }
           });
