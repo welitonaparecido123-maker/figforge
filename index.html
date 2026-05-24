@@ -148,7 +148,75 @@ textarea{resize:vertical;min-height:60px}
 .tog.on{background:var(--gn);border-color:var(--gn2)}
 .tog::after{content:'';position:absolute;left:2px;top:2px;width:10px;height:10px;border-radius:50%;background:#fff;transition:left .18s}
 .tog.on::after{left:16px}
-@media(max-width:768px){.g4{grid-template-columns:1fr 1fr}.fr4{grid-template-columns:1fr 1fr}.fr3{grid-template-columns:1fr 1fr}.sb{width:50px;min-width:50px}.sbi-t,.sb-brand,.sb-lbl{display:none}}
+
+/* ── TABLET (768px) ── */
+@media(max-width:768px){
+  .g4{grid-template-columns:1fr 1fr}
+  .fr4{grid-template-columns:1fr 1fr}
+  .fr3{grid-template-columns:1fr 1fr}
+  .sb{width:50px;min-width:50px}
+  .sbi-t,.sb-brand,.sb-lbl{display:none}
+}
+
+/* ── MOBILE (520px) ── */
+@media(max-width:520px){
+  /* Layout principal */
+  .shell{flex-direction:column}
+  .sb{width:100%!important;min-width:0!important;height:auto;flex-direction:row;
+      border-right:none;border-bottom:1px solid var(--br);overflow-x:auto;padding:4px 6px}
+  .sb-top,.sb-foot,.sb-lbl,.sb-g{display:none!important}
+  .sb-nav{display:flex;flex-direction:row;gap:2px;overflow-x:auto;padding:0;flex:1}
+  .sb-nav::-webkit-scrollbar{display:none}
+  .sbi{padding:6px 10px;border-radius:6px;min-width:auto;flex-direction:column;gap:1px;flex-shrink:0}
+  .sbi-i{font-size:16px}
+  .sbi-t{display:block!important;font-size:9px;font-weight:600}
+  .main{min-width:0;width:100%}
+  .topbar{padding:0 10px}
+  #ttl{font-size:13px}
+
+  /* Grids — tudo em 1 coluna */
+  .g2,.g3,.g4{grid-template-columns:1fr!important}
+  .fr2,.fr3,.fr4{grid-template-columns:1fr!important}
+
+  /* Cards e conteúdo */
+  .card{padding:10px}
+  .content{padding:10px!important}
+  .ct{font-size:12px;flex-wrap:wrap;gap:6px}
+
+  /* Modais — ocupam a tela toda */
+  .mbox{width:95vw!important;max-width:95vw!important;max-height:90vh;overflow-y:auto;margin:10px}
+  .mo{padding:10px}
+
+  /* Tabelas responsivas */
+  .tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  table{min-width:500px}
+  th,td{padding:6px 8px!important;font-size:11px!important}
+
+  /* Botões nas tabelas */
+  .btn.xs{padding:3px 6px;font-size:10px}
+  .btn.sm{padding:5px 10px;font-size:11px}
+
+  /* Dashboard cards */
+  .kpi-grid{grid-template-columns:1fr 1fr!important}
+
+  /* Abas internas */
+  .itabs{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .itab{padding:6px 10px;font-size:11px;white-space:nowrap}
+
+  /* Financeiro */
+  .fin-resumo{grid-template-columns:1fr 1fr!important}
+
+  /* Auth screens */
+  .auth-box{width:90vw!important;max-width:380px;padding:20px}
+}
+
+/* ── CELULAR PEQUENO (380px) ── */
+@media(max-width:380px){
+  .kpi-grid{grid-template-columns:1fr!important}
+  .fin-resumo{grid-template-columns:1fr!important}
+  .auth-box{padding:16px}
+  .itab{padding:5px 8px;font-size:10px}
+}
 @media print{.sb,.topbar,.btn,.mo{display:none!important}.main,.content{overflow:visible!important;height:auto!important}.pnl{display:block!important}}
 
 /* ── AUTH SCREENS ─────────────────────────────────────────── */
