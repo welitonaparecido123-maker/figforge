@@ -1353,15 +1353,13 @@ function renderPonto(){
   var base = 0, valorHora = 0, vHex = 0, descFaltas = 0;
 
   if(isCLT || vinculo==='mensal'){
-    // Proporcional: paga pelos dias presentes (salário / 30 × presentes)
-    var totalLanc = regs.length;
-    if(totalLanc >= 22 && faltasInj > 0){
-      // Mês completo: desconta faltas
-      descFaltas = valorDia * faltasInj;
+    // SEMPRE proporcional: salário / 30 × dias presentes
+    // Desconto de faltas injustificadas além dos presentes
+    descFaltas = valorDia * faltasInj;
+    base = valorDia * presentes;
+    // Se mês completo (presentes + faltas >= 25), usa salário base menos faltas
+    if((presentes + faltasInj + faltasJus) >= 25 && faltasInj > 0){
       base = salario - descFaltas;
-    } else {
-      // Parcial ou sem faltas: proporcional pelos presentes
-      base = valorDia * presentes;
     }
     const hMes = Number(func?.horasMes||220);
     valorHora = hMes > 0 ? salario / hMes : 0;
@@ -2219,7 +2217,14 @@ function importarDados(input){
 }
 
 // ================================================================ GENERIC
-function deletar(colecao,id_){ if(!confirm('Excluir este registro?'))return; DB[colecao]=DB[colecao].filter(x=>x.id!==id_); save(); }
+function deletar(colecao,id_){
+  if(!confirm('Excluir este registro?'))return;
+  DB[colecao]=DB[colecao].filter(function(x){return x.id!==id_;});
+  // Rastreia IDs deletados para não restaurar no sync
+  if(!DB._deletedIds) DB._deletedIds=[];
+  if(!DB._deletedIds.includes(id_)) DB._deletedIds.push(id_);
+  save();
+}
 function limparTudo(){ DB={obras:[],clientes:[],funcionarios:[],pontos:[],materiais:[],movEstq:[],lancamentos:[],fixas:[],diario:[],orcamentos:[],users:[],config:{}}; save(); navegar('dashboard'); alert('Dados apagados.'); }
 
 // ================================================================ RELÓGIO
@@ -2393,13 +2398,11 @@ function calcPagamento(){
     // Fórmula padrão: (salário ÷ 30) × dias presentes
     base      = valorDia * presentes;
     baseLabel = 'CLT proporcional ('+fmt(valorDia)+'/dia × '+presentes+' dias)';
-    // Desconto por faltas injustificadas (além dos presentes não contados)
-    // Só aplica se o mês tiver > 22 dias lançados (mês completo)
-    var totalLancados=pontos.length;
-    if(totalLancados>=22&&faltasInj>0){
+    // Mês completo (>= 25 dias registrados): desconta faltas do salário cheio
+    if((presentes + faltasInj + faltasJust) >= 25 && faltasInj > 0){
       descVal   = valorDia * faltasInj;
-      descLabel = 'Desc. faltas injustificadas ('+faltasInj+' × '+fmt(valorDia)+')';
-      base      = vd - descVal; // mês completo: desconta da base cheia
+      descLabel = 'Desc. faltas ('+faltasInj+' × '+fmt(valorDia)+')';
+      base      = vd - descVal;
       baseLabel = 'Salário mensal ('+fmt(vd)+') − faltas';
     }
   } else if(vl==='mensal'){
@@ -2495,8 +2498,14 @@ function confirmarPagamentoFunc(){
     desc:'Pagamento '+pgCalcAtual.func.nome+' ('+pgCalcAtual.mes+')',
     val:pgCalcAtual.valor,forn:pgCalcAtual.func.nome,
     nf:val('pg-comp')||'',obs:obs});
+  // Zera folha de ponto do mês após pagar
+  var fid_pago = pgCalcAtual.func.id;
+  var mes_pago = pgCalcAtual.mes;
+  DB.pontos = DB.pontos.filter(function(p){
+    return !(p.func===fid_pago && p.data && p.data.slice(0,7)===mes_pago);
+  });
   save();
-  alert('Pagamento de '+fmt(pgCalcAtual.valor)+' lancado no Financeiro como despesa.');
+  alert('Pagamento de '+fmt(pgCalcAtual.valor)+' lançado!\nFolha de ponto de '+mes_pago+' foi zerada automaticamente.');
   el('pg-pago-area').style.display='none';
   setV('pg-pago','nao');
   var ca=el('pg-comp-area');if(ca)ca.style.display='none';
@@ -4032,6 +4041,7 @@ function puxarDadosEquipe(){
         if(!dados[campo]) return;
         if(!DB[campo]) DB[campo] = [];
         dados[campo].forEach(function(item){
+          if((DB._deletedIds||[]).indexOf(item.id)>=0) return;
           var jaExiste = DB[campo].find(function(l){ return l.id === item.id; });
           if(!jaExiste) DB[campo].push(item);
         });
@@ -4135,6 +4145,7 @@ function _puxarDaNuvem(email, silencioso){
           if(!dados[campo]) return;
           if(!DB[campo]) DB[campo]=[];
           dados[campo].forEach(function(item){
+          if((DB._deletedIds||[]).indexOf(item.id)>=0) return;
             var jaExiste = DB[campo].find(function(l){ return l.id===item.id; });
             if(!jaExiste){ DB[campo].push(item); novosItens++; }
           });
