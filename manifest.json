@@ -1,0 +1,28 @@
+{
+  "name": "FigForge — Gestão para Construtoras",
+  "short_name": "FigForge",
+  "description": "ERP completo para construtoras. Obras, orçamentos, financeiro, funcionários e muito mais.",
+  "start_url": "/figforge/",
+  "scope": "/figforge/",
+  "display": "standalone",
+  "background_color": "#0F1117",
+  "theme_color": "#4F6EF7",
+  "orientation": "any",
+  "lang": "pt-BR",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [],
+  "categories": ["business", "productivity"]
+}
