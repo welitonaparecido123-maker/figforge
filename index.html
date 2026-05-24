@@ -1280,7 +1280,8 @@ function salvarObra(){
   if(!dados.nome){alert('Preencha o nome da obra.');return;}
   if(editId.obra){Object.assign(DB.obras.find(x=>x.id===editId.obra),dados);delete editId.obra;}
   else{dados.id=id();DB.obras.push(dados);}
-  save();fecharMo('mo-obra');renderObras();
+  save();
+  setTimeout(function(){ sincronizarCompleto(true); }, 1000);fecharMo('mo-obra');renderObras();
   el('mo-obra-titulo').textContent='Nova obra';
   ['ob-nome','ob-area','ob-valor','ob-ini','ob-prazo','ob-end','ob-resp','ob-obs'].forEach(i=>setV(i,''));
 }
@@ -1478,7 +1479,8 @@ function toggleFlTipo(){
 function salvarLanc(){
   const dados={id:id(),tipo:val('fl-tipo'),cat:val('fl-cat'),obra:val('fl-obra'),data:val('fl-data'),desc:val('fl-desc'),val:Number(val('fl-val'))||0,forn:val('fl-forn'),nf:val('fl-nf')};
   if(!dados.desc||!dados.val){alert('Preencha a descrição e o valor.');return;}
-  DB.lancamentos.push(dados);save();renderLanc();limparLanc();
+  DB.lancamentos.push(dados);save();
+  setTimeout(function(){ sincronizarCompleto(true); }, 1000);renderLanc();limparLanc();
 }
 function limparLanc(){['fl-desc','fl-val','fl-forn','fl-nf'].forEach(i=>setV(i,''));setV('fl-data',hoje());}
 function renderLanc(){
@@ -2496,6 +2498,7 @@ function salvarPonto(){
     tipo:val('pt-tipo'),obra:val('pt-obra'),obs:val('pt-obs')};
   if(!dados.func||!dados.data){alert('Selecione funcionario e data.');return;}
   DB.pontos.push(dados);save();fecharMo('mo-ponto');renderPonto();
+  setTimeout(function(){ sincronizarCompleto(true); }, 800);
   // Sincroniza com a nuvem imediatamente
   setTimeout(function(){ salvarBackupNuvem(true); }, 500);
 }
@@ -2879,6 +2882,7 @@ function fazerLogin(){
     aplicarBloqueiosPlano();
     aplicarRestricoesPorNivel();
     iniciarBackupAutomatico();
+    iniciarSyncAutomatico();
     setTimeout(revalidarOnline, 2000);
     setTimeout(verificarAtualizacao, 4000);
   } else {
@@ -4003,6 +4007,120 @@ function puxarDadosEquipe(){
     }
   });
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SINCRONIZAÇÃO BIDIRECIONAL
+// ═══════════════════════════════════════════════════════════════════════════
+var SK_SYNC_TS   = 'figforge_sync_ts';
+var syncEmAndamento = false;
+var syncTimer = null;
+
+function mostrarStatusSync(estado, msg){
+  var el_s = el('sync-status');
+  if(!el_s) return;
+  if(estado === 'sincronizando'){
+    el_s.innerHTML = '<span class="sync-spin">↻</span> Sincronizando...';
+    el_s.className='';
+  } else if(estado === 'ok'){
+    var agora = new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+    el_s.innerHTML = '✔ Sync ' + agora;
+    el_s.className='sync-ok';
+    setTimeout(function(){ el_s.innerHTML=''; }, 8000);
+  } else if(estado === 'erro'){
+    el_s.innerHTML = '⚠ ' + (msg||'Sem conexão');
+    el_s.className='sync-err';
+    setTimeout(function(){ el_s.innerHTML=''; }, 5000);
+  } else {
+    el_s.innerHTML = '';
+  }
+}
+
+// Salva E puxa dados — sincronização completa
+function sincronizarCompleto(silencioso){
+  if(syncEmAndamento) return;
+  var lic = {};
+  try{ lic = JSON.parse(localStorage.getItem(SK_LIC)||'{}'); }catch(e){}
+  if(!lic.email||!lic.ativa) return;
+
+  syncEmAndamento = true;
+  if(!silencioso) mostrarStatusSync('sincronizando');
+
+  // 1. Primeiro sobe os dados locais
+  var backup = compactarParaCloud();
+  if(!backup){ syncEmAndamento=false; return; }
+
+  fetch(URL_SERVIDOR, {
+    method:'POST', mode:'no-cors',
+    headers:{'Content-Type':'application/x-www-form-urlencoded'},
+    body:'action=salvarBackup&email='+encodeURIComponent(lic.email)+'&backup='+encodeURIComponent(backup)
+  }).then(function(){
+    localStorage.setItem(SK_BACKUP_TS, new Date().toISOString());
+    // 2. Depois baixa e mescla
+    verificarBackupNuvem(lic.email, function(backupNuvem, dataBackup){
+      if(backupNuvem){
+        try{
+          var dados = JSON.parse(backupNuvem);
+          var novosItens = 0;
+          var campos = ['obras','clientes','orcamentos','lancamentos',
+                        'pontos','diario','estoque','funcionarios','users'];
+          campos.forEach(function(campo){
+            if(!dados[campo]) return;
+            if(!DB[campo]) DB[campo]=[];
+            dados[campo].forEach(function(item){
+              var jaExiste = DB[campo].find(function(l){ return l.id===item.id; });
+              if(!jaExiste){ DB[campo].push(item); novosItens++; }
+              else {
+                // Atualiza se o item da nuvem é mais recente
+                if(item.updatedAt && (!jaExiste.updatedAt || item.updatedAt > jaExiste.updatedAt)){
+                  var idx = DB[campo].indexOf(jaExiste);
+                  DB[campo][idx] = item;
+                  novosItens++;
+                }
+              }
+            });
+          });
+          if(novosItens > 0){
+            save();
+            // Re-renderiza o painel atual se houver novos dados
+            if(typeof renderPanel === 'function' && painelAtivo){
+              renderPanel(painelAtivo);
+            }
+          }
+          localStorage.setItem(SK_SYNC_TS, new Date().toISOString());
+          if(!silencioso) mostrarStatusSync('ok');
+        }catch(e){ if(!silencioso) mostrarStatusSync('erro','Erro ao mesclar'); }
+      } else {
+        if(!silencioso) mostrarStatusSync('ok');
+      }
+      syncEmAndamento = false;
+    });
+  }).catch(function(){
+    syncEmAndamento = false;
+    if(!silencioso) mostrarStatusSync('erro','Sem conexão');
+  });
+}
+
+// Inicia sync automático a cada 3 minutos quando app está ativo
+function iniciarSyncAutomatico(){
+  if(syncTimer) clearInterval(syncTimer);
+  // Primeira sync após 2 min
+  setTimeout(function(){ sincronizarCompleto(true); }, 2*60*1000);
+  // Depois a cada 3 minutos
+  syncTimer = setInterval(function(){ sincronizarCompleto(true); }, 3*60*1000);
+
+  // Sincroniza quando a aba volta a ficar visível
+  document.addEventListener('visibilitychange', function(){
+    if(!document.hidden){
+      var ultimaSync = localStorage.getItem(SK_SYNC_TS);
+      var agora = Date.now();
+      var diff = ultimaSync ? (agora - new Date(ultimaSync).getTime()) : Infinity;
+      // Só sincroniza se passou mais de 1 minuto
+      if(diff > 60000) sincronizarCompleto(true);
+    }
+  });
+}
+
+// save() nativo mantido sem wrapper
 </script>
 
 <div class="mo" id="mo-estq-edit"><div class="mbox">
