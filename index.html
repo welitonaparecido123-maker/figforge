@@ -318,9 +318,9 @@ textarea{resize:vertical;min-height:60px}
   }
   .sb-overlay.ativo{ display:block; }
 
-  /* Main ocupa tela toda */
-  .shell{ display:block; }
-  .main{ width:100%; min-width:0; overflow-x:hidden; }
+  /* Main ocupa tela toda — mantém flex do shell */
+  .shell{ display:flex; }
+  .main{ flex:1; width:100%; min-width:0; overflow-x:hidden; }
 
   /* Topbar */
   .topbar{ padding:0 10px; gap:8px; }
