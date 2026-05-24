@@ -4023,68 +4023,84 @@ function sincronizarCompleto(silencioso){
   syncEmAndamento = true;
   if(!silencioso) mostrarStatusSync('sincronizando');
 
-  // 1. Primeiro sobe os dados locais
   var backup = compactarParaCloud();
   if(!backup){ syncEmAndamento=false; return; }
 
-  fetch(URL_SERVIDOR, {
-    method:'POST', mode:'no-cors',
-    headers:{'Content-Type':'application/x-www-form-urlencoded'},
-    body:'action=salvarBackup&email='+encodeURIComponent(lic.email)+'&backup='+encodeURIComponent(backup)
-  }).then(function(){
-    localStorage.setItem(SK_BACKUP_TS, new Date().toISOString());
-    // 2. Depois baixa e mescla
-    verificarBackupNuvem(lic.email, function(backupNuvem, dataBackup){
-      if(backupNuvem){
-        try{
-          var dados = JSON.parse(backupNuvem);
-          var novosItens = 0;
-          var campos = ['obras','clientes','orcamentos','lancamentos',
-                        'pontos','diario','estoque','funcionarios','users'];
-          campos.forEach(function(campo){
-            if(!dados[campo]) return;
-            if(!DB[campo]) DB[campo]=[];
-            dados[campo].forEach(function(item){
-              var jaExiste = DB[campo].find(function(l){ return l.id===item.id; });
-              if(!jaExiste){ DB[campo].push(item); novosItens++; }
-              else {
-                // Atualiza se o item da nuvem é mais recente
-                if(item.updatedAt && (!jaExiste.updatedAt || item.updatedAt > jaExiste.updatedAt)){
-                  var idx = DB[campo].indexOf(jaExiste);
-                  DB[campo][idx] = item;
-                  novosItens++;
-                }
-              }
-            });
-          });
-          if(novosItens > 0){
-            save();
-            // Re-renderiza o painel atual se houver novos dados
-            if(typeof renderPanel === 'function' && painelAtivo){
-              renderPanel(painelAtivo);
-            }
-          }
-          localStorage.setItem(SK_SYNC_TS, new Date().toISOString());
-          if(!silencioso) mostrarStatusSync('ok');
-        }catch(e){ if(!silencioso) mostrarStatusSync('erro','Erro ao mesclar'); }
-      } else {
-        if(!silencioso) mostrarStatusSync('ok');
-      }
-      syncEmAndamento = false;
+  // Tenta salvar via JSONP GET (mais confiável que POST com CORS)
+  var urlSave = URL_SERVIDOR +
+    '?action=salvarBackup' +
+    '&email=' + encodeURIComponent(lic.email) +
+    '&backup=' + encodeURIComponent(backup);
+
+  if(urlSave.length > 8000){
+    // Backup muito grande para GET — usa POST sem no-cors
+    fetch(URL_SERVIDOR, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({action:'salvarBackup', email:lic.email, backup:backup})
+    }).then(function(r){ return r.json(); })
+    .then(function(json){
+      localStorage.setItem(SK_BACKUP_TS, new Date().toISOString());
+      _puxarDaNuvem(lic.email, silencioso);
+    }).catch(function(){
+      // Fallback: tenta GET mesmo se grande
+      _salvarViaJSONP(urlSave, lic.email, silencioso);
     });
-  }).catch(function(){
-    syncEmAndamento = false;
-    if(!silencioso) mostrarStatusSync('erro','Sem conexão');
+  } else {
+    _salvarViaJSONP(urlSave, lic.email, silencioso);
+  }
+}
+
+function _salvarViaJSONP(urlSave, email, silencioso){
+  chamarServidorJSONP(urlSave, function(json){
+    if(json && json.ok){
+      localStorage.setItem(SK_BACKUP_TS, new Date().toISOString());
+    }
+    _puxarDaNuvem(email, silencioso);
+  }, function(){
+    // Salva falhou — tenta pelo menos puxar
+    _puxarDaNuvem(email, silencioso);
+    if(!silencioso) mostrarStatusSync('erro','Falha ao salvar');
   });
 }
 
-// Inicia sync automático a cada 3 minutos quando app está ativo
+function _puxarDaNuvem(email, silencioso){
+  verificarBackupNuvem(email, function(backupNuvem, dataBackup){
+    if(backupNuvem){
+      try{
+        var dados = JSON.parse(backupNuvem);
+        var novosItens = 0;
+        var campos = ['obras','clientes','orcamentos','lancamentos',
+                      'pontos','diario','estoque','funcionarios','users'];
+        campos.forEach(function(campo){
+          if(!dados[campo]) return;
+          if(!DB[campo]) DB[campo]=[];
+          dados[campo].forEach(function(item){
+            var jaExiste = DB[campo].find(function(l){ return l.id===item.id; });
+            if(!jaExiste){ DB[campo].push(item); novosItens++; }
+          });
+        });
+        if(novosItens > 0){
+          save();
+          if(typeof renderPanel==='function' && painelAtivo) renderPanel(painelAtivo);
+        }
+        localStorage.setItem(SK_SYNC_TS, new Date().toISOString());
+        if(!silencioso) mostrarStatusSync('ok');
+      }catch(e){ if(!silencioso) mostrarStatusSync('erro','Erro ao mesclar'); }
+    } else {
+      if(!silencioso) mostrarStatusSync('ok');
+    }
+    syncEmAndamento = false;
+  });
+}
+
+
 function iniciarSyncAutomatico(){
   if(syncTimer) clearInterval(syncTimer);
   // Primeira sync após 2 min
-  setTimeout(function(){ sincronizarCompleto(true); }, 2*60*1000);
+  setTimeout(function(){ sincronizarCompleto(true); }, 30*1000); // 30 segundos
   // Depois a cada 3 minutos
-  syncTimer = setInterval(function(){ sincronizarCompleto(true); }, 3*60*1000);
+  syncTimer = setInterval(function(){ sincronizarCompleto(true); }, 60*1000); // 1 minuto
 
   // Sincroniza quando a aba volta a ficar visível
   document.addEventListener('visibilitychange', function(){
@@ -4092,8 +4108,8 @@ function iniciarSyncAutomatico(){
       var ultimaSync = localStorage.getItem(SK_SYNC_TS);
       var agora = Date.now();
       var diff = ultimaSync ? (agora - new Date(ultimaSync).getTime()) : Infinity;
-      // Só sincroniza se passou mais de 1 minuto
-      if(diff > 60000) sincronizarCompleto(true);
+      // Sincroniza sempre que voltar ao foco (se passou mais de 30s)
+      if(diff > 30000) sincronizarCompleto(true);
     }
   });
 }
