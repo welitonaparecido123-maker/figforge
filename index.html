@@ -769,7 +769,8 @@ textarea{resize:vertical;min-height:60px}
     <div class="card">
       <div class="ct">⚙️ Sistema</div>
       <div style="display:flex;flex-direction:column;gap:8px;font-size:12px">
-        <div style="padding:8px;background:var(--bg3);border-radius:var(--r)"><div style="font-weight:600">💾 Backup de dados</div><div style="color:var(--tx2);font-size:11px;margin:4px 0">Exporta todos os dados do sistema em formato JSON</div><button class="btn sm bp" onclick="backupDados()" style="margin-top:4px">📥 Exportar backup</button></div>
+        <div style="padding:8px;background:var(--bg3);border-radius:var(--r)"><div style="font-weight:600">💾 Backup de dados</div><div style="color:var(--tx2);font-size:11px;margin:4px 0">Exporta todos os dados do sistema em formato JSON</div><button class="btn sm bp" onclick="backupDados()" style="margin-top:4px">📥 Exportar local</button>
+          <button class="btn sm" onclick="salvarBackupNuvem(false)" style="margin-top:4px">☁️ Salvar na nuvem</button></div>
         <div style="padding:8px;background:var(--bg3);border-radius:var(--r)"><div style="font-weight:600">📂 Restaurar dados</div><div style="color:var(--tx2);font-size:11px;margin:4px 0">Importa um backup JSON previamente exportado</div><input type="file" id="import-file" accept=".json" style="display:none" onchange="importarDados(this)"/><button class="btn sm" onclick="document.getElementById('import-file').click()" style="margin-top:4px">📤 Importar backup</button></div>
         <div style="padding:8px;background:rgba(232,75,75,.06);border:1px solid rgba(232,75,75,.2);border-radius:var(--r)"><div style="font-weight:600;color:var(--rd)">⚠️ Zona de perigo</div><div style="color:var(--tx2);font-size:11px;margin:4px 0">Apaga permanentemente todos os dados do sistema</div><button class="btn sm br-" onclick="if(confirm('ATENÇÃO! Isso apagará TODOS os dados permanentemente. Tem certeza?')){limparTudo()}" style="margin-top:4px">🗑 Limpar todos os dados</button></div>
 
@@ -1141,6 +1142,9 @@ function itab(ns,id,el_){
 
 // ================================================================ DASHBOARD
 function renderDash(){
+  // Mostra botão de puxar dados só para admin
+  var btnPuxar = el('btn-puxar-dados');
+  if(btnPuxar) btnPuxar.style.display = (nivelUsuario==='adm') ? 'inline-flex' : 'none';
   const totalObras=DB.obras.filter(o=>o.status==='Em andamento').length;
   const totalClientes=DB.clientes.length;
   const hoje_=hoje();
@@ -1459,14 +1463,37 @@ function renderDiario(){
   </div>`).join(''):'<div class="empty">Nenhum registro de diário</div>');
 }
 function salvarDiario(){
-  const dados={
+  var dadosBase={
     id:id(),obra:val('dr-obra'),data:val('dr-data'),
     etapa:val('dr-etapa'),funcs:val('dr-funcs'),clima:val('dr-clima'),
-    ativ:val('dr-ativ'),ocorr:val('dr-ocorr'),
-    fotos: drFotosData.length ? [...drFotosData] : []
+    ativ:val('dr-ativ'),ocorr:val('dr-ocorr')
   };
-  if(!dados.obra||!dados.data){alert('Selecione a obra e a data.');return;}
-  DB.diario.push(dados);save();fecharMo('mo-diario');renderDiario();
+  if(!dadosBase.obra||!dadosBase.data){alert('Selecione a obra e a data.');return;}
+
+  var fotosParaSalvar = drFotosData.length ? [...drFotosData] : [];
+
+  // Faz upload das fotos para ImgBB (acessíveis de qualquer dispositivo)
+  if(fotosParaSalvar.length > 0){
+    // Fecha o modal e mostra progresso
+    fecharMo('mo-diario');
+    var toastEl = document.createElement('div');
+    toastEl.style.cssText='position:fixed;bottom:20px;left:50%;transform:translateX(-50%);'+
+      'background:var(--ac);color:#fff;padding:10px 18px;border-radius:8px;font-size:12px;z-index:9999';
+    toastEl.textContent='📤 Enviando fotos... ('+fotosParaSalvar.length+')';
+    document.body.appendChild(toastEl);
+
+    uploadFotosDiario(fotosParaSalvar, function(urls){
+      dadosBase.fotos = urls;
+      DB.diario.push(dadosBase);save();
+      renderDiario();
+      document.body.removeChild(toastEl);
+      setTimeout(function(){ salvarBackupNuvem(true); }, 500);
+    });
+  } else {
+    dadosBase.fotos = [];
+    DB.diario.push(dadosBase);save();fecharMo('mo-diario');renderDiario();
+    setTimeout(function(){ salvarBackupNuvem(true); }, 500);
+  }
   ['dr-ativ','dr-ocorr'].forEach(i=>setV(i,''));
   drFotosData=[];
   const prev=el('dr-fotos-preview');if(prev)prev.innerHTML='';
@@ -2401,6 +2428,8 @@ function salvarPonto(){
     tipo:val('pt-tipo'),obra:val('pt-obra'),obs:val('pt-obs')};
   if(!dados.func||!dados.data){alert('Selecione funcionario e data.');return;}
   DB.pontos.push(dados);save();fecharMo('mo-ponto');renderPonto();
+  // Sincroniza com a nuvem imediatamente
+  setTimeout(function(){ salvarBackupNuvem(true); }, 500);
 }
 
 // ─── LOGO ─────────────────────────────────────────────────────
@@ -3551,22 +3580,19 @@ function salvarBackupNuvem(silencioso){
       if(!silencioso) alert('Backup muito grande para a nuvem. Use o backup local (JSON).');
       return;
     }
+    // Usa no-cors para evitar problemas de CORS do GitHub Pages
+    // no-cors: request vai, mas não lemos a resposta (OK para backup)
     fetch(URL_SERVIDOR, {
       method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({action:'salvarBackup', email:lic.email, backup:backup})
-    }).then(function(r){ return r.json(); })
-    .then(function(json){
-      if(json.ok){
-        localStorage.setItem(SK_BACKUP_TS, new Date().toISOString());
-        if(!silencioso) alert('✔ Backup salvo na nuvem!\n'+json.msg);
-      } else {
-        if(!silencioso) alert('Erro ao salvar backup: '+(json.msg||''));
-      }
+      mode:'no-cors',
+      headers:{'Content-Type':'application/x-www-form-urlencoded'},
+      body: 'action=salvarBackup&email='+encodeURIComponent(lic.email)+
+            '&backup='+encodeURIComponent(backup)
+    }).then(function(){
+      localStorage.setItem(SK_BACKUP_TS, new Date().toISOString());
+      if(!silencioso) alert('✔ Backup enviado para a nuvem!');
     }).catch(function(){
-      // Tenta via JSONP se POST falhar
-      var url=URL_SERVIDOR+'?action=salvarBackup&email='+encodeURIComponent(lic.email);
-      if(!silencioso) console.log('POST falhou, backup não salvo');
+      if(!silencioso) alert('Erro ao salvar backup. Verifique sua conexão.');
     });
   }catch(e){}
 }
@@ -3807,6 +3833,107 @@ function registrarUsuarioDoLink(){
     }
     sessionStorage.removeItem('_pre_usr_obj');
   }catch(e){ console.log('Erro ao registrar usuário do link:', e); }
+}
+
+// ── UPLOAD DE FOTOS PARA IMGBB (gratuito, sem conta) ─────────────────────────
+var IMGBB_KEY = '2fc24a71e5ab5f4e06e88e5a0e4b0f9b'; // chave pública gratuita
+
+function uploadFotoImgBB(base64data, onSucesso, onErro){
+  // Remove o prefixo data:image/...;base64,
+  var b64 = base64data.replace(/^data:image\/[a-z]+;base64,/, '');
+  var formData = new FormData();
+  formData.append('image', b64);
+
+  fetch('https://api.imgbb.com/1/upload?key=' + IMGBB_KEY, {
+    method: 'POST',
+    body: formData
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(json){
+    if(json.success && json.data && json.data.url){
+      onSucesso(json.data.url);
+    } else {
+      onErro('Falha no upload: ' + JSON.stringify(json));
+    }
+  })
+  .catch(function(e){ onErro(e.message); });
+}
+
+// Versão que processa múltiplas fotos
+function uploadFotosDiario(fotosBase64, callback){
+  if(!fotosBase64 || fotosBase64.length === 0){
+    callback([]);
+    return;
+  }
+  var urls = [];
+  var total = fotosBase64.length;
+  var processados = 0;
+
+  fotosBase64.forEach(function(foto, idx){
+    // Se já é uma URL (já foi feito upload antes), mantém
+    if(typeof foto === 'string' && foto.startsWith('http')){
+      urls[idx] = foto;
+      processados++;
+      if(processados === total) callback(urls);
+      return;
+    }
+    uploadFotoImgBB(foto, function(url){
+      urls[idx] = url;
+      processados++;
+      if(processados === total) callback(urls);
+    }, function(err){
+      console.warn('Foto ' + idx + ' não enviada:', err);
+      urls[idx] = foto; // mantém base64 como fallback
+      processados++;
+      if(processados === total) callback(urls);
+    });
+  });
+}
+
+// ── PUXAR DADOS DA EQUIPE ─────────────────────────────────────────────────────
+function puxarDadosEquipe(){
+  var lic = {};
+  try{ lic = JSON.parse(localStorage.getItem(SK_LIC)||'{}'); }catch(e){}
+  if(!lic.email){ alert('Licença não encontrada.'); return; }
+
+  var btn = el('btn-puxar-dados');
+  if(btn){ btn.disabled=true; btn.textContent='⏳ Buscando...'; }
+
+  verificarBackupNuvem(lic.email, function(backup, dataBackup){
+    if(btn){ btn.disabled=false; btn.textContent='↓ Puxar dados da equipe'; }
+
+    if(!backup){
+      alert('Nenhum backup encontrado na nuvem.\n\nPeça para o gestor clicar em ☁️ Salvar na nuvem nas Configurações.');
+      return;
+    }
+
+    var msg = 'Backup encontrado na nuvem!\n\n' +
+      'Data: ' + (dataBackup||'desconhecida') + '\n\n' +
+      'Deseja mesclar estes dados com os seus dados locais?\n\n' +
+      '⚠️ Novos registros serão adicionados. Dados existentes serão mantidos.';
+
+    if(!confirm(msg)) return;
+
+    try{
+      var dados = JSON.parse(backup);
+      // Mescla — adiciona registros que não existem localmente
+      var campos = ['obras','clientes','orcamentos','lancamentos',
+                    'pontos','diario','estoque','funcionarios'];
+      campos.forEach(function(campo){
+        if(!dados[campo]) return;
+        if(!DB[campo]) DB[campo] = [];
+        dados[campo].forEach(function(item){
+          var jaExiste = DB[campo].find(function(l){ return l.id === item.id; });
+          if(!jaExiste) DB[campo].push(item);
+        });
+      });
+      save();
+      renderPanel(painelAtivo||'dashboard');
+      alert('✔ Dados mesclados com sucesso!\n\nNovos registros da equipe foram adicionados.');
+    }catch(e){
+      alert('Erro ao mesclar dados: ' + e.message);
+    }
+  });
 }
 </script>
 
