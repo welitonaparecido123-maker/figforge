@@ -1,5 +1,5 @@
 // FigForge Service Worker
-var CACHE_NAME = 'figforge-v1';
+var CACHE_NAME = 'figforge-v2026-05-25';
 var urlsToCache = [
   '/figforge/',
   '/figforge/index.html',
