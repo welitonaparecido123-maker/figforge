@@ -506,6 +506,7 @@ textarea{resize:vertical;min-height:60px}
   <div class="itabs">
     <div class="itab on" onclick="itab('func','cadastro',this)">👤 Cadastro</div>
     <div class="itab" onclick="itab('func','ponto',this);preencherPontoSelects()">📅 Ponto</div>
+    <div class="itab" onclick="itab('func','producao',this);preencherProdSelects();renderProducao()">🔨 Produção</div>
     <div class="itab" onclick="itab('func','pagamento',this);preencherPontoSelects();calcPagamento()">💰 Pagamento</div>
   </div>
   <div class="itp on" id="func-cadastro">
@@ -528,6 +529,26 @@ textarea{resize:vertical;min-height:60px}
       <div class="tot-box" style="margin-top:8px" id="ponto-resumo"></div>
     </div>
   </div>
+  <div class="itp" id="func-producao">
+    <div class="g2" style="margin-bottom:10px">
+      <div><label>Funcionário (empreita)</label><select id="prod-func" onchange="renderProducao()"></select></div>
+      <div><label>Mês / Ano</label><input id="prod-mes" type="month" onchange="renderProducao()"/></div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;margin-bottom:10px">
+      <button class="btn sm bp" onclick="abrirNovoProd()">+ Adicionar produção</button>
+    </div>
+    <div class="card">
+      <div class="ct">🔨 Produções do mês</div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Data</th><th>Tarefa</th><th>Obra</th><th>Qtd</th><th>Unid.</th><th>Valor unit.</th><th>Total</th><th>Foto</th><th></th></tr></thead>
+          <tbody id="tbl-prod"></tbody>
+        </table>
+      </div>
+      <div id="prod-resumo" style="margin-top:10px;padding:10px;background:var(--bg3);border-radius:var(--r);font-weight:600"></div>
+    </div>
+  </div>
+
   <div class="itp" id="func-pagamento">
     <div class="g2" style="margin-bottom:10px">
       <div><label>Funcionário</label><select id="pg-func" onchange="calcPagamento()"></select></div>
@@ -1355,6 +1376,33 @@ function renderPonto(){
   var DIAS_REF = 30; // padrão CLT: 30 dias corridos
   var valorDia = salario / DIAS_REF;
   var base = 0, valorHora = 0, vHex = 0, descFaltas = 0;
+
+  // ── EMPREITA: soma das produções do mês ──
+  if(vinculo==='empreitada'){
+    var producoes = (DB.producoes||[]).filter(function(p){
+      return p.func===fid && p.data && p.data.slice(0,7)===mes;
+    });
+    var totalEmp = producoes.filter(function(p){return p.tipo==='empreita';})
+                            .reduce(function(s,p){return s+(p.total||0);},0);
+    var totalDia = producoes.filter(function(p){return p.tipo==='diaria';})
+                            .reduce(function(s,p){return s+(p.total||0);},0);
+    base = totalEmp + totalDia;
+    // Salva info para exibição
+    pgCalcAtual = {
+      valor: base, func: func, mes: mes,
+      empreitaInfo: {producoes: producoes.length, totalEmp: totalEmp, totalDia: totalDia}
+    };
+    var lines = '';
+    if(totalEmp > 0) lines += '<div>🔨 Empreita (' + producoes.filter(function(p){return p.tipo==='empreita';}).length + ' produções): ' + fmt(totalEmp) + '</div>';
+    if(totalDia > 0) lines += '<div>📅 Diárias (' + producoes.filter(function(p){return p.tipo==='diaria';}).length + ' dias): ' + fmt(totalDia) + '</div>';
+    if(!lines) lines = '<div style="color:var(--am)">⚠ Nenhuma produção lançada neste mês</div>';
+    el('pg-result').innerHTML =
+      '<div style="margin-bottom:8px;font-weight:600">'+func.nome+' — '+mes+' (Empreita)</div>'+
+      lines +
+      '<div style="margin-top:8px;padding:10px;background:var(--bg3);border-radius:var(--r)"><b>LÍQUIDO A PAGAR: <span style="color:var(--gn);font-size:18px">'+fmt(base)+'</span></b></div>';
+    if(pa){ pa.style.display='block'; setV('pg-data-pag',hoje()); }
+    return;
+  }
 
   if(isCLT || vinculo==='mensal'){
     // SEMPRE proporcional: salário / 30 × dias presentes no ponto
@@ -2274,8 +2322,12 @@ function minParaHora(m){if(m<0)m=0;var h=Math.floor(m/60),mm=m%60;return mm>0?h+
 function toggleCLT(){
   var v=val('fn-vinculo');
   var isCLT=v==='clt';
+  var isEmp=v==='empreitada';
   var lbl=el('fn-val-label');
-  if(lbl)lbl.textContent=isCLT?'Salario mensal (R$)':v==='diaria'?'Valor por diaria (R$)':v==='empreitada'?'Valor da empreitada (R$)':'Salario mensal (R$)';
+  if(lbl)lbl.textContent=isCLT?'Salario mensal (R$)':v==='diaria'?'Valor por diaria (R$)':isEmp?'Diaria padrao (opcional - quando sem producao)':'Salario mensal (R$)';
+  // Mostra/esconde campo de diária padrão para empreita
+  var divDiaria = el('fn-diaria-emp-div');
+  if(divDiaria) divDiaria.style.display = isEmp ? 'block' : 'none';
   var tit=el('fn-hor-titulo');
   if(tit)tit.textContent=isCLT?'Horario de trabalho - CLT/Registrado':'Horario de trabalho (referencia)';
   calcHorasDia();
@@ -2518,6 +2570,8 @@ function confirmarPagamentoFunc(){
 
   if(!DB._deletedIds) DB._deletedIds = [];
   var pontosRemovidos = 0;
+
+  // Zera pontos (CLT, mensal, diária)
   DB.pontos.forEach(function(p){
     var pmes = String(p.data||'').slice(0,7);
     if(p.func===fid_pago && pmes===mes_pago){
@@ -2525,12 +2579,26 @@ function confirmarPagamentoFunc(){
       pontosRemovidos++;
     }
   });
-  console.log('[Zerar Ponto] removendo', pontosRemovidos, 'registros');
-
   DB.pontos = DB.pontos.filter(function(p){
     var pmes = String(p.data||'').slice(0,7);
     return !(p.func===fid_pago && pmes===mes_pago);
   });
+
+  // Zera produções (empreita)
+  if(DB.producoes){
+    DB.producoes.forEach(function(p){
+      var pmes = String(p.data||'').slice(0,7);
+      if(p.func===fid_pago && pmes===mes_pago){
+        if(DB._deletedIds.indexOf(p.id) < 0) DB._deletedIds.push(p.id);
+        pontosRemovidos++;
+      }
+    });
+    DB.producoes = DB.producoes.filter(function(p){
+      var pmes = String(p.data||'').slice(0,7);
+      return !(p.func===fid_pago && pmes===mes_pago);
+    });
+  }
+  console.log('[Zerar] removendo', pontosRemovidos, 'registros (ponto+produção)');
   save();
 
   // Re-renderiza UI do ponto se estiver visível
@@ -3792,7 +3860,7 @@ function ofertarRestauracaoBackup(email){
         // Preserva IDs deletados e remove itens que o usuário havia apagado
         DB._deletedIds = deletados;
         var campos = ['obras','clientes','orcamentos','lancamentos',
-                      'pontos','diario','estoque','funcionarios','users'];
+                      'pontos','diario','estoque','funcionarios','users','producoes'];
         campos.forEach(function(campo){
           if(!DB[campo]) return;
           DB[campo] = DB[campo].filter(function(item){
@@ -4186,7 +4254,7 @@ function _puxarDaNuvem(email, silencioso){
         var dados = JSON.parse(backupNuvem);
         var novosItens = 0;
         var campos = ['obras','clientes','orcamentos','lancamentos',
-                      'pontos','diario','estoque','funcionarios','users'];
+                      'pontos','diario','estoque','funcionarios','users','producoes'];
 
         // Mescla _deletedIds do cloud + local (outros dispositivos podem ter deletado)
         var delLocal = DB._deletedIds || [];
@@ -4664,6 +4732,199 @@ function removerCompLanc(){
 }
 
 
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SISTEMA DE PRODUÇÃO (EMPREITA)
+// ═══════════════════════════════════════════════════════════════════════════
+if(!DB.producoes) DB.producoes = [];
+
+function preencherProdSelects(){
+  // Funcionários empreita
+  var ativos = (DB.funcionarios||[]).filter(function(f){
+    return f.vinculo==='empreitada' && f.status!=='inativo';
+  });
+  var sel = el('prod-func');
+  if(sel){
+    sel.innerHTML = ativos.length ?
+      ativos.map(function(f){ return '<option value="'+f.id+'">'+f.nome+'</option>'; }).join('') :
+      '<option value="">Nenhum funcionário em empreita cadastrado</option>';
+  }
+  // Mês padrão (atual)
+  var inp = el('prod-mes');
+  if(inp && !inp.value){
+    var d = new Date();
+    inp.value = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+  }
+}
+
+function abrirNovoProd(){
+  var ativos = (DB.funcionarios||[]).filter(function(f){
+    return f.vinculo==='empreitada' && f.status!=='inativo';
+  });
+  if(!ativos.length){
+    alert('Cadastre ao menos um funcionário com vínculo "Empreitada" primeiro.');
+    return;
+  }
+  // Preenche o select de funcionário no modal
+  var sf = el('pd-func');
+  sf.innerHTML = ativos.map(function(f){ return '<option value="'+f.id+'">'+f.nome+'</option>'; }).join('');
+  // Pré-seleciona o funcionário ativo no painel
+  var fAtual = val('prod-func');
+  if(fAtual) sf.value = fAtual;
+  // Preenche obras
+  var so = el('pd-obra');
+  so.innerHTML = '<option value="">— sem obra —</option>' +
+    (DB.obras||[]).map(function(o){ return '<option value="'+o.id+'">'+o.nome+'</option>'; }).join('');
+  // Reseta campos
+  setV('pd-data', hoje());
+  setV('pd-tipo','empreita');
+  setV('pd-tarefa','');
+  setV('pd-qtd','');
+  setV('pd-vu','');
+  setV('pd-diaria','');
+  setV('pd-obs','');
+  el('pd-total').textContent = 'R$ 0,00';
+  el('pd-foto-prev').innerHTML = '';
+  prodFotoData = '';
+  togglePdTipo();
+  abrirMo('mo-prod');
+}
+
+function togglePdTipo(){
+  var t = val('pd-tipo');
+  el('pd-emp-fields').style.display = t==='empreita' ? 'block' : 'none';
+  el('pd-dia-fields').style.display = t==='diaria' ? 'block' : 'none';
+}
+
+function calcPdTotal(){
+  var qtd = Number(val('pd-qtd'))||0;
+  var vu  = Number(val('pd-vu'))||0;
+  el('pd-total').textContent = 'R$ ' + (qtd*vu).toLocaleString('pt-BR',{minimumFractionDigits:2});
+}
+
+var prodFotoData = '';
+document.addEventListener('change', function(e){
+  if(e.target && e.target.id==='pd-foto'){
+    var f = e.target.files[0];
+    if(!f) return;
+    var r = new FileReader();
+    r.onload = function(ev){
+      prodFotoData = ev.target.result;
+      el('pd-foto-prev').innerHTML = '<img src="'+prodFotoData+'" style="max-width:160px;max-height:160px;border-radius:6px"/>';
+    };
+    r.readAsDataURL(f);
+  }
+});
+
+function salvarProducao(){
+  var tipo = val('pd-tipo');
+  var funcId = val('pd-func');
+  var func = DB.funcionarios.find(function(f){ return f.id===funcId; });
+  if(!func){ alert('Funcionário inválido.'); return; }
+  if(!val('pd-data')){ alert('Informe a data.'); return; }
+
+  var dados = {
+    id: id(),
+    func: funcId,
+    data: val('pd-data'),
+    obra: val('pd-obra'),
+    tipo: tipo,
+    obs:  val('pd-obs'),
+    foto: prodFotoData||''
+  };
+
+  if(tipo==='empreita'){
+    if(!val('pd-tarefa')){ alert('Informe a tarefa.'); return; }
+    var qtd = Number(val('pd-qtd'))||0;
+    var vu  = Number(val('pd-vu'))||0;
+    if(qtd<=0 || vu<=0){ alert('Quantidade e valor unitário devem ser maiores que zero.'); return; }
+    dados.tarefa = val('pd-tarefa');
+    dados.qtd    = qtd;
+    dados.unid   = val('pd-unid');
+    dados.vu     = vu;
+    dados.total  = qtd*vu;
+  } else {
+    // Diária
+    var vDia = Number(val('pd-diaria')) || Number(func.val) || 0;
+    if(vDia<=0){ alert('Defina um valor de diária no funcionário ou neste lançamento.'); return; }
+    dados.tarefa = 'Diária';
+    dados.qtd    = 1;
+    dados.unid   = 'dia';
+    dados.vu     = vDia;
+    dados.total  = vDia;
+  }
+
+  DB.producoes.push(dados);
+  save();
+  fecharMo('mo-prod');
+  renderProducao();
+  setTimeout(function(){ sincronizarCompleto(true); }, 800);
+}
+
+function renderProducao(){
+  var fid = val('prod-func');
+  var mes = val('prod-mes') || '';
+  var lista = (DB.producoes||[]).filter(function(p){
+    if(fid && p.func!==fid) return false;
+    if(mes && (p.data||'').slice(0,7)!==mes) return false;
+    return true;
+  });
+  lista.sort(function(a,b){ return (b.data||'').localeCompare(a.data||''); });
+
+  var tbl = el('tbl-prod');
+  if(!tbl) return;
+  if(!lista.length){
+    tbl.innerHTML = '<tr><td colspan="9" class="empty">Nenhuma produção neste mês</td></tr>';
+    el('prod-resumo').innerHTML = '';
+    return;
+  }
+  tbl.innerHTML = lista.map(function(p){
+    var obraNome = nomeOb(p.obra);
+    var fotoBtn = p.foto ? '<button class="btn xs" onclick="verFotoProducao(\''+p.id+'\')">📸</button>' : '—';
+    var badge = p.tipo==='diaria' ?
+      '<span class="bdg" style="background:#3A8EF5;color:#fff">diária</span>' :
+      '<span class="bdg" style="background:#E59410;color:#fff">empreita</span>';
+    return '<tr>' +
+      '<td>' + fmtData(p.data) + '</td>' +
+      '<td>' + (p.tarefa||'—') + ' ' + badge + '</td>' +
+      '<td>' + (obraNome||'—') + '</td>' +
+      '<td>' + (p.qtd||0) + '</td>' +
+      '<td>' + (p.unid||'') + '</td>' +
+      '<td>' + fmt(p.vu||0) + '</td>' +
+      '<td style="color:var(--gn);font-weight:600">' + fmt(p.total||0) + '</td>' +
+      '<td>' + fotoBtn + '</td>' +
+      '<td><button class="btn xs br-" onclick="deletarProducao(\''+p.id+'\')">🗑</button></td>' +
+    '</tr>';
+  }).join('');
+
+  // Resumo
+  var totalEmp = lista.filter(function(p){return p.tipo==='empreita';})
+                       .reduce(function(s,p){return s+(p.total||0);},0);
+  var totalDia = lista.filter(function(p){return p.tipo==='diaria';})
+                       .reduce(function(s,p){return s+(p.total||0);},0);
+  var totalGeral = totalEmp + totalDia;
+  el('prod-resumo').innerHTML =
+    '🔨 Empreita: <span style="color:var(--am)">' + fmt(totalEmp) + '</span>  ·  ' +
+    '📅 Diárias: <span style="color:var(--bl)">' + fmt(totalDia) + '</span>  ·  ' +
+    'TOTAL: <span style="color:var(--gn);font-size:15px">' + fmt(totalGeral) + '</span>';
+}
+
+function verFotoProducao(prodId){
+  var p = (DB.producoes||[]).find(function(x){ return x.id===prodId; });
+  if(!p || !p.foto) return;
+  var w = window.open();
+  w.document.write('<html><body style="margin:0;background:#000;display:flex;align-items:center;justify-content:center;min-height:100vh"><img src="'+p.foto+'" style="max-width:100%;max-height:100vh"/></body></html>');
+}
+
+function deletarProducao(prodId){
+  if(!confirm('Excluir esta produção?')) return;
+  DB.producoes = (DB.producoes||[]).filter(function(p){ return p.id!==prodId; });
+  if(!DB._deletedIds) DB._deletedIds=[];
+  if(DB._deletedIds.indexOf(prodId)<0) DB._deletedIds.push(prodId);
+  save();
+  renderProducao();
+  setTimeout(function(){ sincronizarCompleto(true); }, 800);
+}
 </script>
 
 <div class="mo" id="mo-estq-edit"><div class="mbox">
@@ -4694,6 +4955,49 @@ function removerCompLanc(){
   <div style="display:flex;justify-content:flex-end;gap:7px;margin-top:14px">
     <button class="btn" onclick="fecharMo('mo-edit-lanc')">Cancelar</button>
     <button class="btn bp" onclick="salvarEditLanc()">Salvar alterações</button>
+  </div>
+</div></div>
+<div class="mo" id="mo-prod"><div class="mbox">
+  <div class="mh"><span>🔨 Nova produção</span><div class="mx" onclick="fecharMo('mo-prod')">✕</div></div>
+  <div class="fr fr2">
+    <div><label>Funcionário</label><select id="pd-func"></select></div>
+    <div><label>Data</label><input id="pd-data" type="date"/></div>
+  </div>
+  <div class="fr fr2">
+    <div><label>Obra</label><select id="pd-obra"></select></div>
+    <div><label>Tipo de lançamento</label><select id="pd-tipo" onchange="togglePdTipo()">
+      <option value="empreita">Empreita (por produção)</option>
+      <option value="diaria">Diária (sem produção)</option>
+    </select></div>
+  </div>
+  <div id="pd-emp-fields">
+    <div><label>Tarefa / Serviço</label><input id="pd-tarefa" type="text" placeholder="Ex: Muro lateral, Reboco fachada..."/></div>
+    <div class="fr fr3">
+      <div><label>Quantidade</label><input id="pd-qtd" type="number" step="0.01" min="0" placeholder="0" oninput="calcPdTotal()"/></div>
+      <div><label>Unidade</label><select id="pd-unid">
+        <option value="m²">m²</option><option value="m">m linear</option><option value="m³">m³</option>
+        <option value="un">unidade</option><option value="kg">kg</option><option value="h">hora</option>
+        <option value="dia">dia</option><option value="srv">serviço</option>
+      </select></div>
+      <div><label>Valor unitário (R$)</label><input id="pd-vu" type="number" step="0.01" min="0" placeholder="0,00" oninput="calcPdTotal()"/></div>
+    </div>
+    <div style="padding:8px;background:var(--bg3);border-radius:var(--r);font-weight:600">
+      Total: <span id="pd-total" style="color:var(--gn)">R$ 0,00</span>
+    </div>
+  </div>
+  <div id="pd-dia-fields" style="display:none">
+    <div><label>Valor da diária (R$)</label><input id="pd-diaria" type="number" step="0.01" min="0" placeholder="Vazio = usa valor padrão do funcionário"/></div>
+    <div style="font-size:11px;color:var(--tx3);margin-top:4px">Use quando não há tarefa de produção mensurável no dia.</div>
+  </div>
+  <div style="margin-top:10px">
+    <label>📸 Foto da produção (opcional)</label>
+    <input id="pd-foto" type="file" accept="image/*"/>
+    <div id="pd-foto-prev" style="margin-top:6px"></div>
+  </div>
+  <div><label>Observação</label><input id="pd-obs" type="text" placeholder="Detalhes adicionais..."/></div>
+  <div style="display:flex;justify-content:flex-end;gap:7px;margin-top:14px">
+    <button class="btn" onclick="fecharMo('mo-prod')">Cancelar</button>
+    <button class="btn bp" onclick="salvarProducao()">💾 Salvar produção</button>
   </div>
 </div></div>
 </body>
