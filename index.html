@@ -463,6 +463,7 @@ textarea{resize:vertical;min-height:60px}
         <div style="margin-top:12px;display:flex;flex-direction:column;gap:7px">
           <button class="btn bg" onclick="salvarOrc()" style="width:100%">💾 Salvar orçamento</button>
           <button class="btn bp" onclick="exportarOrcPDF()" style="width:100%">📄 Exportar PDF</button>
+          <button class="btn bg" onclick="enviarOrcWhatsAppForm()" style="width:100%;margin-top:6px;background:#25D366;color:#fff">💬 Enviar pelo WhatsApp</button>
         </div>
       </div>
     </div>
@@ -802,7 +803,9 @@ textarea{resize:vertical;min-height:60px}
       <div class="ct">⚙️ Sistema</div>
       <div style="display:flex;flex-direction:column;gap:8px;font-size:12px">
         <div style="padding:8px;background:var(--bg3);border-radius:var(--r)"><div style="font-weight:600">💾 Backup de dados</div><div style="color:var(--tx2);font-size:11px;margin:4px 0">Exporta todos os dados do sistema em formato JSON</div><button class="btn sm bp" onclick="backupDados()" style="margin-top:4px">📥 Exportar local</button>
-          <button class="btn sm" onclick="salvarBackupNuvem(false)" style="margin-top:4px">☁️ Salvar na nuvem</button></div>
+          <button class="btn sm" onclick="salvarBackupNuvem(false)" style="margin-top:4px">☁️ Salvar na nuvem</button>
+          <button class="btn sm br-" onclick="resetarBackupNuvem()" style="margin-top:6px">🗑️ Resetar nuvem</button>
+        </div>
         <div style="padding:8px;background:var(--bg3);border-radius:var(--r)"><div style="font-weight:600">📂 Restaurar dados</div><div style="color:var(--tx2);font-size:11px;margin:4px 0">Importa um backup JSON previamente exportado</div><input type="file" id="import-file" accept=".json" style="display:none" onchange="importarDados(this)"/><button class="btn sm" onclick="document.getElementById('import-file').click()" style="margin-top:4px">📤 Importar backup</button></div>
         <div style="padding:8px;background:rgba(232,75,75,.06);border:1px solid rgba(232,75,75,.2);border-radius:var(--r)"><div style="font-weight:600;color:var(--rd)">⚠️ Zona de perigo</div><div style="color:var(--tx2);font-size:11px;margin:4px 0">Apaga permanentemente todos os dados do sistema</div><button class="btn sm br-" onclick="if(confirm('ATENÇÃO! Isso apagará TODOS os dados permanentemente. Tem certeza?')){limparTudo()}" style="margin-top:4px">🗑 Limpar todos os dados</button></div>
 
@@ -4509,6 +4512,90 @@ function enviarOrcWhatsApp(id){
 
   // Também gera o PDF para o cliente poder baixar
   exportarOrcPDFById(id);
+}
+
+// ── Envia o orçamento atual (em edição) pelo WhatsApp ────────────────────────
+function enviarOrcWhatsAppForm(){
+  var cliId = val('of-cli');
+  var cli   = DB.clientes.find(function(c){ return c.id===cliId; });
+  if(!cli){ alert('Selecione um cliente antes.'); return; }
+  var tel = cli.tel || '';
+  if(!tel){
+    tel = prompt('Cliente sem telefone cadastrado.\nDigite o número (com DDD):','');
+    if(!tel) return;
+  }
+  var num = tel.replace(/\D/g,'');
+  if(num.length < 10){ alert('Número inválido.'); return; }
+  if(!num.startsWith('55')) num = '55' + num;
+
+  // Calcula total atual
+  var subtotal = 0;
+  el('orc-itens').querySelectorAll('tr[data-row]').forEach(function(row){
+    var inputs = row.querySelectorAll('input[type=number]');
+    var qtd = Number(inputs[0]?.value)||0;
+    var vu  = Number(inputs[1]?.value)||0;
+    subtotal += qtd * vu;
+  });
+  var bdi  = Number(val('of-bdi'))||0;
+  var desc = Number(val('of-desc'))||0;
+  var total = subtotal * (1+bdi/100) * (1-desc/100);
+
+  var cfg = DB.config||{};
+  var empresa = cfg.empresa || 'FigForge';
+  var msg = 'Olá ' + cli.nome + '! 👋\n\n' +
+    '*' + empresa + '* enviou seu orçamento:\n\n' +
+    '💰 *Total: R$ ' + total.toLocaleString('pt-BR',{minimumFractionDigits:2}) + '*\n\n' +
+    'Em anexo o PDF completo. Qualquer dúvida estamos à disposição! 😊';
+
+  // Abre WhatsApp
+  window.open('https://wa.me/'+num+'?text='+encodeURIComponent(msg), '_blank');
+  // Gera o PDF para o usuário baixar
+  setTimeout(exportarOrcPDF, 500);
+}
+
+// ── RESETAR BACKUP NA NUVEM (último recurso para resolver sync) ───────────────
+function resetarBackupNuvem(){
+  if(!confirm('⚠️ ATENÇÃO!\n\nIsto vai APAGAR o backup atual na nuvem e enviar uma cópia LIMPA dos seus dados atuais.\n\nUse isso se itens deletados continuam voltando.\n\nDeseja continuar?')) return;
+  if(!confirm('Tem certeza? Esta ação não pode ser desfeita.\n\nO backup atual será SUBSTITUÍDO pelos dados deste dispositivo.')) return;
+
+  var lic = {};
+  try{ lic = JSON.parse(localStorage.getItem(SK_LIC)||'{}'); }catch(e){}
+  if(!lic.email){ alert('Licença não encontrada.'); return; }
+
+  // Limpa _deletedIds (vai recomeçar)
+  DB._deletedIds = [];
+  save();
+
+  // Envia o DB atual como backup limpo via JSONP (sem merge)
+  var backup = compactarParaCloud();
+  if(!backup){ alert('Erro ao preparar backup.'); return; }
+
+  var url = URL_SERVIDOR +
+    '?action=resetarBackup' +
+    '&email=' + encodeURIComponent(lic.email) +
+    '&backup=' + encodeURIComponent(backup);
+
+  if(url.length > 8000){
+    // Backup grande — usa POST
+    fetch(URL_SERVIDOR, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({action:'resetarBackup', email:lic.email, backup:backup})
+    }).then(function(r){ return r.json(); })
+    .then(function(json){
+      alert('✔ Backup na nuvem resetado!\n\nAgora seus dados deste dispositivo são a única fonte.');
+    }).catch(function(){
+      alert('Erro ao resetar. Tente novamente.');
+    });
+  } else {
+    chamarServidorJSONP(url, function(json){
+      if(json && json.ok){
+        alert('✔ Backup na nuvem resetado!\n\nAgora seus dados deste dispositivo são a única fonte.');
+      } else {
+        alert('Erro: ' + (json && json.msg || 'desconhecido'));
+      }
+    }, function(){ alert('Falha na conexão.'); });
+  }
 }
 </script>
 
