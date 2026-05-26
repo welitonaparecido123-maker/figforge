@@ -2,14 +2,12 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+<meta name="viewport" content="width=950, initial-scale=0.42, minimum-scale=0.2, maximum-scale=3.0, user-scalable=yes"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="apple-mobile-web-app-title" content="FigForge"/>
 <meta name="theme-color" content="#4F6EF7"/>
-<meta name="description" content="FigForge: painel de gestão para construtoras, obras, orçamentos, clientes, financeiro, equipe e estoque."/>
-<meta name="referrer" content="strict-origin-when-cross-origin"/>
 <link rel="manifest" href="manifest.json"/>
 <link rel="apple-touch-icon" href="icon-192.png"/>
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png"/>
@@ -17,13 +15,13 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
 :root{
-  --bg:#0A0E18;--bg2:#111827;--bg3:#1A2332;--bg4:#1F2937;
-  --br:#2D3F4F;--br2:#3F5166;
-  --tx:#F0F4F8;--tx2:#9CA3AF;--tx3:#6B7280;
-  --gn:#10B981;--gn2:#059669;
-  --rd:#EF4444;--rd2:#DC2626;
-  --ac:#5B7EFF;--ac2:#4A5FD9;
-  --am:#F59E0B;--bl:#3B82F6;
+  --bg:#0F1117;--bg2:#181C27;--bg3:#1E2333;--bg4:#252B3D;
+  --br:#2D3348;--br2:#3A4160;
+  --tx:#EEF0F8;--tx2:#8D95B0;--tx3:#555F7A;
+  --gn:#18B06A;--gn2:#129156;
+  --rd:#E84B4B;--rd2:#C03A3A;
+  --ac:#4F6EF7;--ac2:#3558E0;
+  --am:#E59410;--bl:#3A8EF5;
   --r:8px;--r2:13px;
 }
 *{box-sizing:border-box;margin:0;padding:0;font-family:'Calibri','Calibri',Calibri,sans-serif}
@@ -210,8 +208,7 @@ textarea{resize:vertical;min-height:60px}
 .plano-lock{position:relative;pointer-events:none;opacity:.45;user-select:none}
 .plano-lock::after{content:'🔒 Plano Profissional';position:absolute;inset:0;background:rgba(15,17,23,.82);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--ac);border-radius:var(--r2);cursor:not-allowed;pointer-events:all}
 .upgrade-banner{background:linear-gradient(135deg,rgba(79,110,247,.15),rgba(123,63,228,.15));border:1px solid rgba(79,110,247,.35);border-radius:var(--r2);padding:14px 16px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
-.upgrade-banner .ub-txt{font-size:12px;color:var(--tx2)}
-.upgrade-banner .ub-txt b{color:var(--tx)}
+.upgrade-banner .ub-txt{font-size:12px;color:var(--tx2)}<b style="color:var(--tx)">.ub-txt b{color:var(--tx)}</b>
 .badge-plano{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700}
 .badge-starter{background:rgba(79,110,247,.15);color:#4F6EF7;border:1px solid rgba(79,110,247,.3)}
 .badge-pro{background:linear-gradient(135deg,rgba(79,110,247,.2),rgba(123,63,228,.2));color:#9B6FF5;border:1px solid rgba(123,63,228,.3)}
@@ -243,1385 +240,15 @@ textarea{resize:vertical;min-height:60px}
 /* ── MOBILE ── */
 
 
-/* keyframes spin definido acima */
-
-
-/* ──────────────────────────────────────────────────────────────
-   Melhorias Manus: responsividade, acessibilidade e acabamento
-   ────────────────────────────────────────────────────────────── */
-:root{
-  color-scheme: dark;
-  --shadow:0 18px 60px rgba(0,0,0,.26);
-  --shadow-soft:0 10px 28px rgba(0,0,0,.18);
-  --focus:0 0 0 3px rgba(79,110,247,.32);
-}
-html{height:100%;scroll-behavior:smooth;-webkit-text-size-adjust:100%}
-body{line-height:1.45;text-rendering:optimizeLegibility}
-button,input,select,textarea{min-height:34px}
-button,.btn,.sbi,.itab,.kb-c,.tog,.mx{touch-action:manipulation}
-button:focus-visible,.btn:focus-visible,.sbi:focus-visible,.itab:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,.tog:focus-visible,.mx:focus-visible{outline:none;box-shadow:var(--focus);border-color:var(--ac)!important}
-.card,.st,.kb-col,.mbox,.auth-box,.rec-card{box-shadow:var(--shadow-soft)}
-.card:hover,.st:hover,.rec-card:hover{border-color:rgba(79,110,247,.38)}
-.topbar{backdrop-filter:saturate(1.1) blur(10px);position:sticky;top:0;z-index:20}
-.content{scrollbar-gutter:stable;padding-bottom:calc(18px + env(safe-area-inset-bottom))}
-.tbl th{position:sticky;top:0;z-index:1}
-.tbl td,.tbl th{line-height:1.35}
-.bdg,.badge-tag,.badge-plano{letter-spacing:.02em}
-.auth-screen{padding:calc(20px + env(safe-area-inset-top)) 20px calc(20px + env(safe-area-inset-bottom))}
-.auth-box{max-width:430px}
-.mo{padding-bottom:calc(20px + env(safe-area-inset-bottom))}
-.mbox{box-shadow:var(--shadow)}
-.empty{border:1px dashed var(--br2);border-radius:var(--r2);background:rgba(255,255,255,.015)}
-@media (min-width:1180px){
-  .content{padding:18px;max-width:1480px;width:100%;margin:0 auto}
-  .sb{width:188px;min-width:188px}
-  .topbar{height:52px;padding:0 18px}
-  .top-ttl{font-size:15px}
-}
-@media (max-width:1024px){
-  body{overflow:hidden;font-size:13px}
-  .g4{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .g3{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .fr4{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .kb-col{min-width:240px}
-}
-@media (max-width:760px){
-  body{overflow:auto}
-  .shell{height:auto;min-height:100vh;display:block}
-  .sb{position:sticky;top:0;z-index:40;width:100%;min-width:0;height:auto;max-height:46vh;border-right:none;border-bottom:1px solid var(--br)}
-  .sb.mini{width:100%;min-width:0;max-height:56px}
-  .sb-top{min-height:56px;padding:10px 14px}
-  .sb-nav{display:flex;overflow-x:auto;overflow-y:hidden;padding:6px;gap:4px;scrollbar-width:none}
-  .sb-nav::-webkit-scrollbar{display:none}
-  .sb-g{display:flex;border-bottom:none;margin:0;padding:0;gap:4px;flex-shrink:0}
-  .sb-lbl{display:none}
-  .sbi{border-left:none;border-bottom:3px solid transparent;border-radius:10px;padding:8px 10px;min-width:max-content;background:rgba(255,255,255,.015)}
-  .sbi.act{border-left-color:transparent;border-bottom-color:var(--ac)}
-  .sb-foot{display:none}
-  .main{min-height:calc(100vh - 56px)}
-  .topbar{height:auto;min-height:52px;flex-wrap:wrap;padding:9px 10px;gap:7px}
-  .top-ttl{flex-basis:100%;font-size:14px;order:-1}
-  .content{padding:10px;overflow:visible}
-  .g2,.g3,.g4,.fr2,.fr3,.fr4{grid-template-columns:1fr}
-  .ga{grid-template-columns:repeat(auto-fill,minmax(135px,1fr))}
-  .card{padding:12px;margin-bottom:10px;border-radius:12px}
-  .ct{font-size:10px;align-items:flex-start;flex-wrap:wrap}
-  .btn{padding:8px 10px;min-height:36px;justify-content:center}
-  .itabs{gap:2px;margin-left:-10px;margin-right:-10px;padding-left:10px;padding-right:10px}
-  .itab{padding:9px 11px}
-  .tw{margin-left:-4px;margin-right:-4px;border-radius:10px;border:1px solid var(--br);background:var(--bg2)}
-  .tbl{min-width:680px}
-  .kb{gap:8px;scroll-snap-type:x proximity}
-  .kb-col{min-width:82vw;scroll-snap-align:start}
-  .mo{align-items:flex-start;padding:10px;padding-top:calc(10px + env(safe-area-inset-top))}
-  .mbox,.mbox-lg{max-width:none;width:100%;padding:16px;border-radius:14px}
-  .auth-box{padding:28px 22px}
-  .upgrade-banner{align-items:stretch}
-  .upgrade-banner .btn{width:100%}
-  .update-bar{left:8px;right:8px;bottom:8px;border-radius:14px;box-shadow:var(--shadow)}
-}
-@media (max-width:420px){
-  .sb-logo,.sb-logo-img{width:28px;height:28px;min-width:28px}
-  .sb-brand{font-size:12px}
-  .sbi{padding:7px 9px;gap:6px}
-  .sbi-i{font-size:13px;width:15px;min-width:15px}
-  .sbi-t{font-size:10px}
-  .st{padding:11px}
-  .st-val{font-size:18px}
-  .ga{grid-template-columns:1fr}
-  .auth-title{font-size:20px}
-}
-@media (prefers-reduced-motion:reduce){
-  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.01ms!important}
-}
-@media print{
-  body{background:#fff!important;color:#111!important;overflow:visible!important;font-size:11px}
-  .card,.st,.rec-card{box-shadow:none!important;border-color:#ddd!important;background:#fff!important;color:#111!important;break-inside:avoid}
-  .tbl th{background:#f3f4f6!important;color:#111!important;position:static}
-  .tbl td{border-color:#e5e7eb!important;color:#111!important}
-}
-
-
-
-/* ═════════════════════════════════════════════════════════════════════════
-   FIGFORGE PREMIUM: Mobile-First, App-Like, Professional
-   ═════════════════════════════════════════════════════════════════════════ */
-
-:root {
-  --shadow: 0 20px 60px rgba(0,0,0,.4);
-  --shadow-md: 0 12px 32px rgba(0,0,0,.3);
-  --shadow-sm: 0 6px 16px rgba(0,0,0,.2);
-  --shadow-xs: 0 2px 8px rgba(0,0,0,.15);
-  --focus: 0 0 0 3px rgba(91,126,255,.35);
-  --radius-lg: 16px;
-  --radius-md: 12px;
-  --radius-sm: 8px;
-  --transition: all .24s cubic-bezier(.4,.0,.2,1);
-}
-
-* { transition: background-color .18s, border-color .18s, color .18s; }
-
-html { 
-  height: 100%;
-  scroll-behavior: smooth;
-  -webkit-text-size-adjust: 100%;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-body {
-  line-height: 1.5;
-  text-rendering: optimizeLegibility;
-  -webkit-tap-highlight-color: transparent;
-  font-feature-settings: "kern" 1, "liga" 1;
-}
-
-/* ─────────────────────────────────────────────────────────────────────────
-   DESKTOP (1200px+)
-   ───────────────────────────────────────────────────────────────────────── */
-
-@media (min-width: 1200px) {
-  .shell { height: 100vh; }
-  .sb { width: 200px; min-width: 200px; }
-  .sb-top { padding: 16px 14px; }
-  .sb-logo { width: 36px; height: 36px; font-size: 14px; }
-  .sb-brand { font-size: 14px; }
-  .sbi { padding: 10px 14px; gap: 10px; }
-  .sbi-i { font-size: 16px; width: 20px; }
-  .sbi-t { font-size: 12px; }
-  .topbar { height: 56px; padding: 0 20px; }
-  .top-ttl { font-size: 16px; }
-  .content { padding: 20px; }
-  .card { padding: 16px; margin-bottom: 12px; border-radius: var(--radius-md); box-shadow: var(--shadow-xs); }
-  .card:hover { border-color: rgba(91,126,255,.4); box-shadow: var(--shadow-sm); }
-  .st { padding: 14px 16px; box-shadow: var(--shadow-xs); }
-  .btn { padding: 8px 14px; min-height: 38px; border-radius: var(--radius-sm); }
-  .mbox { max-width: 520px; padding: 24px; }
-}
-
-/* ─────────────────────────────────────────────────────────────────────────
-   TABLET (768px - 1199px)
-   ───────────────────────────────────────────────────────────────────────── */
-
-@media (min-width: 768px) and (max-width: 1199px) {
-  .shell { height: 100vh; }
-  .sb { width: 180px; min-width: 180px; }
-  .topbar { height: 52px; padding: 0 16px; }
-  .content { padding: 16px; }
-  .card { padding: 14px; }
-  .g4 { grid-template-columns: repeat(2, 1fr); }
-  .g3 { grid-template-columns: repeat(2, 1fr); }
-}
-
-/* ─────────────────────────────────────────────────────────────────────────
-   MOBILE LANDSCAPE (568px - 767px)
-   ───────────────────────────────────────────────────────────────────────── */
-
-@media (min-width: 568px) and (max-width: 767px) {
-  body { overflow: hidden; }
-  .shell { height: 100vh; flex-direction: column; }
-  .sb { 
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    width: 100%;
-    height: 56px;
-    min-width: 0;
-    border-right: none;
-    border-top: 1px solid var(--br);
-    flex-direction: row;
-    z-index: 50;
-  }
-  .sb.mini { height: 56px; }
-  .sb-top { display: none; }
-  .sb-nav {
-    display: flex;
-    flex-direction: row;
-    overflow-x: auto;
-    overflow-y: hidden;
-    padding: 0 8px;
-    gap: 4px;
-    flex: 1;
-    scrollbar-width: none;
-  }
-  .sb-nav::-webkit-scrollbar { display: none; }
-  .sb-g { display: flex; border: none; margin: 0; padding: 0; gap: 4px; }
-  .sb-lbl { display: none; }
-  .sbi {
-    border-left: none;
-    border-bottom: 3px solid transparent;
-    border-radius: 10px;
-    padding: 8px 10px;
-    min-width: max-content;
-    background: transparent;
-    flex-direction: column;
-    align-items: center;
-    gap: 3px;
-  }
-  .sbi-i { font-size: 18px; width: auto; }
-  .sbi-t { font-size: 9px; }
-  .sbi.act { border-left: none; border-bottom-color: var(--ac); }
-  .sb-foot { display: none; }
-  .main { min-height: calc(100vh - 56px); }
-  .topbar { height: 48px; padding: 0 12px; }
-  .content { padding: 12px; overflow-y: auto; }
-}
-
-/* ─────────────────────────────────────────────────────────────────────────
-   MOBILE PORTRAIT (< 568px) — APP NATIVO
-   ───────────────────────────────────────────────────────────────────────── */
-
-@media (max-width: 567px) {
-  body {
-    overflow: hidden;
-    font-size: 14px;
-  }
-
-  .shell {
-    height: 100vh;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-  }
-
-  /* ─ SIDEBAR → BOTTOM NAV BAR ─ */
-  .sb {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    width: 100%;
-    height: 64px;
-    min-width: 0;
-    border-right: none;
-    border-top: 1px solid var(--br);
-    border-bottom: none;
-    background: var(--bg2);
-    flex-direction: row;
-    z-index: 50;
-    padding: 0;
-    overflow: visible;
-    box-shadow: 0 -2px 12px rgba(0,0,0,.3);
-  }
-
-  .sb.mini {
-    height: 64px;
-  }
-
-  .sb-top {
-    display: none;
-  }
-
-  .sb-nav {
-    display: flex;
-    flex-direction: row;
-    overflow-x: auto;
-    overflow-y: hidden;
-    padding: 8px 4px;
-    gap: 2px;
-    flex: 1;
-    scrollbar-width: none;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  .sb-nav::-webkit-scrollbar {
-    display: none;
-  }
-
-  .sb-g {
-    display: flex;
-    flex-direction: row;
-    border: none;
-    margin: 0;
-    padding: 0;
-    gap: 2px;
-    flex-shrink: 0;
-  }
-
-  .sb-lbl {
-    display: none;
-  }
-
-  .sbi {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 2px;
-    padding: 6px 8px;
-    border-left: none;
-    border-bottom: 3px solid transparent;
-    border-radius: 12px;
-    min-width: 56px;
-    height: 56px;
-    background: transparent;
-    white-space: nowrap;
-    overflow: hidden;
-    color: var(--tx2);
-    font-size: 11px;
-    flex-shrink: 0;
-    transition: var(--transition);
-  }
-
-  .sbi:hover {
-    background: rgba(91,126,255,.08);
-  }
-
-  .sbi.act {
-    border-left-color: transparent;
-    border-bottom-color: var(--ac);
-    color: var(--ac);
-    background: rgba(91,126,255,.12);
-  }
-
-  .sbi-i {
-    font-size: 20px;
-    width: auto;
-    text-align: center;
-  }
-
-  .sbi-t {
-    font-size: 9px;
-    font-weight: 600;
-    letter-spacing: .3px;
-  }
-
-  .sb-foot {
-    display: none;
-  }
-
-  /* ─ MAIN CONTENT ─ */
-  .main {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    min-width: 0;
-    min-height: calc(100vh - 64px);
-    padding-bottom: 64px;
-  }
-
-  .topbar {
-    height: 52px;
-    background: var(--bg2);
-    border-bottom: 1px solid var(--br);
-    display: flex;
-    align-items: center;
-    padding: 0 12px;
-    gap: 8px;
-    flex-shrink: 0;
-    box-shadow: 0 2px 8px rgba(0,0,0,.15);
-  }
-
-  .top-ttl {
-    font-size: 15px;
-    font-weight: 700;
-    flex: 1;
-    letter-spacing: -.3px;
-  }
-
-  .content {
-    flex: 1;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-    padding: 12px;
-    padding-bottom: 16px;
-    scrollbar-gutter: stable;
-  }
-
-  /* ─ CARDS & COMPONENTS ─ */
-  .card {
-    background: var(--bg2);
-    border: 1px solid var(--br);
-    border-radius: var(--radius-md);
-    padding: 12px;
-    margin-bottom: 10px;
-    box-shadow: var(--shadow-xs);
-    transition: var(--transition);
-  }
-
-  .card:active {
-    transform: scale(.98);
-  }
-
-  .st {
-    background: var(--bg2);
-    border: 1px solid var(--br);
-    border-radius: var(--radius-md);
-    padding: 12px;
-    box-shadow: var(--shadow-xs);
-  }
-
-  .ct {
-    font-size: 11px;
-    font-weight: 700;
-    color: var(--tx2);
-    text-transform: uppercase;
-    letter-spacing: .5px;
-    margin-bottom: 8px;
-  }
-
-  /* ─ BUTTONS ─ */
-  .btn {
-    padding: 10px 12px;
-    border-radius: var(--radius-sm);
-    font-size: 12px;
-    font-weight: 600;
-    min-height: 40px;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    border: 1px solid var(--br2);
-    background: var(--bg3);
-    color: var(--tx);
-    white-space: nowrap;
-    transition: var(--transition);
-    -webkit-user-select: none;
-    user-select: none;
-  }
-
-  .btn:active {
-    transform: scale(.96);
-    opacity: .85;
-  }
-
-  .bp {
-    background: var(--ac);
-    border-color: var(--ac2);
-    color: #fff;
-    box-shadow: 0 4px 12px rgba(91,126,255,.25);
-  }
-
-  .bp:active {
-    background: var(--ac2);
-    box-shadow: 0 2px 6px rgba(91,126,255,.15);
-  }
-
-  .bg {
-    background: var(--gn);
-    border-color: var(--gn2);
-    color: #fff;
-  }
-
-  .bg:active {
-    background: var(--gn2);
-  }
-
-  /* ─ FORMS ─ */
-  label {
-    font-size: 12px;
-    color: var(--tx2);
-    display: block;
-    margin-bottom: 4px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: .3px;
-  }
-
-  input,
-  select,
-  textarea {
-    width: 100%;
-    padding: 10px 12px;
-    border: 1px solid var(--br2);
-    border-radius: var(--radius-sm);
-    background: var(--bg3);
-    color: var(--tx);
-    font-size: 14px;
-    font-family: inherit;
-    transition: var(--transition);
-    -webkit-appearance: none;
-    appearance: none;
-  }
-
-  input:focus,
-  select:focus,
-  textarea:focus {
-    outline: none;
-    border-color: var(--ac);
-    background: var(--bg4);
-    box-shadow: var(--focus);
-  }
-
-  input[readonly] {
-    background: var(--bg4);
-    color: var(--tx2);
-    cursor: not-allowed;
-  }
-
-  input::placeholder {
-    color: var(--tx3);
-  }
-
-  select option {
-    background: var(--bg3);
-    color: var(--tx);
-  }
-
-  textarea {
-    resize: vertical;
-    min-height: 80px;
-  }
-
-  /* ─ GRID ─ */
-  .g2, .g3, .g4, .fr2, .fr3, .fr4 {
-    grid-template-columns: 1fr;
-  }
-
-  .ga {
-    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-  }
-
-  /* ─ TABLES ─ */
-  .tw {
-    margin: -12px -12px 0 -12px;
-    border-radius: var(--radius-md) var(--radius-md) 0 0;
-    border: 1px solid var(--br);
-    background: var(--bg2);
-  }
-
-  .tbl {
-    min-width: 100%;
-    font-size: 12px;
-  }
-
-  .tbl th {
-    position: sticky;
-    top: 0;
-    z-index: 2;
-    background: var(--bg3);
-    padding: 10px;
-    font-size: 11px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: .4px;
-  }
-
-  .tbl td {
-    padding: 10px;
-    border-bottom: 1px solid var(--br);
-  }
-
-  .tbl tr:hover td {
-    background: rgba(255,255,255,.015);
-  }
-
-  /* ─ MODALS ─ */
-  .mo {
-    padding: 12px;
-    padding-top: calc(12px + env(safe-area-inset-top));
-    padding-bottom: calc(12px + env(safe-area-inset-bottom));
-    align-items: flex-end;
-  }
-
-  .mbox {
-    max-width: none;
-    width: 100%;
-    padding: 18px;
-    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-    box-shadow: var(--shadow-md);
-  }
-
-  .mh {
-    font-size: 16px;
-    font-weight: 700;
-    margin-bottom: 16px;
-  }
-
-  /* ─ AUTH SCREENS ─ */
-  .auth-screen {
-    padding: calc(20px + env(safe-area-inset-top)) 16px calc(20px + env(safe-area-inset-bottom));
-  }
-
-  .auth-box {
-    width: 100%;
-    max-width: none;
-    padding: 24px 18px;
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-md);
-  }
-
-  .auth-logo {
-    width: 64px;
-    height: 64px;
-    border-radius: 14px;
-    font-size: 26px;
-    margin-bottom: 18px;
-  }
-
-  .auth-title {
-    font-size: 22px;
-    font-weight: 700;
-    margin-bottom: 6px;
-  }
-
-  .auth-sub {
-    font-size: 13px;
-    margin-bottom: 20px;
-  }
-
-  .auth-field {
-    margin-bottom: 14px;
-  }
-
-  .auth-field label {
-    font-size: 11px;
-    margin-bottom: 6px;
-  }
-
-  .auth-field input {
-    padding: 12px 14px;
-    font-size: 14px;
-    min-height: 44px;
-  }
-
-  .auth-btn {
-    width: 100%;
-    padding: 12px;
-    min-height: 44px;
-    font-size: 14px;
-    font-weight: 700;
-    border-radius: var(--radius-sm);
-    margin-top: 8px;
-  }
-
-  /* ─ BADGES ─ */
-  .bdg, .badge-tag, .badge-plano {
-    padding: 4px 8px;
-    font-size: 10px;
-    border-radius: 12px;
-    font-weight: 600;
-  }
-
-  /* ─ KANBAN ─ */
-  .kb {
-    gap: 8px;
-    padding-bottom: 8px;
-    scroll-snap-type: x proximity;
-  }
-
-  .kb-col {
-    min-width: 85vw;
-    scroll-snap-align: start;
-    border-radius: var(--radius-md);
-  }
-
-  .kb-c {
-    border-radius: var(--radius-sm);
-    padding: 10px;
-  }
-
-  /* ─ TOGGLE ─ */
-  .tog {
-    width: 44px;
-    height: 24px;
-    border-radius: 24px;
-    cursor: pointer;
-  }
-
-  .tog::after {
-    width: 12px;
-    height: 12px;
-  }
-
-  .tog.on::after {
-    left: 18px;
-  }
-
-  /* ─ ACCESSIBILITY ─ */
-  button:focus-visible,
-  .btn:focus-visible,
-  .sbi:focus-visible,
-  input:focus-visible,
-  select:focus-visible,
-  textarea:focus-visible {
-    outline: none;
-    box-shadow: var(--focus);
-    border-color: var(--ac) !important;
-  }
-
-  /* ─ PRINT ─ */
-  @media print {
-    .sb, .topbar, .btn, .mo {
-      display: none !important;
-    }
-    .main, .content {
-      overflow: visible !important;
-      height: auto !important;
-    }
-    .pnl {
-      display: block !important;
-    }
-    body {
-      background: #fff !important;
-      color: #111 !important;
-      font-size: 11px;
-    }
-    .card, .st, .rec-card {
-      box-shadow: none !important;
-      border-color: #ddd !important;
-      background: #fff !important;
-      color: #111 !important;
-    }
-  }
-
-  /* ─ REDUCED MOTION ─ */
-  @media (prefers-reduced-motion: reduce) {
-    * {
-      animation-duration: .01ms !important;
-      animation-iteration-count: 1 !important;
-      scroll-behavior: auto !important;
-      transition-duration: .01ms !important;
-    }
-  }
-}
-
-
-
-/* ─────────────────────────────────────────────────────────────────────────
-   PREMIUM UI FINISH: Glassmorphism, Gradients & Haptics
-   ───────────────────────────────────────────────────────────────────────── */
-
-.sb-logo {
-  background: linear-gradient(135deg, var(--ac), #7C3AED);
-  box-shadow: 0 4px 12px rgba(91,126,255,.3);
-  border: 1px solid rgba(255,255,255,.1);
-}
-
-.auth-btn, .bp {
-  background: linear-gradient(135deg, var(--ac), #4F46E5);
-  box-shadow: 0 4px 14px rgba(79,70,229,.35);
-  border: none;
-}
-
-.auth-btn:active, .bp:active {
-  background: linear-gradient(135deg, #4F46E5, var(--ac));
-  transform: translateY(1px) scale(.98);
-  box-shadow: 0 2px 8px rgba(79,70,229,.25);
-}
-
-.card, .st {
-  background: linear-gradient(145deg, var(--bg2), rgba(17,24,39,.95));
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-}
-
-.sbi.act {
-  background: linear-gradient(to right, rgba(91,126,255,.15), transparent);
-  position: relative;
-}
-
-@media (max-width: 567px) {
-  .sbi.act {
-    background: linear-gradient(to top, rgba(91,126,255,.12), transparent);
-  }
-  
-  .sb {
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    background: rgba(17,24,39,.85);
-  }
-  
-  .topbar {
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    background: rgba(17,24,39,.85);
-  }
-}
-
-/* Scrollbar Premium */
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { 
-  background: var(--br2); 
-  border-radius: 10px;
-  border: 2px solid var(--bg);
-}
-::-webkit-scrollbar-thumb:hover { background: var(--tx3); }
-
-/* Melhoria nos inputs */
-input, select, textarea {
-  box-shadow: inset 0 2px 4px rgba(0,0,0,.05);
-}
-
-/* Efeito de carregamento suave */
-@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-.content > div { animation: fadeIn .4s ease-out backwards; }
-
-
-
-/* ═════════════════════════════════════════════════════════════════════════
-   ULTRA-PREMIUM DESIGN: Gráficos, Cards com Imagens, Nav com Botão Central
-   ═════════════════════════════════════════════════════════════════════════ */
-
-:root {
-  --primary-green: #10B981;
-  --primary-cyan: #06B6D4;
-  --primary-blue: #0EA5E9;
-  --dark-bg: #0A0E18;
-  --card-bg: #111827;
-  --card-border: #1F2937;
-  --text-primary: #F0F4F8;
-  --text-secondary: #9CA3AF;
-  --accent-glow: 0 0 20px rgba(16,185,129,.3);
-}
-
-/* ─────────────────────────────────────────────────────────────────────────
-   CIRCULAR PROGRESS CHART (SVG)
-   ───────────────────────────────────────────────────────────────────────── */
-
-.circular-chart {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 120px;
-  height: 120px;
-  margin: 0 auto;
-  position: relative;
-}
-
-.circular-chart svg {
-  width: 100%;
-  height: 100%;
-  transform: rotate(-90deg);
-}
-
-.circular-chart-circle {
-  stroke: var(--card-border);
-  fill: none;
-  stroke-width: 8;
-  stroke-linecap: round;
-}
-
-.circular-chart-circle.progress {
-  stroke: var(--primary-green);
-  filter: drop-shadow(0 0 8px rgba(16,185,129,.4));
-  stroke-dasharray: 282.7;
-  stroke-dashoffset: 0;
-  animation: fillChart 1.2s ease-out forwards;
-}
-
-@keyframes fillChart {
-  from { stroke-dashoffset: 282.7; }
-  to { stroke-dashoffset: calc(282.7 * (1 - var(--progress, 0.72))); }
-}
-
-.circular-chart-text {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  text-align: center;
-}
-
-.circular-chart-text .percentage {
-  font-size: 28px;
-  font-weight: 700;
-  color: var(--text-primary);
-}
-
-.circular-chart-text .label {
-  font-size: 10px;
-  color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: .5px;
-  margin-top: 2px;
-}
-
-/* ─────────────────────────────────────────────────────────────────────────
-   PROJECT CARDS COM IMAGENS
-   ───────────────────────────────────────────────────────────────────────── */
-
-.project-card {
-  background: linear-gradient(135deg, var(--card-bg) 0%, rgba(17,24,39,.8) 100%);
-  border: 1px solid var(--card-border);
-  border-radius: 14px;
-  overflow: hidden;
-  display: flex;
-  gap: 12px;
-  padding: 12px;
-  margin-bottom: 10px;
-  transition: all .3s cubic-bezier(.4,.0,.2,1);
-  box-shadow: 0 4px 12px rgba(0,0,0,.2);
-}
-
-.project-card:hover {
-  border-color: var(--primary-green);
-  box-shadow: 0 8px 24px rgba(16,185,129,.15), var(--accent-glow);
-  transform: translateY(-2px);
-}
-
-.project-card-image {
-  width: 60px;
-  height: 60px;
-  min-width: 60px;
-  border-radius: 10px;
-  object-fit: cover;
-  border: 1px solid var(--card-border);
-  background: linear-gradient(135deg, var(--primary-green), var(--primary-cyan));
-}
-
-.project-card-content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-}
-
-.project-card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 8px;
-}
-
-.project-card-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.project-card-subtitle {
-  font-size: 11px;
-  color: var(--text-secondary);
-  margin-top: 2px;
-}
-
-.project-card-progress {
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--primary-green);
-}
-
-.project-card-bar {
-  width: 100%;
-  height: 4px;
-  background: var(--card-border);
-  border-radius: 2px;
-  overflow: hidden;
-  margin-top: 6px;
-}
-
-.project-card-bar-fill {
-  height: 100%;
-  background: linear-gradient(90deg, var(--primary-green), var(--primary-cyan));
-  border-radius: 2px;
-  box-shadow: 0 0 8px rgba(16,185,129,.4);
-}
-
-.project-card-status {
-  font-size: 9px;
-  font-weight: 600;
-  color: var(--primary-green);
-  text-transform: uppercase;
-  letter-spacing: .3px;
-  margin-top: 4px;
-}
-
-.project-card-date {
-  font-size: 9px;
-  color: var(--text-secondary);
-}
-
-/* ─────────────────────────────────────────────────────────────────────────
-   BOTTOM NAVIGATION COM BOTÃO CENTRAL DESTACADO
-   ───────────────────────────────────────────────────────────────────────── */
-
-@media (max-width: 567px) {
-  .sb {
-    display: flex;
-    align-items: center;
-    justify-content: space-around;
-    padding: 0 8px;
-    height: 72px;
-    position: relative;
-  }
-
-  .sb-nav {
-    display: flex;
-    width: 100%;
-    justify-content: space-around;
-    align-items: center;
-    padding: 8px 0;
-    gap: 0;
-  }
-
-  .sb-g {
-    display: flex;
-    gap: 0;
-  }
-
-  .sbi {
-    flex: 1;
-    height: 56px;
-    border-radius: 12px;
-    margin: 0 4px;
-    position: relative;
-  }
-
-  .sbi:nth-child(3) {
-    width: 60px;
-    height: 60px;
-    background: linear-gradient(135deg, var(--primary-green), var(--primary-cyan)) !important;
-    border-radius: 50%;
-    box-shadow: 0 8px 24px rgba(16,185,129,.35);
-    border: none;
-    color: #fff;
-    margin: 0 -8px;
-    z-index: 10;
-  }
-
-  .sbi:nth-child(3):hover {
-    transform: scale(1.08);
-    box-shadow: 0 12px 32px rgba(16,185,129,.45);
-  }
-
-  .sbi:nth-child(3) .sbi-i {
-    font-size: 24px;
-    color: #fff;
-  }
-
-  .sbi:nth-child(3) .sbi-t {
-    display: none;
-  }
-}
-
-/* ─────────────────────────────────────────────────────────────────────────
-   DASHBOARD STATS COM LAYOUT PREMIUM
-   ───────────────────────────────────────────────────────────────────────── */
-
-.stat-box {
-  background: linear-gradient(135deg, var(--card-bg) 0%, rgba(17,24,39,.8) 100%);
-  border: 1px solid var(--card-border);
-  border-radius: 14px;
-  padding: 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  box-shadow: 0 4px 12px rgba(0,0,0,.2);
-}
-
-.stat-label {
-  font-size: 11px;
-  color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: .4px;
-  font-weight: 600;
-}
-
-.stat-value {
-  font-size: 24px;
-  font-weight: 700;
-  color: var(--text-primary);
-}
-
-.stat-subtext {
-  font-size: 10px;
-  color: var(--text-secondary);
-}
-
-/* ─────────────────────────────────────────────────────────────────────────
-   INSIGHTS SECTION COM GRÁFICOS MINI
-   ───────────────────────────────────────────────────────────────────────── */
-
-.insight-item {
-  background: linear-gradient(135deg, var(--card-bg) 0%, rgba(17,24,39,.8) 100%);
-  border: 1px solid var(--card-border);
-  border-radius: 12px;
-  padding: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.insight-title {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.insight-value {
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--text-primary);
-}
-
-.insight-chart {
-  width: 100%;
-  height: 40px;
-  background: var(--card-border);
-  border-radius: 6px;
-  overflow: hidden;
-  position: relative;
-}
-
-.insight-chart-line {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, var(--primary-cyan), var(--primary-green));
-  opacity: .6;
-}
-
-/* ─────────────────────────────────────────────────────────────────────────
-   TOPBAR COM GREETING
-   ───────────────────────────────────────────────────────────────────────── */
-
-.topbar-greeting {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.topbar-greeting-title {
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--text-primary);
-}
-
-.topbar-greeting-subtitle {
-  font-size: 12px;
-  color: var(--text-secondary);
-}
-
-/* ─────────────────────────────────────────────────────────────────────────
-   NOTIFICAÇÃO BADGE
-   ───────────────────────────────────────────────────────────────────────── */
-
-.notification-badge {
-  width: 24px;
-  height: 24px;
-  background: var(--primary-cyan);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  font-weight: 700;
-  color: #fff;
-  box-shadow: 0 0 12px rgba(6,182,212,.4);
-}
-
-
-
-/* ═════════════════════════════════════════════════════════════════════════
-   SPLASH SCREEN: Tela de Carregamento com Logo FigForce
-   ═════════════════════════════════════════════════════════════════════════ */
-
-.splash-screen {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(135deg, #0A0E18 0%, #111827 50%, #0A0E18 100%);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  z-index: 99999;
-  opacity: 1;
-  visibility: visible;
-  transition: opacity .6s ease-out, visibility .6s ease-out;
-}
-
-.splash-screen.hidden {
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
-}
-
-.splash-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 24px;
-  text-align: center;
-}
-
-.splash-logo {
-  width: 140px;
-  height: 140px;
-  object-fit: contain;
-  animation: splashLogoFloat 3s ease-in-out infinite;
-  filter: drop-shadow(0 0 30px rgba(16,185,129,.3));
-}
-
-@keyframes splashLogoFloat {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-12px); }
-}
-
-.splash-text {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-top: 12px;
-}
-
-.splash-title {
-  font-size: 28px;
-  font-weight: 800;
-  background: linear-gradient(135deg, #10B981, #06B6D4);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  letter-spacing: -0.5px;
-}
-
-.splash-subtitle {
-  font-size: 13px;
-  color: #9CA3AF;
-  letter-spacing: .5px;
-  text-transform: uppercase;
-  font-weight: 600;
-}
-
-.splash-loading {
-  display: flex;
-  gap: 6px;
-  margin-top: 20px;
-  justify-content: center;
-}
-
-.splash-loading-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #10B981;
-  animation: splashPulse 1.4s ease-in-out infinite;
-}
-
-.splash-loading-dot:nth-child(2) {
-  animation-delay: .2s;
-}
-
-.splash-loading-dot:nth-child(3) {
-  animation-delay: .4s;
-}
-
-@keyframes splashPulse {
-  0%, 100% { opacity: .3; transform: scale(1); }
-  50% { opacity: 1; transform: scale(1.2); }
-}
-
-/* ─────────────────────────────────────────────────────────────────────────
-   ATUALIZAR TELAS DE LOGIN E ATIVAÇÃO COM NOVA LOGO
-   ───────────────────────────────────────────────────────────────────────── */
-
-.auth-logo {
-  background: transparent;
-  border: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 8px;
-}
-
-.auth-logo img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  filter: drop-shadow(0 0 20px rgba(16,185,129,.25));
-}
-
-.lic-logo-box {
-  background: transparent !important;
-  border: none !important;
-  padding: 8px !important;
-}
-
-.lic-logo-box img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  filter: drop-shadow(0 0 20px rgba(16,185,129,.25));
-}
-
-/* ─────────────────────────────────────────────────────────────────────────
-   SIDEBAR BRANDING COM NOVA LOGO
-   ───────────────────────────────────────────────────────────────────────── */
-
-.sb-logo-img {
-  width: 36px;
-  height: 36px;
-  min-width: 36px;
-  border-radius: 8px;
-  object-fit: contain;
-  background: transparent;
-  padding: 4px;
-  display: block !important;
-  filter: drop-shadow(0 0 12px rgba(16,185,129,.2));
-}
-
-.sb-logo {
-  background: transparent;
-  border: none;
-  display: none;
-}
-
-.sb-brand {
-  font-size: 14px;
-  font-weight: 800;
-  background: linear-gradient(135deg, #10B981, #06B6D4);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  letter-spacing: -0.3px;
-}
-
-/* ─────────────────────────────────────────────────────────────────────────
-   ANIMAÇÃO DE ENTRADA (FADE-IN)
-   ───────────────────────────────────────────────────────────────────────── */
-
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.auth-screen.loaded {
-  animation: fadeInUp .6s ease-out .5s both;
-}
-
+@keyframes spin{to{transform:rotate(360deg)}}
 </style>
 </head>
 <body>
-<!-- ═══ SPLASH SCREEN ═════════════════════════════════════════════════════════ -->
-<div class="splash-screen" id="splash-screen">
-  <div class="splash-container">
-    <img class="splash-logo" src="/home/ubuntu/upload/logo-figforge.jpg" alt="FigForce Logo"/>
-    <div class="splash-text">
-      <div class="splash-title">FigForce</div>
-      <div class="splash-subtitle">Força em cada etapa. Controle em cada decisão.</div>
-    </div>
-    <div class="splash-loading">
-      <div class="splash-loading-dot"></div>
-      <div class="splash-loading-dot"></div>
-      <div class="splash-loading-dot"></div>
-    </div>
-  </div>
-</div>
-
-
 
 <!-- ═══ TELA DE LICENÇA / ATIVAÇÃO ═════════════════════════════════════ -->
 <div class="auth-screen" id="screen-license">
   <div class="auth-box">
-    <div class="auth-logo lic-logo-box" id="lic-logo-box"><img src="/home/ubuntu/upload/logo-figforge.jpg" style="width:80px;height:80px;object-fit:contain;filter:drop-shadow(0 0 20px rgba(16,185,129,.25))"/></div>
+    <div class="auth-logo" id="lic-logo-box" style="background:none;border:none;padding:4px"><img src="https://welitonaparecido123-maker.github.io/figforge/logo-figforge.jpg" style="width:72px;height:72px;object-fit:contain"/></div>
     <div class="auth-title">Ativar FigForge</div>
     <div class="auth-sub">Digite o e-mail usado na compra para ativar</div>
     <div class="auth-err" id="lic-err">E-mail não encontrado ou licença inválida.</div>
@@ -1725,7 +352,7 @@ input, select, textarea {
 <!-- SIDEBAR -->
 <nav class="sb" id="sb">
   <div class="sb-top">
-    <img class="sb-logo-img" id="sb-logo-img" src="" alt="Logotipo da empresa"/>
+    <img class="sb-logo-img" id="sb-logo-img" src="" alt=""/>
     <div class="sb-logo" id="sb-logo-def">FF</div>
     <div class="sb-brand">Fig<b style="color:var(--ac)">Forge</b></div>
   </div>
@@ -2228,7 +855,7 @@ input, select, textarea {
 
 <!-- ===== MODAIS ===== -->
 <div class="mo" id="mo-obra"><div class="mbox">
-  <div class="mh"><span id="mo-obra-titulo">Nova obra</span><div class="mx" role="button" tabindex="0" aria-label="Fechar janela" onclick="fecharMo('mo-obra')">✕</div></div>
+  <div class="mh"><span id="mo-obra-titulo">Nova obra</span><div class="mx" onclick="fecharMo('mo-obra')">✕</div></div>
   <div class="fr fr2"><div><label>Nome / descrição</label><input id="ob-nome" type="text" placeholder="Ex: Residência unifamiliar"/></div><div><label>Cliente</label><select id="ob-cli"></select></div></div>
   <div class="fr fr3"><div><label>Tipo</label><select id="ob-tipo"><option>Residencial</option><option>Comercial</option><option>Industrial</option><option>Reforma</option><option>Outro</option></select></div><div><label>Área (m²)</label><input id="ob-area" type="number" placeholder="0"/></div><div><label>Valor contratado (R$)</label><input id="ob-valor" type="number" placeholder="0,00" step="0.01"/></div></div>
   <div class="fr fr2"><div><label>Data início</label><input id="ob-ini" type="date"/></div><div><label>Prazo previsto</label><input id="ob-prazo" type="date"/></div></div>
@@ -2239,7 +866,7 @@ input, select, textarea {
 </div></div>
 
 <div class="mo" id="mo-cli"><div class="mbox">
-  <div class="mh"><span id="mo-cli-titulo">Novo cliente</span><div class="mx" role="button" tabindex="0" aria-label="Fechar janela" onclick="fecharMo('mo-cli')">✕</div></div>
+  <div class="mh"><span id="mo-cli-titulo">Novo cliente</span><div class="mx" onclick="fecharMo('mo-cli')">✕</div></div>
   <div class="fr fr2"><div><label>Nome completo / Razão social</label><input id="cl-nome" type="text" placeholder="Nome"/></div><div><label>Tipo</label><select id="cl-tipo"><option>Pessoa Física</option><option>Pessoa Jurídica</option></select></div></div>
   <div class="fr fr2"><div><label>CPF / CNPJ</label><input id="cl-doc" type="text" placeholder="000.000.000-00"/></div><div><label>Telefone</label><input id="cl-tel" type="text" placeholder="(00) 9 9999-0000"/></div></div>
   <div class="fr"><div><label>E-mail</label><input id="cl-email" type="email" placeholder="email@email.com"/></div></div>
@@ -2249,7 +876,7 @@ input, select, textarea {
 </div></div>
 
 <div class="mo" id="mo-func"><div class="mbox mbox-lg">
-  <div class="mh"><span id="mo-func-titulo">Novo funcionário</span><div class="mx" role="button" tabindex="0" aria-label="Fechar janela" onclick="fecharMo('mo-func')">✕</div></div>
+  <div class="mh"><span id="mo-func-titulo">Novo funcionário</span><div class="mx" onclick="fecharMo('mo-func')">✕</div></div>
   <div class="fr fr2"><div><label>Nome completo</label><input id="fn-nome" type="text" placeholder="Nome"/></div><div><label>CPF</label><input id="fn-cpf" type="text" placeholder="000.000.000-00" oninput="fmtCPF(this)" maxlength="14"/></div></div>
   <div class="fr fr2"><div><label>Função / Ofício</label><input id="fn-func" type="text" placeholder="Ex: Pedreiro"/></div><div><label>Telefone</label><input id="fn-tel" type="text" placeholder="(00) 9 9999-0000" oninput="fmtTel(this)" maxlength="16"/></div></div>
   <div class="fr fr3">
@@ -2277,7 +904,7 @@ input, select, textarea {
 </div></div>
 
 <div class="mo" id="mo-ponto"><div class="mbox">
-  <div class="mh"><span>Lançar ponto</span><div class="mx" role="button" tabindex="0" aria-label="Fechar janela" onclick="fecharMo('mo-ponto')">✕</div></div>
+  <div class="mh"><span>Lançar ponto</span><div class="mx" onclick="fecharMo('mo-ponto')">✕</div></div>
   <div class="fr fr2"><div><label>Funcionário</label><select id="pt-func"></select></div><div><label>Data</label><input id="pt-data" type="date"/></div></div>
   <div class="fr fr4">
     <div><label>Entrada</label><input id="pt-ent" type="time" value="07:00" oninput="calcHorasPonto()"/></div>
@@ -2292,7 +919,7 @@ input, select, textarea {
 </div></div>
 
 <div class="mo" id="mo-estq"><div class="mbox">
-  <div class="mh"><span id="mo-estq-titulo">Novo material</span><div class="mx" role="button" tabindex="0" aria-label="Fechar janela" onclick="fecharMo('mo-estq')">✕</div></div>
+  <div class="mh"><span id="mo-estq-titulo">Novo material</span><div class="mx" onclick="fecharMo('mo-estq')">✕</div></div>
   <div class="fr fr2"><div><label>Descrição do material</label><input id="es-nome" type="text" placeholder="Ex: Cimento CP-II 50kg"/></div><div><label>Unidade</label><select id="es-un"><option>saco</option><option>un</option><option>m²</option><option>m³</option><option>m</option><option>kg</option><option>t</option><option>lata</option><option>rolo</option><option>barra</option></select></div></div>
   <div class="fr fr3"><div><label>Qtd. inicial</label><input id="es-qtd" type="number" value="0" min="0" step="0.01"/></div><div><label>⚠️ Crítico mínimo</label><input id="es-min" title="Alerta de reposição abaixo deste valor" type="number" value="0" min="0" step="0.01"/></div><div><label>Valor unit. (R$)</label><input id="es-vl" type="number" value="0" min="0" step="0.01"/></div></div>
   <div class="fr fr2"><div><label>Localização / Almoxarifado</label><input id="es-loc" type="text" placeholder="Ex: Galpão A, prateleira 3"/></div><div><label>Obra vinculada</label><select id="es-obra"><option value="">Estoque geral</option></select></div></div>
@@ -2300,7 +927,7 @@ input, select, textarea {
 </div></div>
 
 <div class="mo" id="mo-estq-ent"><div class="mbox">
-  <div class="mh"><span>📥 Entrada de material</span><div class="mx" role="button" tabindex="0" aria-label="Fechar janela" onclick="fecharMo('mo-estq-ent')">✕</div></div>
+  <div class="mh"><span>📥 Entrada de material</span><div class="mx" onclick="fecharMo('mo-estq-ent')">✕</div></div>
   <div class="fr fr2"><div><label>Material</label><select id="ent-mat"></select></div><div><label>Data</label><input id="ent-data" type="date"/></div></div>
   <div class="fr fr3"><div><label>Quantidade</label><input id="ent-qtd" type="number" value="0" min="0.01" step="0.01"/></div><div><label>Valor unit. (R$)</label><input id="ent-vl" type="number" value="0" min="0" step="0.01"/></div><div><label>Obra destino</label><select id="ent-obra"><option value="">Estoque geral</option></select></div></div>
   <div class="fr fr2"><div><label>Fornecedor</label><input id="ent-forn" type="text" placeholder="Nome do fornecedor"/></div><div><label>Nota fiscal</label><input id="ent-nf" type="text" placeholder="Nº NF"/></div></div>
@@ -2309,7 +936,7 @@ input, select, textarea {
 </div></div>
 
 <div class="mo" id="mo-estq-sai"><div class="mbox">
-  <div class="mh"><span>📤 Saída de material</span><div class="mx" role="button" tabindex="0" aria-label="Fechar janela" onclick="fecharMo('mo-estq-sai')">✕</div></div>
+  <div class="mh"><span>📤 Saída de material</span><div class="mx" onclick="fecharMo('mo-estq-sai')">✕</div></div>
   <div class="fr fr2"><div><label>Material</label><select id="sai-mat"></select></div><div><label>Data</label><input id="sai-data" type="date"/></div></div>
   <div class="fr fr3"><div><label>Quantidade</label><input id="sai-qtd" type="number" value="0" min="0.01" step="0.01"/></div><div><label>Obra destino</label><select id="sai-obra"><option value="">Sem obra</option></select></div><div><label>Retirado por</label><input id="sai-resp" type="text" placeholder="Nome do funcionário"/></div></div>
   <div class="fr"><div><label>Observação</label><input id="sai-obs" type="text" placeholder="Opcional..."/></div></div>
@@ -2317,14 +944,14 @@ input, select, textarea {
 </div></div>
 
 <div class="mo" id="mo-fixa"><div class="mbox">
-  <div class="mh"><span>Nova despesa fixa</span><div class="mx" role="button" tabindex="0" aria-label="Fechar janela" onclick="fecharMo('mo-fixa')">✕</div></div>
+  <div class="mh"><span>Nova despesa fixa</span><div class="mx" onclick="fecharMo('mo-fixa')">✕</div></div>
   <div class="fr fr2"><div><label>Descrição</label><input id="fx-desc" type="text" placeholder="Ex: Aluguel, contador..."/></div><div><label>Valor mensal (R$)</label><input id="fx-val" type="number" placeholder="0,00" step="0.01"/></div></div>
   <div class="fr fr2"><div><label>Dia do vencimento</label><input id="fx-dia" type="number" placeholder="10" min="1" max="31"/></div><div><label>Categoria</label><select id="fx-cat"><option>Aluguel</option><option>Contador</option><option>Seguro</option><option>Internet/Telefone</option><option>Software</option><option>Imposto fixo</option><option>Outro</option></select></div></div>
   <div style="display:flex;justify-content:flex-end;gap:7px"><button class="btn" onclick="fecharMo('mo-fixa')">Cancelar</button><button class="btn bp" onclick="salvarFixa()">Salvar</button></div>
 </div></div>
 
 <div class="mo" id="mo-diario"><div class="mbox">
-  <div class="mh"><span>Novo registro diário</span><div class="mx" role="button" tabindex="0" aria-label="Fechar janela" onclick="fecharMo('mo-diario')">✕</div></div>
+  <div class="mh"><span>Novo registro diário</span><div class="mx" onclick="fecharMo('mo-diario')">✕</div></div>
   <div class="fr fr2"><div><label>Obra</label><select id="dr-obra"></select></div><div><label>Data</label><input id="dr-data" type="date"/></div></div>
   <div class="fr fr3"><div><label>Etapa da obra</label><select id="dr-etapa"><option>Fundação</option><option>Estrutura</option><option>Alvenaria</option><option>Cobertura</option><option>Revestimento</option><option>Instalações elétricas</option><option>Instalações hidráulicas</option><option>Pintura</option><option>Acabamento</option><option>Outro</option></select></div><div><label>Funcionários presentes</label><input id="dr-funcs" type="number" value="0" min="0"/></div><div><label>Clima</label><select id="dr-clima"><option>Ensolarado</option><option>Nublado</option><option>Chuva — parado</option><option>Parcialmente nublado</option></select></div></div>
   <div class="fr"><div><label>Atividades realizadas</label><textarea id="dr-ativ" placeholder="Descreva o que foi feito hoje..."></textarea></div></div>
@@ -2343,7 +970,7 @@ input, select, textarea {
 </div></div>
 
 <div class="mo" id="mo-user"><div class="mbox">
-  <div class="mh"><span id="mo-user-titulo">Novo usuário</span><div class="mx" role="button" tabindex="0" aria-label="Fechar janela" onclick="fecharMo('mo-user')">✕</div></div>
+  <div class="mh"><span id="mo-user-titulo">Novo usuário</span><div class="mx" onclick="fecharMo('mo-user')">✕</div></div>
   <div class="fr fr2">
     <div><label>Nome completo</label><input id="us-nome" type="text" placeholder="Ex: Joao Silva" oninput="autoEmailUsuario()"/></div>
     <div><label>E-mail (usado no login)</label><input id="us-email" type="email" placeholder="joao@empresa.com"/></div>
@@ -6320,81 +4947,17 @@ function deletarProducao(prodId){
   renderProducao();
   setTimeout(function(){ sincronizarCompleto(true); }, 800);
 }
-
-// ═════════════════════════════════════════════════════════════════════════
-// ULTRA-PREMIUM DESIGN: Gráficos Circulares SVG
-// ═════════════════════════════════════════════════════════════════════════
-
-function renderCircularChart(elementId, percentage, label) {
-  const element = document.getElementById(elementId);
-  if (!element) return;
-  
-  const radius = 45;
-  const circumference = 2 * Math.PI * radius;
-  const strokeDashoffset = circumference * (1 - percentage / 100);
-  
-  const svg = `
-    <svg viewBox="0 0 100 100" width="100" height="100">
-      <circle class="circular-chart-circle" cx="50" cy="50" r="${radius}"></circle>
-      <circle class="circular-chart-circle progress" cx="50" cy="50" r="${radius}"
-              style="stroke-dasharray: ${circumference}; stroke-dashoffset: ${strokeDashoffset};"></circle>
-    </svg>
-  `;
-  
-  element.innerHTML = svg + `
-    <div class="circular-chart-text">
-      <div class="percentage">${percentage}%</div>
-      <div class="label">${label}</div>
-    </div>
-  `;
-}
-
-// Inicializar gráficos ao carregar
-document.addEventListener('DOMContentLoaded', function() {
-  renderCircularChart('chart-progress', 72, 'Overall Progress');
-});
-
-
-// ═════════════════════════════════════════════════════════════════════════
-// SPLASH SCREEN CONTROLLER
-// ═════════════════════════════════════════════════════════════════════════
-
-(function() {
-  const splashScreen = document.getElementById('splash-screen');
-  const authScreen = document.getElementById('screen-license');
-  
-  // Ocultar splash screen após 3 segundos
-  setTimeout(function() {
-    if (splashScreen) {
-      splashScreen.classList.add('hidden');
-    }
-    if (authScreen) {
-      authScreen.classList.add('loaded');
-    }
-  }, 3000);
-  
-  // Permitir fechar splash ao clicar
-  if (splashScreen) {
-    splashScreen.addEventListener('click', function() {
-      this.classList.add('hidden');
-      if (authScreen) {
-        authScreen.classList.add('loaded');
-      }
-    });
-  }
-})();
-
 </script>
 
 <div class="mo" id="mo-estq-edit"><div class="mbox">
-  <div class="mh"><span>✏️ Editar movimentação</span><div class="mx" role="button" tabindex="0" aria-label="Fechar janela" onclick="fecharMo('mo-estq-edit')">✕</div></div>
+  <div class="mh"><span>✏️ Editar movimentação</span><div class="mx" onclick="fecharMo('mo-estq-edit')">✕</div></div>
   <div class="fr fr2"><div><label>Material</label><select id="ee-mat"></select></div><div><label>Data</label><input id="ee-data" type="date"/></div></div>
   <div class="fr fr3"><div><label>Tipo</label><select id="ee-tipo"><option value="entrada">Entrada</option><option value="saida">Saída</option></select></div><div><label>Quantidade</label><input id="ee-qtd" type="number" min="0.01" step="0.01"/></div><div><label>Obra</label><select id="ee-obra"><option value="">Geral</option></select></div></div>
   <div class="fr fr2"><div><label>Responsável/Fornecedor</label><input id="ee-resp" type="text"/></div><div><label>Observação</label><input id="ee-obs" type="text"/></div></div>
   <div style="display:flex;justify-content:flex-end;gap:7px"><button class="btn" onclick="fecharMo('mo-estq-edit')">Cancelar</button><button class="btn bp" onclick="confirmarEditMov()">Salvar</button></div>
 </div></div>
 <div class="mo" id="mo-edit-lanc"><div class="mbox">
-  <div class="mh"><span>Editar lançamento</span><div class="mx" role="button" tabindex="0" aria-label="Fechar janela" onclick="fecharMo('mo-edit-lanc')">✕</div></div>
+  <div class="mh"><span>Editar lançamento</span><div class="mx" onclick="fecharMo('mo-edit-lanc')">✕</div></div>
   <div class="fr fr2">
     <div><label>Data</label><input id="ee-data" type="date"/></div>
     <div><label>Valor (R$)</label><input id="ee-val" type="number" step="0.01"/></div>
@@ -6417,7 +4980,7 @@ document.addEventListener('DOMContentLoaded', function() {
   </div>
 </div></div>
 <div class="mo" id="mo-prod"><div class="mbox">
-  <div class="mh"><span>🔨 Nova produção</span><div class="mx" role="button" tabindex="0" aria-label="Fechar janela" onclick="fecharMo('mo-prod')">✕</div></div>
+  <div class="mh"><span>🔨 Nova produção</span><div class="mx" onclick="fecharMo('mo-prod')">✕</div></div>
   <div class="fr fr2">
     <div><label>Funcionário</label><select id="pd-func"></select></div>
     <div><label>Data</label><input id="pd-data" type="date"/></div>
