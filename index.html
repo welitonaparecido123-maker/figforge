@@ -1051,6 +1051,362 @@ input, select, textarea {
 @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 .content > div { animation: fadeIn .4s ease-out backwards; }
 
+
+
+/* ═════════════════════════════════════════════════════════════════════════
+   ULTRA-PREMIUM DESIGN: Gráficos, Cards com Imagens, Nav com Botão Central
+   ═════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  --primary-green: #10B981;
+  --primary-cyan: #06B6D4;
+  --primary-blue: #0EA5E9;
+  --dark-bg: #0A0E18;
+  --card-bg: #111827;
+  --card-border: #1F2937;
+  --text-primary: #F0F4F8;
+  --text-secondary: #9CA3AF;
+  --accent-glow: 0 0 20px rgba(16,185,129,.3);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   CIRCULAR PROGRESS CHART (SVG)
+   ───────────────────────────────────────────────────────────────────────── */
+
+.circular-chart {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 120px;
+  height: 120px;
+  margin: 0 auto;
+  position: relative;
+}
+
+.circular-chart svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.circular-chart-circle {
+  stroke: var(--card-border);
+  fill: none;
+  stroke-width: 8;
+  stroke-linecap: round;
+}
+
+.circular-chart-circle.progress {
+  stroke: var(--primary-green);
+  filter: drop-shadow(0 0 8px rgba(16,185,129,.4));
+  stroke-dasharray: 282.7;
+  stroke-dashoffset: 0;
+  animation: fillChart 1.2s ease-out forwards;
+}
+
+@keyframes fillChart {
+  from { stroke-dashoffset: 282.7; }
+  to { stroke-dashoffset: calc(282.7 * (1 - var(--progress, 0.72))); }
+}
+
+.circular-chart-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+}
+
+.circular-chart-text .percentage {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.circular-chart-text .label {
+  font-size: 10px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  margin-top: 2px;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   PROJECT CARDS COM IMAGENS
+   ───────────────────────────────────────────────────────────────────────── */
+
+.project-card {
+  background: linear-gradient(135deg, var(--card-bg) 0%, rgba(17,24,39,.8) 100%);
+  border: 1px solid var(--card-border);
+  border-radius: 14px;
+  overflow: hidden;
+  display: flex;
+  gap: 12px;
+  padding: 12px;
+  margin-bottom: 10px;
+  transition: all .3s cubic-bezier(.4,.0,.2,1);
+  box-shadow: 0 4px 12px rgba(0,0,0,.2);
+}
+
+.project-card:hover {
+  border-color: var(--primary-green);
+  box-shadow: 0 8px 24px rgba(16,185,129,.15), var(--accent-glow);
+  transform: translateY(-2px);
+}
+
+.project-card-image {
+  width: 60px;
+  height: 60px;
+  min-width: 60px;
+  border-radius: 10px;
+  object-fit: cover;
+  border: 1px solid var(--card-border);
+  background: linear-gradient(135deg, var(--primary-green), var(--primary-cyan));
+}
+
+.project-card-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.project-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.project-card-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.project-card-subtitle {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+.project-card-progress {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--primary-green);
+}
+
+.project-card-bar {
+  width: 100%;
+  height: 4px;
+  background: var(--card-border);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-top: 6px;
+}
+
+.project-card-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary-green), var(--primary-cyan));
+  border-radius: 2px;
+  box-shadow: 0 0 8px rgba(16,185,129,.4);
+}
+
+.project-card-status {
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--primary-green);
+  text-transform: uppercase;
+  letter-spacing: .3px;
+  margin-top: 4px;
+}
+
+.project-card-date {
+  font-size: 9px;
+  color: var(--text-secondary);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   BOTTOM NAVIGATION COM BOTÃO CENTRAL DESTACADO
+   ───────────────────────────────────────────────────────────────────────── */
+
+@media (max-width: 567px) {
+  .sb {
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    padding: 0 8px;
+    height: 72px;
+    position: relative;
+  }
+
+  .sb-nav {
+    display: flex;
+    width: 100%;
+    justify-content: space-around;
+    align-items: center;
+    padding: 8px 0;
+    gap: 0;
+  }
+
+  .sb-g {
+    display: flex;
+    gap: 0;
+  }
+
+  .sbi {
+    flex: 1;
+    height: 56px;
+    border-radius: 12px;
+    margin: 0 4px;
+    position: relative;
+  }
+
+  .sbi:nth-child(3) {
+    width: 60px;
+    height: 60px;
+    background: linear-gradient(135deg, var(--primary-green), var(--primary-cyan)) !important;
+    border-radius: 50%;
+    box-shadow: 0 8px 24px rgba(16,185,129,.35);
+    border: none;
+    color: #fff;
+    margin: 0 -8px;
+    z-index: 10;
+  }
+
+  .sbi:nth-child(3):hover {
+    transform: scale(1.08);
+    box-shadow: 0 12px 32px rgba(16,185,129,.45);
+  }
+
+  .sbi:nth-child(3) .sbi-i {
+    font-size: 24px;
+    color: #fff;
+  }
+
+  .sbi:nth-child(3) .sbi-t {
+    display: none;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   DASHBOARD STATS COM LAYOUT PREMIUM
+   ───────────────────────────────────────────────────────────────────────── */
+
+.stat-box {
+  background: linear-gradient(135deg, var(--card-bg) 0%, rgba(17,24,39,.8) 100%);
+  border: 1px solid var(--card-border);
+  border-radius: 14px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,.2);
+}
+
+.stat-label {
+  font-size: 11px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: .4px;
+  font-weight: 600;
+}
+
+.stat-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.stat-subtext {
+  font-size: 10px;
+  color: var(--text-secondary);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   INSIGHTS SECTION COM GRÁFICOS MINI
+   ───────────────────────────────────────────────────────────────────────── */
+
+.insight-item {
+  background: linear-gradient(135deg, var(--card-bg) 0%, rgba(17,24,39,.8) 100%);
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.insight-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.insight-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.insight-chart {
+  width: 100%;
+  height: 40px;
+  background: var(--card-border);
+  border-radius: 6px;
+  overflow: hidden;
+  position: relative;
+}
+
+.insight-chart-line {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, var(--primary-cyan), var(--primary-green));
+  opacity: .6;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   TOPBAR COM GREETING
+   ───────────────────────────────────────────────────────────────────────── */
+
+.topbar-greeting {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.topbar-greeting-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.topbar-greeting-subtitle {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   NOTIFICAÇÃO BADGE
+   ───────────────────────────────────────────────────────────────────────── */
+
+.notification-badge {
+  width: 24px;
+  height: 24px;
+  background: var(--primary-cyan);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+  box-shadow: 0 0 12px rgba(6,182,212,.4);
+}
+
 </style>
 </head>
 <body>
@@ -5757,6 +6113,40 @@ function deletarProducao(prodId){
   renderProducao();
   setTimeout(function(){ sincronizarCompleto(true); }, 800);
 }
+
+// ═════════════════════════════════════════════════════════════════════════
+// ULTRA-PREMIUM DESIGN: Gráficos Circulares SVG
+// ═════════════════════════════════════════════════════════════════════════
+
+function renderCircularChart(elementId, percentage, label) {
+  const element = document.getElementById(elementId);
+  if (!element) return;
+  
+  const radius = 45;
+  const circumference = 2 * Math.PI * radius;
+  const strokeDashoffset = circumference * (1 - percentage / 100);
+  
+  const svg = `
+    <svg viewBox="0 0 100 100" width="100" height="100">
+      <circle class="circular-chart-circle" cx="50" cy="50" r="${radius}"></circle>
+      <circle class="circular-chart-circle progress" cx="50" cy="50" r="${radius}"
+              style="stroke-dasharray: ${circumference}; stroke-dashoffset: ${strokeDashoffset};"></circle>
+    </svg>
+  `;
+  
+  element.innerHTML = svg + `
+    <div class="circular-chart-text">
+      <div class="percentage">${percentage}%</div>
+      <div class="label">${label}</div>
+    </div>
+  `;
+}
+
+// Inicializar gráficos ao carregar
+document.addEventListener('DOMContentLoaded', function() {
+  renderCircularChart('chart-progress', 72, 'Overall Progress');
+});
+
 </script>
 
 <div class="mo" id="mo-estq-edit"><div class="mbox">
