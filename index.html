@@ -2,12 +2,14 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=950, initial-scale=0.42, minimum-scale=0.2, maximum-scale=3.0, user-scalable=yes"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="apple-mobile-web-app-title" content="FigForge"/>
 <meta name="theme-color" content="#4F6EF7"/>
+<meta name="description" content="FigForge: painel de gestão para construtoras, obras, orçamentos, clientes, financeiro, equipe e estoque."/>
+<meta name="referrer" content="strict-origin-when-cross-origin"/>
 <link rel="manifest" href="manifest.json"/>
 <link rel="apple-touch-icon" href="icon-192.png"/>
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png"/>
@@ -208,7 +210,8 @@ textarea{resize:vertical;min-height:60px}
 .plano-lock{position:relative;pointer-events:none;opacity:.45;user-select:none}
 .plano-lock::after{content:'🔒 Plano Profissional';position:absolute;inset:0;background:rgba(15,17,23,.82);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--ac);border-radius:var(--r2);cursor:not-allowed;pointer-events:all}
 .upgrade-banner{background:linear-gradient(135deg,rgba(79,110,247,.15),rgba(123,63,228,.15));border:1px solid rgba(79,110,247,.35);border-radius:var(--r2);padding:14px 16px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
-.upgrade-banner .ub-txt{font-size:12px;color:var(--tx2)}<b style="color:var(--tx)">.ub-txt b{color:var(--tx)}</b>
+.upgrade-banner .ub-txt{font-size:12px;color:var(--tx2)}
+.upgrade-banner .ub-txt b{color:var(--tx)}
 .badge-plano{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700}
 .badge-starter{background:rgba(79,110,247,.15);color:#4F6EF7;border:1px solid rgba(79,110,247,.3)}
 .badge-pro{background:linear-gradient(135deg,rgba(79,110,247,.2),rgba(123,63,228,.2));color:#9B6FF5;border:1px solid rgba(123,63,228,.3)}
@@ -240,7 +243,104 @@ textarea{resize:vertical;min-height:60px}
 /* ── MOBILE ── */
 
 
-@keyframes spin{to{transform:rotate(360deg)}}
+/* keyframes spin definido acima */
+
+
+/* ──────────────────────────────────────────────────────────────
+   Melhorias Manus: responsividade, acessibilidade e acabamento
+   ────────────────────────────────────────────────────────────── */
+:root{
+  color-scheme: dark;
+  --shadow:0 18px 60px rgba(0,0,0,.26);
+  --shadow-soft:0 10px 28px rgba(0,0,0,.18);
+  --focus:0 0 0 3px rgba(79,110,247,.32);
+}
+html{height:100%;scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+body{line-height:1.45;text-rendering:optimizeLegibility}
+button,input,select,textarea{min-height:34px}
+button,.btn,.sbi,.itab,.kb-c,.tog,.mx{touch-action:manipulation}
+button:focus-visible,.btn:focus-visible,.sbi:focus-visible,.itab:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,.tog:focus-visible,.mx:focus-visible{outline:none;box-shadow:var(--focus);border-color:var(--ac)!important}
+.card,.st,.kb-col,.mbox,.auth-box,.rec-card{box-shadow:var(--shadow-soft)}
+.card:hover,.st:hover,.rec-card:hover{border-color:rgba(79,110,247,.38)}
+.topbar{backdrop-filter:saturate(1.1) blur(10px);position:sticky;top:0;z-index:20}
+.content{scrollbar-gutter:stable;padding-bottom:calc(18px + env(safe-area-inset-bottom))}
+.tbl th{position:sticky;top:0;z-index:1}
+.tbl td,.tbl th{line-height:1.35}
+.bdg,.badge-tag,.badge-plano{letter-spacing:.02em}
+.auth-screen{padding:calc(20px + env(safe-area-inset-top)) 20px calc(20px + env(safe-area-inset-bottom))}
+.auth-box{max-width:430px}
+.mo{padding-bottom:calc(20px + env(safe-area-inset-bottom))}
+.mbox{box-shadow:var(--shadow)}
+.empty{border:1px dashed var(--br2);border-radius:var(--r2);background:rgba(255,255,255,.015)}
+@media (min-width:1180px){
+  .content{padding:18px;max-width:1480px;width:100%;margin:0 auto}
+  .sb{width:188px;min-width:188px}
+  .topbar{height:52px;padding:0 18px}
+  .top-ttl{font-size:15px}
+}
+@media (max-width:1024px){
+  body{overflow:hidden;font-size:13px}
+  .g4{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .g3{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .fr4{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .kb-col{min-width:240px}
+}
+@media (max-width:760px){
+  body{overflow:auto}
+  .shell{height:auto;min-height:100vh;display:block}
+  .sb{position:sticky;top:0;z-index:40;width:100%;min-width:0;height:auto;max-height:46vh;border-right:none;border-bottom:1px solid var(--br)}
+  .sb.mini{width:100%;min-width:0;max-height:56px}
+  .sb-top{min-height:56px;padding:10px 14px}
+  .sb-nav{display:flex;overflow-x:auto;overflow-y:hidden;padding:6px;gap:4px;scrollbar-width:none}
+  .sb-nav::-webkit-scrollbar{display:none}
+  .sb-g{display:flex;border-bottom:none;margin:0;padding:0;gap:4px;flex-shrink:0}
+  .sb-lbl{display:none}
+  .sbi{border-left:none;border-bottom:3px solid transparent;border-radius:10px;padding:8px 10px;min-width:max-content;background:rgba(255,255,255,.015)}
+  .sbi.act{border-left-color:transparent;border-bottom-color:var(--ac)}
+  .sb-foot{display:none}
+  .main{min-height:calc(100vh - 56px)}
+  .topbar{height:auto;min-height:52px;flex-wrap:wrap;padding:9px 10px;gap:7px}
+  .top-ttl{flex-basis:100%;font-size:14px;order:-1}
+  .content{padding:10px;overflow:visible}
+  .g2,.g3,.g4,.fr2,.fr3,.fr4{grid-template-columns:1fr}
+  .ga{grid-template-columns:repeat(auto-fill,minmax(135px,1fr))}
+  .card{padding:12px;margin-bottom:10px;border-radius:12px}
+  .ct{font-size:10px;align-items:flex-start;flex-wrap:wrap}
+  .btn{padding:8px 10px;min-height:36px;justify-content:center}
+  .itabs{gap:2px;margin-left:-10px;margin-right:-10px;padding-left:10px;padding-right:10px}
+  .itab{padding:9px 11px}
+  .tw{margin-left:-4px;margin-right:-4px;border-radius:10px;border:1px solid var(--br);background:var(--bg2)}
+  .tbl{min-width:680px}
+  .kb{gap:8px;scroll-snap-type:x proximity}
+  .kb-col{min-width:82vw;scroll-snap-align:start}
+  .mo{align-items:flex-start;padding:10px;padding-top:calc(10px + env(safe-area-inset-top))}
+  .mbox,.mbox-lg{max-width:none;width:100%;padding:16px;border-radius:14px}
+  .auth-box{padding:28px 22px}
+  .upgrade-banner{align-items:stretch}
+  .upgrade-banner .btn{width:100%}
+  .update-bar{left:8px;right:8px;bottom:8px;border-radius:14px;box-shadow:var(--shadow)}
+}
+@media (max-width:420px){
+  .sb-logo,.sb-logo-img{width:28px;height:28px;min-width:28px}
+  .sb-brand{font-size:12px}
+  .sbi{padding:7px 9px;gap:6px}
+  .sbi-i{font-size:13px;width:15px;min-width:15px}
+  .sbi-t{font-size:10px}
+  .st{padding:11px}
+  .st-val{font-size:18px}
+  .ga{grid-template-columns:1fr}
+  .auth-title{font-size:20px}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.01ms!important}
+}
+@media print{
+  body{background:#fff!important;color:#111!important;overflow:visible!important;font-size:11px}
+  .card,.st,.rec-card{box-shadow:none!important;border-color:#ddd!important;background:#fff!important;color:#111!important;break-inside:avoid}
+  .tbl th{background:#f3f4f6!important;color:#111!important;position:static}
+  .tbl td{border-color:#e5e7eb!important;color:#111!important}
+}
+
 </style>
 </head>
 <body>
@@ -352,7 +452,7 @@ textarea{resize:vertical;min-height:60px}
 <!-- SIDEBAR -->
 <nav class="sb" id="sb">
   <div class="sb-top">
-    <img class="sb-logo-img" id="sb-logo-img" src="" alt=""/>
+    <img class="sb-logo-img" id="sb-logo-img" src="" alt="Logotipo da empresa"/>
     <div class="sb-logo" id="sb-logo-def">FF</div>
     <div class="sb-brand">Fig<b style="color:var(--ac)">Forge</b></div>
   </div>
@@ -855,7 +955,7 @@ textarea{resize:vertical;min-height:60px}
 
 <!-- ===== MODAIS ===== -->
 <div class="mo" id="mo-obra"><div class="mbox">
-  <div class="mh"><span id="mo-obra-titulo">Nova obra</span><div class="mx" onclick="fecharMo('mo-obra')">✕</div></div>
+  <div class="mh"><span id="mo-obra-titulo">Nova obra</span><div class="mx" role="button" tabindex="0" aria-label="Fechar janela" onclick="fecharMo('mo-obra')">✕</div></div>
   <div class="fr fr2"><div><label>Nome / descrição</label><input id="ob-nome" type="text" placeholder="Ex: Residência unifamiliar"/></div><div><label>Cliente</label><select id="ob-cli"></select></div></div>
   <div class="fr fr3"><div><label>Tipo</label><select id="ob-tipo"><option>Residencial</option><option>Comercial</option><option>Industrial</option><option>Reforma</option><option>Outro</option></select></div><div><label>Área (m²)</label><input id="ob-area" type="number" placeholder="0"/></div><div><label>Valor contratado (R$)</label><input id="ob-valor" type="number" placeholder="0,00" step="0.01"/></div></div>
   <div class="fr fr2"><div><label>Data início</label><input id="ob-ini" type="date"/></div><div><label>Prazo previsto</label><input id="ob-prazo" type="date"/></div></div>
@@ -866,7 +966,7 @@ textarea{resize:vertical;min-height:60px}
 </div></div>
 
 <div class="mo" id="mo-cli"><div class="mbox">
-  <div class="mh"><span id="mo-cli-titulo">Novo cliente</span><div class="mx" onclick="fecharMo('mo-cli')">✕</div></div>
+  <div class="mh"><span id="mo-cli-titulo">Novo cliente</span><div class="mx" role="button" tabindex="0" aria-label="Fechar janela" onclick="fecharMo('mo-cli')">✕</div></div>
   <div class="fr fr2"><div><label>Nome completo / Razão social</label><input id="cl-nome" type="text" placeholder="Nome"/></div><div><label>Tipo</label><select id="cl-tipo"><option>Pessoa Física</option><option>Pessoa Jurídica</option></select></div></div>
   <div class="fr fr2"><div><label>CPF / CNPJ</label><input id="cl-doc" type="text" placeholder="000.000.000-00"/></div><div><label>Telefone</label><input id="cl-tel" type="text" placeholder="(00) 9 9999-0000"/></div></div>
   <div class="fr"><div><label>E-mail</label><input id="cl-email" type="email" placeholder="email@email.com"/></div></div>
@@ -876,7 +976,7 @@ textarea{resize:vertical;min-height:60px}
 </div></div>
 
 <div class="mo" id="mo-func"><div class="mbox mbox-lg">
-  <div class="mh"><span id="mo-func-titulo">Novo funcionário</span><div class="mx" onclick="fecharMo('mo-func')">✕</div></div>
+  <div class="mh"><span id="mo-func-titulo">Novo funcionário</span><div class="mx" role="button" tabindex="0" aria-label="Fechar janela" onclick="fecharMo('mo-func')">✕</div></div>
   <div class="fr fr2"><div><label>Nome completo</label><input id="fn-nome" type="text" placeholder="Nome"/></div><div><label>CPF</label><input id="fn-cpf" type="text" placeholder="000.000.000-00" oninput="fmtCPF(this)" maxlength="14"/></div></div>
   <div class="fr fr2"><div><label>Função / Ofício</label><input id="fn-func" type="text" placeholder="Ex: Pedreiro"/></div><div><label>Telefone</label><input id="fn-tel" type="text" placeholder="(00) 9 9999-0000" oninput="fmtTel(this)" maxlength="16"/></div></div>
   <div class="fr fr3">
@@ -904,7 +1004,7 @@ textarea{resize:vertical;min-height:60px}
 </div></div>
 
 <div class="mo" id="mo-ponto"><div class="mbox">
-  <div class="mh"><span>Lançar ponto</span><div class="mx" onclick="fecharMo('mo-ponto')">✕</div></div>
+  <div class="mh"><span>Lançar ponto</span><div class="mx" role="button" tabindex="0" aria-label="Fechar janela" onclick="fecharMo('mo-ponto')">✕</div></div>
   <div class="fr fr2"><div><label>Funcionário</label><select id="pt-func"></select></div><div><label>Data</label><input id="pt-data" type="date"/></div></div>
   <div class="fr fr4">
     <div><label>Entrada</label><input id="pt-ent" type="time" value="07:00" oninput="calcHorasPonto()"/></div>
@@ -919,7 +1019,7 @@ textarea{resize:vertical;min-height:60px}
 </div></div>
 
 <div class="mo" id="mo-estq"><div class="mbox">
-  <div class="mh"><span id="mo-estq-titulo">Novo material</span><div class="mx" onclick="fecharMo('mo-estq')">✕</div></div>
+  <div class="mh"><span id="mo-estq-titulo">Novo material</span><div class="mx" role="button" tabindex="0" aria-label="Fechar janela" onclick="fecharMo('mo-estq')">✕</div></div>
   <div class="fr fr2"><div><label>Descrição do material</label><input id="es-nome" type="text" placeholder="Ex: Cimento CP-II 50kg"/></div><div><label>Unidade</label><select id="es-un"><option>saco</option><option>un</option><option>m²</option><option>m³</option><option>m</option><option>kg</option><option>t</option><option>lata</option><option>rolo</option><option>barra</option></select></div></div>
   <div class="fr fr3"><div><label>Qtd. inicial</label><input id="es-qtd" type="number" value="0" min="0" step="0.01"/></div><div><label>⚠️ Crítico mínimo</label><input id="es-min" title="Alerta de reposição abaixo deste valor" type="number" value="0" min="0" step="0.01"/></div><div><label>Valor unit. (R$)</label><input id="es-vl" type="number" value="0" min="0" step="0.01"/></div></div>
   <div class="fr fr2"><div><label>Localização / Almoxarifado</label><input id="es-loc" type="text" placeholder="Ex: Galpão A, prateleira 3"/></div><div><label>Obra vinculada</label><select id="es-obra"><option value="">Estoque geral</option></select></div></div>
@@ -927,7 +1027,7 @@ textarea{resize:vertical;min-height:60px}
 </div></div>
 
 <div class="mo" id="mo-estq-ent"><div class="mbox">
-  <div class="mh"><span>📥 Entrada de material</span><div class="mx" onclick="fecharMo('mo-estq-ent')">✕</div></div>
+  <div class="mh"><span>📥 Entrada de material</span><div class="mx" role="button" tabindex="0" aria-label="Fechar janela" onclick="fecharMo('mo-estq-ent')">✕</div></div>
   <div class="fr fr2"><div><label>Material</label><select id="ent-mat"></select></div><div><label>Data</label><input id="ent-data" type="date"/></div></div>
   <div class="fr fr3"><div><label>Quantidade</label><input id="ent-qtd" type="number" value="0" min="0.01" step="0.01"/></div><div><label>Valor unit. (R$)</label><input id="ent-vl" type="number" value="0" min="0" step="0.01"/></div><div><label>Obra destino</label><select id="ent-obra"><option value="">Estoque geral</option></select></div></div>
   <div class="fr fr2"><div><label>Fornecedor</label><input id="ent-forn" type="text" placeholder="Nome do fornecedor"/></div><div><label>Nota fiscal</label><input id="ent-nf" type="text" placeholder="Nº NF"/></div></div>
@@ -936,7 +1036,7 @@ textarea{resize:vertical;min-height:60px}
 </div></div>
 
 <div class="mo" id="mo-estq-sai"><div class="mbox">
-  <div class="mh"><span>📤 Saída de material</span><div class="mx" onclick="fecharMo('mo-estq-sai')">✕</div></div>
+  <div class="mh"><span>📤 Saída de material</span><div class="mx" role="button" tabindex="0" aria-label="Fechar janela" onclick="fecharMo('mo-estq-sai')">✕</div></div>
   <div class="fr fr2"><div><label>Material</label><select id="sai-mat"></select></div><div><label>Data</label><input id="sai-data" type="date"/></div></div>
   <div class="fr fr3"><div><label>Quantidade</label><input id="sai-qtd" type="number" value="0" min="0.01" step="0.01"/></div><div><label>Obra destino</label><select id="sai-obra"><option value="">Sem obra</option></select></div><div><label>Retirado por</label><input id="sai-resp" type="text" placeholder="Nome do funcionário"/></div></div>
   <div class="fr"><div><label>Observação</label><input id="sai-obs" type="text" placeholder="Opcional..."/></div></div>
@@ -944,14 +1044,14 @@ textarea{resize:vertical;min-height:60px}
 </div></div>
 
 <div class="mo" id="mo-fixa"><div class="mbox">
-  <div class="mh"><span>Nova despesa fixa</span><div class="mx" onclick="fecharMo('mo-fixa')">✕</div></div>
+  <div class="mh"><span>Nova despesa fixa</span><div class="mx" role="button" tabindex="0" aria-label="Fechar janela" onclick="fecharMo('mo-fixa')">✕</div></div>
   <div class="fr fr2"><div><label>Descrição</label><input id="fx-desc" type="text" placeholder="Ex: Aluguel, contador..."/></div><div><label>Valor mensal (R$)</label><input id="fx-val" type="number" placeholder="0,00" step="0.01"/></div></div>
   <div class="fr fr2"><div><label>Dia do vencimento</label><input id="fx-dia" type="number" placeholder="10" min="1" max="31"/></div><div><label>Categoria</label><select id="fx-cat"><option>Aluguel</option><option>Contador</option><option>Seguro</option><option>Internet/Telefone</option><option>Software</option><option>Imposto fixo</option><option>Outro</option></select></div></div>
   <div style="display:flex;justify-content:flex-end;gap:7px"><button class="btn" onclick="fecharMo('mo-fixa')">Cancelar</button><button class="btn bp" onclick="salvarFixa()">Salvar</button></div>
 </div></div>
 
 <div class="mo" id="mo-diario"><div class="mbox">
-  <div class="mh"><span>Novo registro diário</span><div class="mx" onclick="fecharMo('mo-diario')">✕</div></div>
+  <div class="mh"><span>Novo registro diário</span><div class="mx" role="button" tabindex="0" aria-label="Fechar janela" onclick="fecharMo('mo-diario')">✕</div></div>
   <div class="fr fr2"><div><label>Obra</label><select id="dr-obra"></select></div><div><label>Data</label><input id="dr-data" type="date"/></div></div>
   <div class="fr fr3"><div><label>Etapa da obra</label><select id="dr-etapa"><option>Fundação</option><option>Estrutura</option><option>Alvenaria</option><option>Cobertura</option><option>Revestimento</option><option>Instalações elétricas</option><option>Instalações hidráulicas</option><option>Pintura</option><option>Acabamento</option><option>Outro</option></select></div><div><label>Funcionários presentes</label><input id="dr-funcs" type="number" value="0" min="0"/></div><div><label>Clima</label><select id="dr-clima"><option>Ensolarado</option><option>Nublado</option><option>Chuva — parado</option><option>Parcialmente nublado</option></select></div></div>
   <div class="fr"><div><label>Atividades realizadas</label><textarea id="dr-ativ" placeholder="Descreva o que foi feito hoje..."></textarea></div></div>
@@ -970,7 +1070,7 @@ textarea{resize:vertical;min-height:60px}
 </div></div>
 
 <div class="mo" id="mo-user"><div class="mbox">
-  <div class="mh"><span id="mo-user-titulo">Novo usuário</span><div class="mx" onclick="fecharMo('mo-user')">✕</div></div>
+  <div class="mh"><span id="mo-user-titulo">Novo usuário</span><div class="mx" role="button" tabindex="0" aria-label="Fechar janela" onclick="fecharMo('mo-user')">✕</div></div>
   <div class="fr fr2">
     <div><label>Nome completo</label><input id="us-nome" type="text" placeholder="Ex: Joao Silva" oninput="autoEmailUsuario()"/></div>
     <div><label>E-mail (usado no login)</label><input id="us-email" type="email" placeholder="joao@empresa.com"/></div>
@@ -4950,14 +5050,14 @@ function deletarProducao(prodId){
 </script>
 
 <div class="mo" id="mo-estq-edit"><div class="mbox">
-  <div class="mh"><span>✏️ Editar movimentação</span><div class="mx" onclick="fecharMo('mo-estq-edit')">✕</div></div>
+  <div class="mh"><span>✏️ Editar movimentação</span><div class="mx" role="button" tabindex="0" aria-label="Fechar janela" onclick="fecharMo('mo-estq-edit')">✕</div></div>
   <div class="fr fr2"><div><label>Material</label><select id="ee-mat"></select></div><div><label>Data</label><input id="ee-data" type="date"/></div></div>
   <div class="fr fr3"><div><label>Tipo</label><select id="ee-tipo"><option value="entrada">Entrada</option><option value="saida">Saída</option></select></div><div><label>Quantidade</label><input id="ee-qtd" type="number" min="0.01" step="0.01"/></div><div><label>Obra</label><select id="ee-obra"><option value="">Geral</option></select></div></div>
   <div class="fr fr2"><div><label>Responsável/Fornecedor</label><input id="ee-resp" type="text"/></div><div><label>Observação</label><input id="ee-obs" type="text"/></div></div>
   <div style="display:flex;justify-content:flex-end;gap:7px"><button class="btn" onclick="fecharMo('mo-estq-edit')">Cancelar</button><button class="btn bp" onclick="confirmarEditMov()">Salvar</button></div>
 </div></div>
 <div class="mo" id="mo-edit-lanc"><div class="mbox">
-  <div class="mh"><span>Editar lançamento</span><div class="mx" onclick="fecharMo('mo-edit-lanc')">✕</div></div>
+  <div class="mh"><span>Editar lançamento</span><div class="mx" role="button" tabindex="0" aria-label="Fechar janela" onclick="fecharMo('mo-edit-lanc')">✕</div></div>
   <div class="fr fr2">
     <div><label>Data</label><input id="ee-data" type="date"/></div>
     <div><label>Valor (R$)</label><input id="ee-val" type="number" step="0.01"/></div>
@@ -4980,7 +5080,7 @@ function deletarProducao(prodId){
   </div>
 </div></div>
 <div class="mo" id="mo-prod"><div class="mbox">
-  <div class="mh"><span>🔨 Nova produção</span><div class="mx" onclick="fecharMo('mo-prod')">✕</div></div>
+  <div class="mh"><span>🔨 Nova produção</span><div class="mx" role="button" tabindex="0" aria-label="Fechar janela" onclick="fecharMo('mo-prod')">✕</div></div>
   <div class="fr fr2">
     <div><label>Funcionário</label><select id="pd-func"></select></div>
     <div><label>Data</label><input id="pd-data" type="date"/></div>
