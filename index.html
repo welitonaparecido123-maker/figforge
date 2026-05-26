@@ -338,6 +338,8 @@ textarea{resize:vertical;min-height:60px}
 .mbox{background:var(--bg2);border:1px solid var(--br2);border-radius:var(--r2);
       padding:20px;width:100%;max-width:500px;
       position:relative;margin:0 auto;flex-shrink:0;
+      max-height:90vh;overflow-y:auto;
+      -webkit-overflow-scrolling:touch;
       -webkit-transform:translateZ(0);transform:translateZ(0)}
 .mh{font-size:15px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between}
 .mx{cursor:pointer;width:26px;height:26px;border-radius:var(--r);background:var(--bg3);border:1px solid var(--br);display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--tx2)}
@@ -1033,6 +1035,9 @@ body {
     padding: 18px;
     border-radius: var(--radius-lg) var(--radius-lg) 0 0;
     box-shadow: var(--shadow-md);
+    max-height: 88vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
   .mh {
@@ -2032,10 +2037,37 @@ button[style*="background: #4F6EF7"], .btn-primary {
     <div class="card" id="pg-result"><div class="empty">Selecione funcionário e mês para calcular</div></div>
     <div class="card" id="pg-pago-area" style="display:none">
       <div class="ct">💵 Registro de pagamento</div>
+      <!-- Adiantamentos pendentes -->
+      <div id="pg-adiant-area" style="display:none;margin-bottom:10px;padding:10px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.3);border-radius:var(--r)">
+        <div style="font-size:11px;font-weight:700;color:var(--rd);margin-bottom:6px">⚠️ Adiantamentos / Vales pendentes deste funcionário</div>
+        <div id="pg-adiant-lista" style="font-size:11px;color:var(--tx2)"></div>
+        <div style="margin-top:6px;display:flex;align-items:center;gap:8px">
+          <label style="font-size:11px;color:var(--tx2);margin:0">Descontar adiantamento no pagamento?</label>
+          <select id="pg-desc-adiant" style="width:auto;padding:4px 8px;font-size:11px" onchange="recalcLiquidoFinal()">
+            <option value="sim">Sim, descontar</option>
+            <option value="nao">Não descontar agora</option>
+          </select>
+        </div>
+      </div>
       <div class="fr fr3">
         <div><label>Foi pago?</label><select id="pg-pago" onchange="togglePagoFunc()"><option value="nao">Não</option><option value="sim">Sim</option></select></div>
         <div><label>Data do pagamento</label><input type="date" id="pg-data-pag"/></div>
         <div><label>Forma</label><select id="pg-forma" onchange="toggleComprovante()"><option>Dinheiro</option><option>PIX</option><option>Transferência</option><option>TED</option><option>Cheque</option><option>Depósito</option></select></div>
+      </div>
+      <!-- Pagamento parcial -->
+      <div style="margin-bottom:10px;padding:10px;background:var(--bg3);border-radius:var(--r);border:1px solid var(--br)">
+        <div style="font-size:11px;font-weight:700;color:var(--tx);margin-bottom:6px">💰 Valor do pagamento</div>
+        <div class="fr fr2">
+          <div>
+            <label>Valor calculado (referência)</label>
+            <input type="text" id="pg-val-calc" readonly style="color:var(--gn);font-weight:700"/>
+          </div>
+          <div>
+            <label>Valor a pagar agora (pode ser parcial)</label>
+            <input type="number" id="pg-val-pagar" step="0.01" min="0" placeholder="Deixe igual ao calculado ou altere para parcial" oninput="atualizarValorFinal()"/>
+          </div>
+        </div>
+        <div id="pg-val-diff" style="font-size:11px;color:var(--am);margin-top:4px;display:none"></div>
       </div>
       <div id="pg-comp-area" style="display:none">
         <div class="fr fr2">
@@ -3989,7 +4021,28 @@ function calcPagamento(){
   var liquido = Math.max(0, base + vHex - (isCLT||vl==='mensal'?0:descVal));
 
   // ── MONTA RESULTADO ─────────────────────────────────────────
-  pgCalcAtual = {valor:liquido, func:func, mes:mes};
+  pgCalcAtual = {valor:liquido, func:func, mes:mes, base:base, vHex:vHex, descVal:descVal, descLabel:descLabel, presentes:presentes, faltasInj:faltasInj, faltasJust:faltasJust, hexTotal:hexTotal, valorHora:valorHora, vl:vl, isCLT:isCLT};
+
+  // Verifica adiantamentos/vales pendentes
+  var adiantsFunc = (typeof adiantamentos !== 'undefined' ? adiantamentos[fid] || [] : []);
+  var totalAdiantPendente = adiantsFunc.filter(function(a){return a.status==='pendente';}).reduce(function(s,a){return s+a.valor;},0);
+  var adiantArea = el('pg-adiant-area');
+  var adiantLista = el('pg-adiant-lista');
+  if(totalAdiantPendente > 0 && adiantArea && adiantLista){
+    adiantArea.style.display = 'block';
+    adiantLista.innerHTML = adiantsFunc.filter(function(a){return a.status==='pendente';}).map(function(a){
+      return '<div style="display:flex;justify-content:space-between"><span>'+(a.tipo==='adiantamento'?'💰 Adiantamento':'🎫 Vale')+' — '+a.data+'</span><span style="color:var(--rd);font-weight:700">R$ '+a.valor.toFixed(2)+'</span></div>';
+    }).join('') + '<div style="border-top:1px solid rgba(239,68,68,.3);margin-top:4px;padding-top:4px;font-weight:700;color:var(--rd)">Total a descontar: R$ '+totalAdiantPendente.toFixed(2)+'</div>';
+  } else if(adiantArea){
+    adiantArea.style.display = 'none';
+  }
+  pgCalcAtual.totalAdiant = totalAdiantPendente;
+
+  // Preenche campo de valor calculado e a pagar
+  var vcEl = el('pg-val-calc');
+  var vpEl = el('pg-val-pagar');
+  if(vcEl) vcEl.value = 'R$ ' + liquido.toFixed(2).replace('.',',');
+  if(vpEl) vpEl.value = liquido.toFixed(2);
 
   var horInfo = isCLT&&func.horEntrada
     ?'<div style="background:var(--bg3);border-radius:var(--r);padding:6px 10px;font-size:11px;color:var(--tx2);margin-bottom:8px">'+
@@ -4029,6 +4082,40 @@ function calcPagamento(){
 
 // ─── PAGAMENTO "PAGO?" ────────────────────────────────────────
 var pgCalcAtual=null;
+
+function atualizarValorFinal(){
+  if(!pgCalcAtual) return;
+  var vPagar = Number(val('pg-val-pagar'))||0;
+  var vCalc = pgCalcAtual.valor;
+  var diff = el('pg-val-diff');
+  if(!diff) return;
+  if(Math.abs(vPagar - vCalc) > 0.01){
+    if(vPagar < vCalc){
+      diff.style.display='block';
+      diff.style.color='var(--am)';
+      diff.textContent = '⚠️ Pagamento parcial: ficará pendente R$ '+(vCalc-vPagar).toFixed(2).replace('.',',');
+    } else if(vPagar > vCalc){
+      diff.style.display='block';
+      diff.style.color='var(--rd)';
+      diff.textContent = '⚠️ Valor maior que o calculado: verifique!';
+    }
+  } else {
+    diff.style.display='none';
+  }
+}
+
+function recalcLiquidoFinal(){
+  if(!pgCalcAtual) return;
+  var vpEl = el('pg-val-pagar');
+  if(!vpEl) return;
+  var descAdiant = val('pg-desc-adiant')==='sim';
+  var base = pgCalcAtual.valor;
+  if(descAdiant && pgCalcAtual.totalAdiant > 0){
+    base = Math.max(0, base - pgCalcAtual.totalAdiant);
+  }
+  vpEl.value = base.toFixed(2);
+  atualizarValorFinal();
+}
 function togglePagoFunc(){
   var ativo=val('pg-pago')==='sim';
   var a=el('pg-comp-area');
@@ -4039,6 +4126,11 @@ function togglePagoFunc(){
       var isCLT=pgCalcAtual.func.vinculo==='clt';
       var aa=el('pg-anotacoes-area');
       if(aa) aa.style.display=isCLT?'block':'none';
+    }
+    // Inicializa valor a pagar se vazio
+    var vpEl = el('pg-val-pagar');
+    if(vpEl && (!vpEl.value || vpEl.value==='0') && pgCalcAtual){
+      vpEl.value = pgCalcAtual.valor.toFixed(2);
     }
     // Dispara verificação de comprovante imagem
     setTimeout(toggleComprovante,50);
@@ -4051,24 +4143,49 @@ function toggleComprovante(){
   if(area) area.style.display=mostrar?'block':'none';
 }
 function confirmarPagamentoFunc(){
-  if(val('pg-pago')!=='sim'){alert('Selecione Sim para confirmar.');return;}
+  if(val('pg-pago')!=='sim'){alert('Selecione "Sim" para confirmar o pagamento.');return;}
   if(!pgCalcAtual){alert('Calcule o pagamento primeiro.');return;}
+
+  // Determina valor a pagar (parcial ou total)
+  var vPagar = Number(val('pg-val-pagar'));
+  if(!vPagar || vPagar <= 0){
+    vPagar = pgCalcAtual.valor;
+  }
+  var descAdiant = val('pg-desc-adiant')==='sim';
+  var totalAdiantDesc = (descAdiant && pgCalcAtual.totalAdiant > 0) ? pgCalcAtual.totalAdiant : 0;
+
+  // Confirmação antes de lançar
+  var msgConfirm = '✔ Confirmar pagamento?\n\n';
+  msgConfirm += 'Funcionário: ' + pgCalcAtual.func.nome + '\n';
+  msgConfirm += 'Competência: ' + pgCalcAtual.mes + '\n';
+  msgConfirm += 'Valor calculado: R$ ' + pgCalcAtual.valor.toFixed(2).replace('.',',') + '\n';
+  if(totalAdiantDesc > 0) msgConfirm += 'Desconto adiantamento: - R$ ' + totalAdiantDesc.toFixed(2).replace('.',',') + '\n';
+  msgConfirm += 'Valor a lançar: R$ ' + vPagar.toFixed(2).replace('.',',') + '\n';
+  msgConfirm += 'Forma: ' + (val('pg-forma')||'Dinheiro') + '\n\n';
+  msgConfirm += 'Os registros de ponto deste mês serão zerados após o lançamento.';
+  if(!confirm(msgConfirm)) return;
+
   var obs='Forma: '+val('pg-forma');
   if(val('pg-comp-obs'))obs+=' | '+val('pg-comp-obs');
+  if(totalAdiantDesc > 0) obs += ' | Descontado adiantamento: R$ '+totalAdiantDesc.toFixed(2);
+
   DB.lancamentos.push({id:id(),tipo:'despesa',cat:'Mao de obra',obra:'',
     data:val('pg-data-pag')||hoje(),
     desc:'Pagamento '+pgCalcAtual.func.nome+' ('+pgCalcAtual.mes+')',
-    val:pgCalcAtual.valor,forn:pgCalcAtual.func.nome,
+    val:vPagar,forn:pgCalcAtual.func.nome,
     nf:val('pg-comp')||'',obs:obs});
+
+  // Se desconto de adiantamento, marca como descontado
+  if(descAdiant && totalAdiantDesc > 0 && typeof descontarAdiantamentos === 'function'){
+    descontarAdiantamentos(pgCalcAtual.func.id);
+  }
+
   // Zera folha de ponto do mês após pagar
   var fid_pago = pgCalcAtual.func.id;
   var mes_pago = String(pgCalcAtual.mes||'').slice(0,7);
-  console.log('[Zerar Ponto] func=', fid_pago, 'mes=', mes_pago);
-
   if(!DB._deletedIds) DB._deletedIds = [];
   var pontosRemovidos = 0;
 
-  // Zera pontos (CLT, mensal, diária)
   DB.pontos.forEach(function(p){
     var pmes = String(p.data||'').slice(0,7);
     if(p.func===fid_pago && pmes===mes_pago){
@@ -4081,7 +4198,6 @@ function confirmarPagamentoFunc(){
     return !(p.func===fid_pago && pmes===mes_pago);
   });
 
-  // Zera produções (empreita)
   if(DB.producoes){
     DB.producoes.forEach(function(p){
       var pmes = String(p.data||'').slice(0,7);
@@ -4095,21 +4211,23 @@ function confirmarPagamentoFunc(){
       return !(p.func===fid_pago && pmes===mes_pago);
     });
   }
-  console.log('[Zerar] removendo', pontosRemovidos, 'registros (ponto+produção)');
   save();
 
-  // Re-renderiza UI do ponto se estiver visível
   if(typeof renderPonto === 'function') renderPonto();
-
-  // Sincroniza imediatamente
   setTimeout(function(){ sincronizarCompleto(true); }, 500);
 
-  alert('Pagamento de '+fmt(pgCalcAtual.valor)+' lançado!\n'+
-    pontosRemovidos+' registros de ponto de '+mes_pago+' foram zerados.');
+  var msgOk = '✔ Pagamento lançado com sucesso!\n\n';
+  msgOk += 'Valor: R$ ' + vPagar.toFixed(2).replace('.',',') + '\n';
+  if(totalAdiantDesc > 0) msgOk += 'Adiantamento descontado: R$ ' + totalAdiantDesc.toFixed(2).replace('.',',') + '\n';
+  msgOk += pontosRemovidos + ' registro(s) de ponto de ' + mes_pago + ' foram zerados.';
+  alert(msgOk);
+
   el('pg-pago-area').style.display='none';
   setV('pg-pago','nao');
   var ca=el('pg-comp-area');if(ca)ca.style.display='none';
-  ['pg-comp','pg-comp-obs','pg-anotacoes'].forEach(function(i){setV(i,'');});
+  var aa=el('pg-adiant-area');if(aa)aa.style.display='none';
+  ['pg-comp','pg-comp-obs','pg-anotacoes','pg-val-pagar'].forEach(function(i){setV(i,'');});
+  set('pg-result','<div class="empty">Pagamento registrado! Selecione outro funcionário/mês.</div>');
 }
 
 // ─── salvarPonto COM H.EXTRA AUTO ────────────────────────────
@@ -4246,9 +4364,14 @@ function exportarCSV(){
 function exportarHoleritePDF(){
   var fid=val('pg-func'),mes=val('pg-mes');
   var func=DB.funcionarios.find(function(f){return f.id===fid;});
-  if(!func){alert('Selecione um funcionario');return;}
+  if(!func){alert('Selecione um funcionário e calcule o pagamento primeiro.');return;}
+  if(!mes){alert('Selecione o mês/ano.');return;}
+
+  // Usa os valores do cálculo atual se disponíveis e correspondem ao mesmo func/mês
+  var usandoCalcAtual = pgCalcAtual && pgCalcAtual.func && pgCalcAtual.func.id===fid && pgCalcAtual.mes===mes;
+
   var isCLT=func.vinculo==='clt';
-  var vl=func.vinculo||func.tipo||'diaria';
+  var vl=(func.vinculo||func.tipo||'diaria').toLowerCase();
   var pontos=DB.pontos.filter(function(p){return p.func===fid&&p.data&&p.data.slice(0,7)===mes;});
   var presentes=pontos.filter(function(p){return p.tipo==='Presente';}).length;
   var faltasInj=pontos.filter(function(p){return p.tipo==='Falta injustificada';}).length;
@@ -4258,17 +4381,43 @@ function exportarHoleritePDF(){
   var horasMes=isCLT?Number(func.horasMes||220):Number(func.horasDia||8)*22;
   var valorHora=horasMes>0?salario/horasMes:0;
   var valorHoraExt=valorHora*1.5;
-  var base=0;
-  if(isCLT||vl==='mensal')base=salario;
-  else if(vl==='diaria')base=salario*presentes;
-  else base=salario;
-  var vHex=isCLT?hexTotal*valorHoraExt:0;
-  var descFaltas=vl==='diaria'?faltasInj*salario:0;
-  var liquido=Math.max(0,base+vHex-descFaltas);
+
+  // Recalcula com a MESMA lógica da função calcPagamento
+  var DIAS_REF=30;
+  var valorDia=salario/DIAS_REF;
+  var base=0, descFaltas=0, vHex=0;
+
+  if(usandoCalcAtual){
+    base = pgCalcAtual.base || 0;
+    vHex = pgCalcAtual.vHex || 0;
+    descFaltas = pgCalcAtual.descVal || 0;
+    valorHora = pgCalcAtual.valorHora || valorHora;
+    valorHoraExt = valorHora * 1.5;
+  } else {
+    if(isCLT || vl==='mensal'){
+      descFaltas = valorDia * faltasInj;
+      if(pontos.length > 0){
+        base = valorDia * presentes;
+        if((presentes + faltasInj + faltasJus) >= 25 && faltasInj > 0){
+          base = salario - descFaltas;
+        }
+      } else { base = 0; }
+      vHex = hexTotal * valorHora * 1.5;
+    } else if(vl==='diaria'){
+      base = salario * presentes;
+      descFaltas = faltasInj * salario;
+      vHex = hexTotal * (salario / (Number(func.horasDia||8))) * 1.5;
+    } else {
+      var prodsEmp = (DB.producoes||[]).filter(function(p){return p.func===fid&&(p.data||'').slice(0,7)===mes;});
+      base = prodsEmp.reduce(function(s,p){return s+(p.total||0);},0);
+    }
+  }
+
+  var liquido = usandoCalcAtual ? pgCalcAtual.valor : Math.max(0, base + vHex - descFaltas);
   var comp=val('pg-comp')||'';
   var compObs=val('pg-comp-obs')||'';
   var anotacoes=isCLT?val('pg-anotacoes')||'':'';
-  var cfg=DB.config;
+  var cfg=DB.config||{};
   try{
     var jsPDF=window.jspdf.jsPDF;
     var doc=new jsPDF();
@@ -4284,39 +4433,45 @@ function exportarHoleritePDF(){
     doc.setTextColor(255,255,255);doc.setFontSize(10);doc.setFont(undefined,'bold');
     doc.text(isCLT?'HOLERITE - FOLHA DE PAGAMENTO':'RECIBO DE PAGAMENTO',105,y+5.5,{align:'center'});
     doc.setTextColor(0,0,0);y+=12;
-    doc.setFontSize(8);doc.setFont(undefined,'bold');doc.text('DADOS DO FUNCIONARIO',14,y);y+=7;
+    doc.setFontSize(8);doc.setFont(undefined,'bold');doc.text('DADOS DO FUNCIONÁRIO',14,y);y+=7;
     doc.setFont(undefined,'normal');
     doc.text('Nome: '+func.nome,14,y);doc.text('CPF: '+(func.cpf||'-'),105,y);y+=5;
-    doc.text('Funcao: '+(func.func||'-'),14,y);doc.text('Vinculo: '+(isCLT?'CLT/Registrado':vl),105,y);y+=5;
-    if(func.adm)doc.text('Admissao: '+fmtData(func.adm),14,y);
-    doc.text('Competencia: '+mes,105,y);y+=5;
-    if(isCLT)doc.text('Horario: '+(func.horEntrada||'07:00')+' as '+(func.horSaida||'17:00')+' | Intervalo: '+(func.intervalo||60)+'min | '+(func.horasDia||8).toFixed(1)+'h/dia',14,y);
+    doc.text('Função: '+(func.func||'-'),14,y);doc.text('Vínculo: '+(isCLT?'CLT/Registrado':vl),105,y);y+=5;
+    if(func.adm)doc.text('Admissão: '+fmtData(func.adm),14,y);
+    doc.text('Competência: '+mes,105,y);y+=5;
+    if(isCLT)doc.text('Horário: '+(func.horEntrada||'07:00')+' às '+(func.horSaida||'17:00')+' | Intervalo: '+(func.intervalo||60)+'min | '+(func.horasDia||8).toFixed(1)+'h/dia',14,y);
     y+=7;doc.line(14,y,196,y);y+=5;
     doc.setFont(undefined,'bold');doc.text('ESPELHO DE PONTO',14,y);y+=7;doc.setFont(undefined,'normal');
-    doc.text('Dias trabalhados: '+presentes,14,y);doc.text('Faltas injust: '+faltasInj,75,y);doc.text('Faltas just: '+faltasJus,130,y);y+=5;
-    if(hexTotal>0)doc.text('H. extras no periodo: '+hexTotal.toFixed(2)+'h | Valor hora extra: R$ '+fmtN(valorHoraExt)+'/h',14,y);
+    doc.text('Dias trabalhados: '+presentes,14,y);doc.text('Faltas injust.: '+faltasInj,75,y);doc.text('Faltas just.: '+faltasJus,130,y);y+=5;
+    if(hexTotal>0)doc.text('H. extras: '+hexTotal.toFixed(2)+'h | Valor hora extra: R$ '+fmtN(valorHoraExt)+'/h',14,y);
     y+=7;doc.line(14,y,196,y);y+=5;
-    doc.setFont(undefined,'bold');doc.text('Descricao',14,y);doc.text('Referencia',120,y,{align:'right'});doc.text('Valor (R$)',196,y,{align:'right'});
+    doc.setFont(undefined,'bold');doc.text('Descrição',14,y);doc.text('Referência',120,y,{align:'right'});doc.text('Valor (R$)',196,y,{align:'right'});
     doc.line(14,y+2,196,y+2);y+=7;doc.setFont(undefined,'normal');
-    if(isCLT||vl==='mensal'){doc.text('Salario base mensal',14,y);doc.text((func.horasMes||220)+'h',120,y,{align:'right'});doc.text(fmtN(base),196,y,{align:'right'});}
-    else if(vl==='diaria'){doc.text('Diarias trabalhadas',14,y);doc.text(presentes+' x R$'+fmtN(salario),120,y,{align:'right'});doc.text(fmtN(base),196,y,{align:'right'});}
-    else{doc.text('Empreitada',14,y);doc.text('-',120,y,{align:'right'});doc.text(fmtN(base),196,y,{align:'right'});}
+    if(isCLT||vl==='mensal'){
+      var refLbl = presentes>0 ? presentes+' dias × R$'+fmtN(valorDia) : (func.horasMes||220)+'h';
+      doc.text('Salário base '+(isCLT?'CLT':'mensal'),14,y);doc.text(refLbl,120,y,{align:'right'});doc.text(fmtN(base),196,y,{align:'right'});
+    } else if(vl==='diaria'){
+      doc.text('Diárias trabalhadas',14,y);doc.text(presentes+' × R$'+fmtN(salario),120,y,{align:'right'});doc.text(fmtN(base),196,y,{align:'right'});
+    } else {
+      var prodsH=(DB.producoes||[]).filter(function(p){return p.func===fid&&(p.data||'').slice(0,7)===mes;});
+      doc.text('Empreitada/Produção',14,y);doc.text(prodsH.length+' lançamento(s)',120,y,{align:'right'});doc.text(fmtN(base),196,y,{align:'right'});
+    }
     y+=6;
-    if(vHex>0){doc.text('H. extras (adic. 50%)',14,y);doc.text(hexTotal.toFixed(2)+'h x R$'+fmtN(valorHoraExt),120,y,{align:'right'});doc.text(fmtN(vHex),196,y,{align:'right'});y+=6;}
-    if(descFaltas>0){doc.text('Desc. faltas injust.',14,y);doc.text(faltasInj+' x R$'+fmtN(salario),120,y,{align:'right'});doc.text('('+fmtN(descFaltas)+')',196,y,{align:'right'});y+=6;}
+    if(vHex>0){doc.text('H. extras (adic. 50%)',14,y);doc.text(hexTotal.toFixed(2)+'h × R$'+fmtN(valorHoraExt),120,y,{align:'right'});doc.text(fmtN(vHex),196,y,{align:'right'});y+=6;}
+    if(descFaltas>0){doc.text('Desc. faltas injust.',14,y);doc.text(faltasInj+' × R$'+fmtN(vl==='diaria'?salario:valorDia),120,y,{align:'right'});doc.text('('+fmtN(descFaltas)+')',196,y,{align:'right'});y+=6;}
     doc.line(14,y,196,y);y+=5;
     doc.setFont(undefined,'bold');doc.setFontSize(11);
-    doc.text('LIQUIDO A PAGAR',14,y);doc.text('R$ '+fmtN(liquido),196,y,{align:'right'});
+    doc.text('LÍQUIDO A PAGAR',14,y);doc.text('R$ '+fmtN(liquido),196,y,{align:'right'});
     doc.setFont(undefined,'normal');doc.setFontSize(8);y+=8;
     if(isCLT&&anotacoes){
       doc.line(14,y,196,y);y+=5;
-      doc.setFont(undefined,'bold');doc.text('ANOTACOES',14,y);y+=6;
+      doc.setFont(undefined,'bold');doc.text('ANOTAÇÕES',14,y);y+=6;
       doc.setFont(undefined,'normal');
       var la=doc.splitTextToSize(anotacoes,180);doc.text(la,14,y);y+=la.length*5+4;
     }
     if(comp){doc.line(14,y,196,y);y+=5;doc.text('Comprovante: '+comp+(compObs?' - '+compObs:''),14,y);doc.text('Forma: '+(val('pg-forma')||'-'),150,y);y+=8;}
     y+=10;doc.line(30,y,90,y);doc.line(110,y,180,y);
-    doc.text('Assinatura do funcionario',60,y+5,{align:'center'});
+    doc.text('Assinatura do funcionário',60,y+5,{align:'center'});
     doc.text('Assinatura do empregador',145,y+5,{align:'center'});
     y+=11;doc.text('Nome: '+func.nome,30,y);doc.text('Nome: '+(cfg.resp||cfg.empresa||''),110,y);
     doc.setFontSize(7);doc.setTextColor(120,120,120);
@@ -4933,14 +5088,7 @@ function verComprovante(lancId){
     return;
   }
   const w=window.open('','_blank');
-  w.document.write('<html><body style="margin:0;background:#000;display:flex;align-items:center;justify-content:center;min-height:100vh"><img src="'+l.compImg+'" style="max-width:100%;max-height:100vh"/>
-<div class="mobile-tabbar" id="mobile-tabbar">
-  <div class="mobile-tab active" onclick="abrirPainel('pnl-dashboard')"><div>📊</div>Dashboard</div>
-  <div class="mobile-tab" onclick="abrirPainel('pnl-obras')"><div>🏗️</div>Obras</div>
-  <div class="mobile-tab" onclick="abrirPainel('pnl-orcamentos')"><div>🧾</div>Orçamentos</div>
-  <div class="mobile-tab" onclick="abrirPainel('pnl-financeiro')"><div>💰</div>Financeiro</div>
-</div>
-</body></html>');
+  w.document.write('<html><body style="margin:0;background:#000;display:flex;align-items:center;justify-content:center;min-height:100vh"><img src="'+l.compImg+'" style="max-width:100%;max-height:100vh"/></body></html>');
 }
 
 // ── TROCAR SENHA ─────────────────────────────────────────────────────────────
@@ -6417,14 +6565,7 @@ function verFotoProducao(prodId){
   var p = (DB.producoes||[]).find(function(x){ return x.id===prodId; });
   if(!p || !p.foto) return;
   var w = window.open();
-  w.document.write('<html><body style="margin:0;background:#000;display:flex;align-items:center;justify-content:center;min-height:100vh"><img src="'+p.foto+'" style="max-width:100%;max-height:100vh"/>
-<div class="mobile-tabbar" id="mobile-tabbar">
-  <div class="mobile-tab active" onclick="abrirPainel('pnl-dashboard')"><div>📊</div>Dashboard</div>
-  <div class="mobile-tab" onclick="abrirPainel('pnl-obras')"><div>🏗️</div>Obras</div>
-  <div class="mobile-tab" onclick="abrirPainel('pnl-orcamentos')"><div>🧾</div>Orçamentos</div>
-  <div class="mobile-tab" onclick="abrirPainel('pnl-financeiro')"><div>💰</div>Financeiro</div>
-</div>
-</body></html>');
+  w.document.write('<html><body style="margin:0;background:#000;display:flex;align-items:center;justify-content:center;min-height:100vh"><img src="'+p.foto+'" style="max-width:100%;max-height:100vh"/></body></html>');
 }
 
 function deletarProducao(prodId){
@@ -6521,72 +6662,86 @@ function descontarAdiantamentos(idFuncionario) {
 }
 
 function abrirTelaAdiantamento(idFuncionario, nomeFuncionario) {
-  var modal = document.createElement('div');
-  modal.className = 'mbox';
-  modal.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:10000;background:#1a1f2e;border:1px solid #2d3348;border-radius:12px;padding:20px;width:90%;max-width:400px;box-shadow:0 10px 40px rgba(0,0,0,.5)';
-  
+  var existing = document.getElementById('modal-adiant-overlay');
+  if(existing) existing.remove();
+
+  var overlay = document.createElement('div');
+  overlay.id = 'modal-adiant-overlay';
+  overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.8);z-index:9999;display:flex;align-items:flex-end;justify-content:center;padding:12px;overflow-y:auto;-webkit-overflow-scrolling:touch';
+
   var adiantamentosAtuais = obterAdiantamentos(idFuncionario);
   var totalPendente = calcularTotalAdiantamentos(idFuncionario);
-  
-  modal.innerHTML = `
-    <h3 style="color:#eef0f8;margin:0 0 15px 0">Adiantamentos e Vales</h3>
-    <p style="color:#8d95b0;font-size:12px;margin:0 0 15px 0">Funcionário: <strong>${nomeFuncionario}</strong></p>
-    
-    <div style="background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);border-radius:8px;padding:12px;margin-bottom:15px">
-      <div style="color:#8d95b0;font-size:11px">Total Pendente</div>
-      <div style="color:#10b981;font-size:18px;font-weight:600">R$ ${totalPendente.toFixed(2)}</div>
-    </div>
-    
-    <div style="margin-bottom:15px">
-      <label style="color:#8d95b0;font-size:11px;display:block;margin-bottom:5px">Tipo</label>
-      <select id="tipo-adiantamento" style="width:100%;padding:8px;background:#111827;color:#eef0f8;border:1px solid #2d3348;border-radius:6px;font-size:12px">
-        <option value="adiantamento">Adiantamento de Salário</option>
-        <option value="vale">Vale</option>
-      </select>
-    </div>
-    
-    <div style="margin-bottom:15px">
-      <label style="color:#8d95b0;font-size:11px;display:block;margin-bottom:5px">Valor (R$)</label>
-      <input type="number" id="valor-adiantamento" placeholder="0.00" style="width:100%;padding:8px;background:#111827;color:#eef0f8;border:1px solid #2d3348;border-radius:6px;font-size:12px" step="0.01">
-    </div>
-    
-    <div style="margin-bottom:15px">
-      <label style="color:#8d95b0;font-size:11px;display:block;margin-bottom:5px">Descrição (Opcional)</label>
-      <input type="text" id="descricao-adiantamento" placeholder="Ex: Vale para compras" style="width:100%;padding:8px;background:#111827;color:#eef0f8;border:1px solid #2d3348;border-radius:6px;font-size:12px">
-    </div>
-    
-    <div style="background:#1e2333;border-radius:8px;padding:12px;margin-bottom:15px;max-height:150px;overflow-y:auto">
-      <div style="color:#8d95b0;font-size:11px;margin-bottom:8px">Histórico</div>
-      ${adiantamentosAtuais.length > 0 ? adiantamentosAtuais.map(ad => `
-        <div style="background:rgba(45,51,72,.5);padding:8px;border-radius:6px;margin-bottom:6px;font-size:11px">
-          <div style="color:#eef0f8">${ad.tipo === 'adiantamento' ? '💰' : '🎫'} ${ad.tipo === 'adiantamento' ? 'Adiantamento' : 'Vale'} - R$ ${ad.valor.toFixed(2)}</div>
-          <div style="color:#8d95b0;font-size:10px">${ad.data} - ${ad.status}</div>
-        </div>
-      `).join('') : '<div style="color:#555f7a;font-size:11px">Sem adiantamentos registrados</div>'}
-    </div>
-    
-    <div style="display:flex;gap:10px">
-      <button onclick="this.parentElement.parentElement.remove()" style="flex:1;padding:8px;background:rgba(141,149,176,.1);color:#8d95b0;border:1px solid rgba(141,149,176,.3);border-radius:6px;cursor:pointer;font-size:12px;font-weight:500">Cancelar</button>
-      <button onclick="confirmarAdiantamento('${idFuncionario}', '${nomeFuncionario}')" style="flex:1;padding:8px;background:rgba(16,185,129,.2);color:#10b981;border:1px solid rgba(16,185,129,.3);border-radius:6px;cursor:pointer;font-size:12px;font-weight:500">Registrar</button>
-    </div>
-  `;
-  
-  document.body.appendChild(modal);
+
+  var historicoHtml = adiantamentosAtuais.length > 0 ? adiantamentosAtuais.map(function(ad){
+    var cor = ad.status === 'pendente' ? '#ef4444' : '#10b981';
+    return '<div style="background:rgba(45,51,72,.5);padding:8px;border-radius:6px;margin-bottom:6px;font-size:11px;display:flex;justify-content:space-between">' +
+      '<div><div style="color:#eef0f8">' + (ad.tipo==='adiantamento' ? '\uD83D\uDCB0 Adiantamento' : '\uD83C\uDF9F Vale') + '</div>' +
+      '<div style="color:#8d95b0;font-size:10px">' + ad.data + '</div></div>' +
+      '<div style="text-align:right"><div style="color:' + cor + ';font-weight:700">R$ ' + ad.valor.toFixed(2).replace('.',',') + '</div>' +
+      '<div style="color:#8d95b0;font-size:10px">' + ad.status + '</div></div></div>';
+  }).join('') : '<div style="color:#555f7a;font-size:11px;text-align:center;padding:8px">Nenhum adiantamento registrado</div>';
+
+  var box = document.createElement('div');
+  box.id = 'modal-adiant-box';
+  box.style.cssText = 'background:#1a1f2e;border:1px solid #2d3348;border-radius:16px 16px 0 0;padding:20px;width:100%;max-width:480px;max-height:88vh;overflow-y:auto;-webkit-overflow-scrolling:touch;box-shadow:0 -4px 30px rgba(0,0,0,.5)';
+
+  box.innerHTML =
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">' +
+    '<h3 style="color:#eef0f8;margin:0;font-size:16px">\uD83D\uDCB0 Adiantamentos e Vales</h3>' +
+    '<button id="btn-fechar-adiant" style="background:rgba(141,149,176,.15);color:#8d95b0;border:1px solid #2d3348;border-radius:8px;padding:4px 10px;cursor:pointer;font-size:14px">\u2715</button>' +
+    '</div>' +
+    '<p style="color:#8d95b0;font-size:12px;margin:0 0 15px 0">Funcionário: <strong style="color:#eef0f8">' + nomeFuncionario + '</strong></p>' +
+    '<div style="background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);border-radius:8px;padding:12px;margin-bottom:15px">' +
+    '<div style="color:#8d95b0;font-size:11px">Total Pendente</div>' +
+    '<div style="color:#10b981;font-size:22px;font-weight:700">R$ ' + totalPendente.toFixed(2).replace('.',',') + '</div>' +
+    '</div>' +
+    '<div style="margin-bottom:12px"><label style="color:#8d95b0;font-size:11px;display:block;margin-bottom:5px;font-weight:600">TIPO</label>' +
+    '<select id="tipo-adiantamento" style="width:100%;padding:10px;background:#111827;color:#eef0f8;border:1px solid #2d3348;border-radius:8px;font-size:13px">' +
+    '<option value="adiantamento">\uD83D\uDCB0 Adiantamento de Salário</option>' +
+    '<option value="vale">\uD83C\uDF9F Vale</option></select></div>' +
+    '<div style="margin-bottom:12px"><label style="color:#8d95b0;font-size:11px;display:block;margin-bottom:5px;font-weight:600">VALOR (R$)</label>' +
+    '<input type="number" id="valor-adiantamento" placeholder="0,00" style="width:100%;padding:10px;background:#111827;color:#eef0f8;border:1px solid #2d3348;border-radius:8px;font-size:14px" step="0.01" min="0.01"></div>' +
+    '<div style="margin-bottom:15px"><label style="color:#8d95b0;font-size:11px;display:block;margin-bottom:5px;font-weight:600">DESCRIÇÃO (OPCIONAL)</label>' +
+    '<input type="text" id="descricao-adiantamento" placeholder="Ex: Vale para compras..." style="width:100%;padding:10px;background:#111827;color:#eef0f8;border:1px solid #2d3348;border-radius:8px;font-size:13px"></div>' +
+    '<div style="background:#111827;border:1px solid #2d3348;border-radius:8px;padding:12px;margin-bottom:15px;max-height:140px;overflow-y:auto">' +
+    '<div style="color:#8d95b0;font-size:11px;font-weight:700;margin-bottom:8px">HISTÓRICO</div>' +
+    historicoHtml + '</div>' +
+    '<div style="display:flex;gap:10px">' +
+    '<button id="btn-cancelar-adiant" style="flex:1;padding:12px;background:rgba(141,149,176,.1);color:#8d95b0;border:1px solid rgba(141,149,176,.3);border-radius:8px;cursor:pointer;font-size:13px;font-weight:600">Cancelar</button>' +
+    '<button id="btn-registrar-adiant" style="flex:1;padding:12px;background:rgba(16,185,129,.2);color:#10b981;border:1px solid rgba(16,185,129,.4);border-radius:8px;cursor:pointer;font-size:13px;font-weight:600">\u2714 Registrar</button>' +
+    '</div>';
+
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+
+  // Event listeners instead of inline onclick (avoids quote escaping)
+  document.getElementById('btn-fechar-adiant').onclick = function(){ overlay.remove(); };
+  document.getElementById('btn-cancelar-adiant').onclick = function(){ overlay.remove(); };
+  document.getElementById('btn-registrar-adiant').onclick = function(){
+    confirmarAdiantamento(idFuncionario, nomeFuncionario);
+  };
+  setTimeout(function(){ var v=document.getElementById('valor-adiantamento'); if(v)v.focus(); },100);
 }
 
 function confirmarAdiantamento(idFuncionario, nomeFuncionario) {
   var tipo = document.getElementById('tipo-adiantamento').value;
   var valor = document.getElementById('valor-adiantamento').value;
   var descricao = document.getElementById('descricao-adiantamento').value;
-  
+
   if (!valor || parseFloat(valor) <= 0) {
     alert('Digite um valor válido!');
     return;
   }
-  
+
+  var tipoLabel = tipo === 'adiantamento' ? 'Adiantamento' : 'Vale';
+  var valorFmt = parseFloat(valor).toFixed(2).replace('.', ',');
+  if(!confirm('Confirmar registro?\n\n' + tipoLabel + ': R$ ' + valorFmt + '\nFuncionário: ' + nomeFuncionario)) return;
+
   registrarAdiantamento(idFuncionario, valor, tipo, descricao);
-  alert('Adiantamento registrado com sucesso!');
-  document.querySelector('.mbox').remove();
+  alert('\u2714 ' + tipoLabel + ' de R$ ' + valorFmt + ' registrado com sucesso!');
+  var overlay = document.getElementById('modal-adiant-overlay');
+  if(overlay) overlay.remove();
+  if(typeof calcPagamento === 'function') calcPagamento();
 }
 
 </script>
