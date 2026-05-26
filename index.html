@@ -1407,14 +1407,221 @@ input, select, textarea {
   box-shadow: 0 0 12px rgba(6,182,212,.4);
 }
 
+
+
+/* ═════════════════════════════════════════════════════════════════════════
+   SPLASH SCREEN: Tela de Carregamento com Logo FigForce
+   ═════════════════════════════════════════════════════════════════════════ */
+
+.splash-screen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #0A0E18 0%, #111827 50%, #0A0E18 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 99999;
+  opacity: 1;
+  visibility: visible;
+  transition: opacity .6s ease-out, visibility .6s ease-out;
+}
+
+.splash-screen.hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.splash-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  text-align: center;
+}
+
+.splash-logo {
+  width: 140px;
+  height: 140px;
+  object-fit: contain;
+  animation: splashLogoFloat 3s ease-in-out infinite;
+  filter: drop-shadow(0 0 30px rgba(16,185,129,.3));
+}
+
+@keyframes splashLogoFloat {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-12px); }
+}
+
+.splash-text {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.splash-title {
+  font-size: 28px;
+  font-weight: 800;
+  background: linear-gradient(135deg, #10B981, #06B6D4);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: -0.5px;
+}
+
+.splash-subtitle {
+  font-size: 13px;
+  color: #9CA3AF;
+  letter-spacing: .5px;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.splash-loading {
+  display: flex;
+  gap: 6px;
+  margin-top: 20px;
+  justify-content: center;
+}
+
+.splash-loading-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #10B981;
+  animation: splashPulse 1.4s ease-in-out infinite;
+}
+
+.splash-loading-dot:nth-child(2) {
+  animation-delay: .2s;
+}
+
+.splash-loading-dot:nth-child(3) {
+  animation-delay: .4s;
+}
+
+@keyframes splashPulse {
+  0%, 100% { opacity: .3; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.2); }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   ATUALIZAR TELAS DE LOGIN E ATIVAÇÃO COM NOVA LOGO
+   ───────────────────────────────────────────────────────────────────────── */
+
+.auth-logo {
+  background: transparent;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+}
+
+.auth-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 0 20px rgba(16,185,129,.25));
+}
+
+.lic-logo-box {
+  background: transparent !important;
+  border: none !important;
+  padding: 8px !important;
+}
+
+.lic-logo-box img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 0 20px rgba(16,185,129,.25));
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   SIDEBAR BRANDING COM NOVA LOGO
+   ───────────────────────────────────────────────────────────────────────── */
+
+.sb-logo-img {
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  border-radius: 8px;
+  object-fit: contain;
+  background: transparent;
+  padding: 4px;
+  display: block !important;
+  filter: drop-shadow(0 0 12px rgba(16,185,129,.2));
+}
+
+.sb-logo {
+  background: transparent;
+  border: none;
+  display: none;
+}
+
+.sb-brand {
+  font-size: 14px;
+  font-weight: 800;
+  background: linear-gradient(135deg, #10B981, #06B6D4);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: -0.3px;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   ANIMAÇÃO DE ENTRADA (FADE-IN)
+   ───────────────────────────────────────────────────────────────────────── */
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.auth-screen.loaded {
+  animation: fadeInUp .6s ease-out .5s both;
+}
+
 </style>
 </head>
 <body>
+<!-- ═══ SPLASH SCREEN ═════════════════════════════════════════════════════════ -->
+<div class="splash-screen" id="splash-screen">
+  <div class="splash-container">
+    <img class="splash-logo" src="/home/ubuntu/upload/logo-figforge.jpg" alt="FigForce Logo"/>
+    <div class="splash-text">
+      <div class="splash-title">FigForce</div>
+      <div class="splash-subtitle">Força em cada etapa. Controle em cada decisão.</div>
+    </div>
+    <div class="splash-loading">
+      <div class="splash-loading-dot"></div>
+      <div class="splash-loading-dot"></div>
+      <div class="splash-loading-dot"></div>
+    </div>
+  </div>
+</div>
+
+
 
 <!-- ═══ TELA DE LICENÇA / ATIVAÇÃO ═════════════════════════════════════ -->
 <div class="auth-screen" id="screen-license">
   <div class="auth-box">
-    <div class="auth-logo" id="lic-logo-box" style="background:none;border:none;padding:4px"><img src="https://welitonaparecido123-maker.github.io/figforge/logo-figforge.jpg" style="width:72px;height:72px;object-fit:contain"/></div>
+    <div class="auth-logo lic-logo-box" id="lic-logo-box"><img src="/home/ubuntu/upload/logo-figforge.jpg" style="width:80px;height:80px;object-fit:contain;filter:drop-shadow(0 0 20px rgba(16,185,129,.25))"/></div>
     <div class="auth-title">Ativar FigForge</div>
     <div class="auth-sub">Digite o e-mail usado na compra para ativar</div>
     <div class="auth-err" id="lic-err">E-mail não encontrado ou licença inválida.</div>
@@ -6146,6 +6353,36 @@ function renderCircularChart(elementId, percentage, label) {
 document.addEventListener('DOMContentLoaded', function() {
   renderCircularChart('chart-progress', 72, 'Overall Progress');
 });
+
+
+// ═════════════════════════════════════════════════════════════════════════
+// SPLASH SCREEN CONTROLLER
+// ═════════════════════════════════════════════════════════════════════════
+
+(function() {
+  const splashScreen = document.getElementById('splash-screen');
+  const authScreen = document.getElementById('screen-license');
+  
+  // Ocultar splash screen após 3 segundos
+  setTimeout(function() {
+    if (splashScreen) {
+      splashScreen.classList.add('hidden');
+    }
+    if (authScreen) {
+      authScreen.classList.add('loaded');
+    }
+  }, 3000);
+  
+  // Permitir fechar splash ao clicar
+  if (splashScreen) {
+    splashScreen.addEventListener('click', function() {
+      this.classList.add('hidden');
+      if (authScreen) {
+        authScreen.classList.add('loaded');
+      }
+    });
+  }
+})();
 
 </script>
 
