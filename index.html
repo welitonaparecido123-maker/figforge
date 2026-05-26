@@ -2037,6 +2037,14 @@ button[style*="background: #4F6EF7"], .btn-primary {
     <div class="card" id="pg-result"><div class="empty">Selecione funcionário e mês para calcular</div></div>
     <div class="card" id="pg-pago-area" style="display:none">
       <div class="ct">💵 Registro de pagamento</div>
+
+      <!-- Pagamentos parciais já realizados neste mês -->
+      <div id="pg-parciais-area" style="display:none;margin-bottom:10px;padding:10px;background:rgba(91,126,255,.08);border:1px solid rgba(91,126,255,.3);border-radius:var(--r)">
+        <div style="font-size:11px;font-weight:700;color:var(--ac);margin-bottom:6px">📋 Pagamentos já realizados neste mês</div>
+        <div id="pg-parciais-lista" style="font-size:11px;color:var(--tx2)"></div>
+        <div id="pg-parciais-total" style="margin-top:5px;font-size:12px;font-weight:700;color:var(--ac)"></div>
+      </div>
+
       <!-- Adiantamentos pendentes -->
       <div id="pg-adiant-area" style="display:none;margin-bottom:10px;padding:10px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.3);border-radius:var(--r)">
         <div style="font-size:11px;font-weight:700;color:var(--rd);margin-bottom:6px">⚠️ Adiantamentos / Vales pendentes deste funcionário</div>
@@ -2049,26 +2057,30 @@ button[style*="background: #4F6EF7"], .btn-primary {
           </select>
         </div>
       </div>
+
       <div class="fr fr3">
         <div><label>Foi pago?</label><select id="pg-pago" onchange="togglePagoFunc()"><option value="nao">Não</option><option value="sim">Sim</option></select></div>
         <div><label>Data do pagamento</label><input type="date" id="pg-data-pag"/></div>
         <div><label>Forma</label><select id="pg-forma" onchange="toggleComprovante()"><option>Dinheiro</option><option>PIX</option><option>Transferência</option><option>TED</option><option>Cheque</option><option>Depósito</option></select></div>
       </div>
-      <!-- Pagamento parcial -->
+
+      <!-- Valor parcial/total -->
       <div style="margin-bottom:10px;padding:10px;background:var(--bg3);border-radius:var(--r);border:1px solid var(--br)">
         <div style="font-size:11px;font-weight:700;color:var(--tx);margin-bottom:6px">💰 Valor do pagamento</div>
         <div class="fr fr2">
           <div>
-            <label>Valor calculado (referência)</label>
+            <label>Saldo a pagar (calculado)</label>
             <input type="text" id="pg-val-calc" readonly style="color:var(--gn);font-weight:700"/>
           </div>
           <div>
-            <label>Valor a pagar agora (pode ser parcial)</label>
-            <input type="number" id="pg-val-pagar" step="0.01" min="0" placeholder="Deixe igual ao calculado ou altere para parcial" oninput="atualizarValorFinal()"/>
+            <label>Valor a pagar agora (parcial ou total)</label>
+            <input type="number" id="pg-val-pagar" step="0.01" min="0.01" placeholder="Digite o valor" oninput="atualizarValorFinal()"/>
           </div>
         </div>
-        <div id="pg-val-diff" style="font-size:11px;color:var(--am);margin-top:4px;display:none"></div>
+        <div id="pg-val-diff" style="font-size:11px;margin-top:4px;display:none"></div>
+        <div id="pg-tipo-pagamento" style="margin-top:6px;font-size:12px;font-weight:700;padding:5px 8px;border-radius:var(--r);display:none"></div>
       </div>
+
       <div id="pg-comp-area" style="display:none">
         <div class="fr fr2">
           <div><label>Nº comprovante / Chave PIX / TED</label><input id="pg-comp" type="text" placeholder="Chave PIX, código TED, nº recibo..."/></div>
@@ -2090,7 +2102,7 @@ button[style*="background: #4F6EF7"], .btn-primary {
       <div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap">
         <button class="btn bp" onclick="calcPagamento()">🔄 Recalcular</button>
         <button class="btn bg" onclick="confirmarPagamentoFunc()">✔ Confirmar e lançar no Financeiro</button>
-        <button class="btn" onclick="exportarHoleritePDF()">📄 Holerite PDF</button>
+        <button class="btn" onclick="exportarHoleritePDF()">📄 Holerite / Recibo PDF</button>
       </div>
     </div>
   </div>
@@ -2558,7 +2570,8 @@ var PLANOS_CFG = {
 const SK = 'figforge-v1';
 let DB = {
   obras:[], clientes:[], funcionarios:[], pontos:[], materiais:[],
-  movEstq:[], lancamentos:[], fixas:[], diario:[], orcamentos:[], users:[], config:{}
+  movEstq:[], lancamentos:[], fixas:[], diario:[], orcamentos:[], users:[], config:{},
+  pagamentosParciais:[]
 };
 let orcLinhas = [], editId = {};
 let orcNum = 1;
@@ -2566,6 +2579,8 @@ let orcNum = 1;
 // ================================================================ STORAGE
 function load(){
   try{ const v=localStorage.getItem(SK); if(v){ DB=JSON.parse(v); orcNum=Math.max(1,(DB.orcamentos||[]).length+1); } }catch(e){}
+  if(!DB.pagamentosParciais) DB.pagamentosParciais=[];
+  if(!DB.producoes) DB.producoes=[];
 }
 function save(){ try{ localStorage.setItem(SK,JSON.stringify(DB)); }catch(e){ alert('Erro ao salvar: '+e.message); } }
 
@@ -4023,7 +4038,31 @@ function calcPagamento(){
   // ── MONTA RESULTADO ─────────────────────────────────────────
   pgCalcAtual = {valor:liquido, func:func, mes:mes, base:base, vHex:vHex, descVal:descVal, descLabel:descLabel, presentes:presentes, faltasInj:faltasInj, faltasJust:faltasJust, hexTotal:hexTotal, valorHora:valorHora, vl:vl, isCLT:isCLT};
 
-  // Verifica adiantamentos/vales pendentes
+  // ── PAGAMENTOS PARCIAIS JÁ REALIZADOS NESTE MÊS ─────────────
+  if(!DB.pagamentosParciais) DB.pagamentosParciais=[];
+  var parciaisDoMes = DB.pagamentosParciais.filter(function(p){ return p.func===fid && p.mes===mes; });
+  var totalJaPago = parciaisDoMes.reduce(function(s,p){ return s+Number(p.valor||0); }, 0);
+  var saldoRestante = Math.max(0, liquido - totalJaPago);
+
+  var parciaisArea = el('pg-parciais-area');
+  var parciaisLista = el('pg-parciais-lista');
+  var parciaisTotal = el('pg-parciais-total');
+  if(parciaisDoMes.length > 0 && parciaisArea){
+    parciaisArea.style.display = 'block';
+    parciaisLista.innerHTML = parciaisDoMes.map(function(p){
+      return '<div style="display:flex;justify-content:space-between;margin-bottom:3px">' +
+        '<span>📅 ' + fmtData(p.data) + ' — ' + (p.forma||'Dinheiro') + (p.obs?' ('+p.obs+')':'') + '</span>' +
+        '<span style="font-weight:700;color:var(--ac)">R$ ' + Number(p.valor).toFixed(2).replace('.',',') + '</span></div>';
+    }).join('');
+    parciaisTotal.textContent = 'Total já pago: R$ ' + totalJaPago.toFixed(2).replace('.',',') + ' | Saldo restante: R$ ' + saldoRestante.toFixed(2).replace('.',',');
+  } else if(parciaisArea){
+    parciaisArea.style.display = 'none';
+  }
+  pgCalcAtual.totalJaPago = totalJaPago;
+  pgCalcAtual.saldoRestante = saldoRestante;
+  pgCalcAtual.parciaisDoMes = parciaisDoMes;
+
+  // ── ADIANTAMENTOS/VALES PENDENTES ─────────────────────────────
   var adiantsFunc = (typeof adiantamentos !== 'undefined' ? adiantamentos[fid] || [] : []);
   var totalAdiantPendente = adiantsFunc.filter(function(a){return a.status==='pendente';}).reduce(function(s,a){return s+a.valor;},0);
   var adiantArea = el('pg-adiant-area');
@@ -4038,11 +4077,12 @@ function calcPagamento(){
   }
   pgCalcAtual.totalAdiant = totalAdiantPendente;
 
-  // Preenche campo de valor calculado e a pagar
+  // ── PREENCHE CAMPOS ──────────────────────────────────────────
   var vcEl = el('pg-val-calc');
   var vpEl = el('pg-val-pagar');
-  if(vcEl) vcEl.value = 'R$ ' + liquido.toFixed(2).replace('.',',');
-  if(vpEl) vpEl.value = liquido.toFixed(2);
+  if(vcEl) vcEl.value = 'R$ ' + saldoRestante.toFixed(2).replace('.',',');
+  if(vpEl) vpEl.value = saldoRestante.toFixed(2);
+  atualizarValorFinal();
 
   var horInfo = isCLT&&func.horEntrada
     ?'<div style="background:var(--bg3);border-radius:var(--r);padding:6px 10px;font-size:11px;color:var(--tx2);margin-bottom:8px">'+
@@ -4057,7 +4097,13 @@ function calcPagamento(){
   if(vHex>0) rows += '<div class="tot-r"><span>H. extras ('+hexTotal.toFixed(2)+'h × '+fmt(valorHora*1.5)+'/h)</span><span style="color:var(--am)">'+fmt(vHex)+'</span></div>';
   if(descLabel) rows += '<div class="tot-r"><span>'+descLabel+'</span><span style="color:var(--rd)">− '+fmt(descVal)+'</span></div>';
   if(faltasJust>0) rows += '<div class="tot-r"><span style="color:var(--tx2)">Faltas justificadas: '+faltasJust+' (sem desconto)</span><span>—</span></div>';
-  rows += '<div class="tot-r" style="color:var(--gn)">LÍQUIDO A PAGAR <span>'+fmt(liquido)+'</span></div>';
+  rows += '<div class="tot-r" style="border-top:1px solid var(--br);padding-top:6px;margin-top:2px"><b>BRUTO DO MÊS</b><span style="color:var(--gn);font-weight:700">'+fmt(liquido)+'</span></div>';
+  if(totalJaPago > 0){
+    rows += '<div class="tot-r" style="color:var(--ac)"><span>✅ Já pago ('+parciaisDoMes.length+' lançamento(s))</span><span style="color:var(--ac)">− '+fmt(totalJaPago)+'</span></div>';
+    rows += '<div class="tot-r" style="border-top:2px solid var(--gn);padding-top:6px;margin-top:2px;font-size:14px"><b>SALDO RESTANTE</b><span style="color:var(--gn);font-weight:700;font-size:16px">'+fmt(saldoRestante)+'</span></div>';
+  } else {
+    rows += '<div class="tot-r" style="border-top:2px solid var(--gn);padding-top:6px;margin-top:2px;font-size:14px"><b>LÍQUIDO A PAGAR</b><span style="color:var(--gn);font-weight:700;font-size:16px">'+fmt(liquido)+'</span></div>';
+  }
 
   var badge = isCLT?'bgt':vl==='mensal'?'bgb':vl==='diaria'?'bgb':'bgp';
   var label = isCLT?'CLT/Registrado':vl==='mensal'?'Mensal':vl==='diaria'?'Diária':'Empreitada';
@@ -4086,21 +4132,43 @@ var pgCalcAtual=null;
 function atualizarValorFinal(){
   if(!pgCalcAtual) return;
   var vPagar = Number(val('pg-val-pagar'))||0;
-  var vCalc = pgCalcAtual.valor;
+  var saldo = pgCalcAtual.saldoRestante !== undefined ? pgCalcAtual.saldoRestante : pgCalcAtual.valor;
   var diff = el('pg-val-diff');
-  if(!diff) return;
-  if(Math.abs(vPagar - vCalc) > 0.01){
-    if(vPagar < vCalc){
+  var badge = el('pg-tipo-pagamento');
+
+  if(vPagar <= 0) {
+    if(diff) diff.style.display='none';
+    if(badge) badge.style.display='none';
+    return;
+  }
+
+  var eParcial = vPagar < (saldo - 0.009); // tolerância de centavos
+
+  if(diff){
+    if(eParcial){
+      var restante = saldo - vPagar;
       diff.style.display='block';
       diff.style.color='var(--am)';
-      diff.textContent = '⚠️ Pagamento parcial: ficará pendente R$ '+(vCalc-vPagar).toFixed(2).replace('.',',');
-    } else if(vPagar > vCalc){
+      diff.textContent = '⚠️ Pagamento PARCIAL — ficará pendente R$ ' + restante.toFixed(2).replace('.',',') + ' (ponto NÃO será zerado)';
+    } else {
       diff.style.display='block';
-      diff.style.color='var(--rd)';
-      diff.textContent = '⚠️ Valor maior que o calculado: verifique!';
+      diff.style.color='var(--gn)';
+      diff.textContent = '✅ Pagamento TOTAL — ponto será zerado após confirmação';
     }
-  } else {
-    diff.style.display='none';
+  }
+  if(badge){
+    badge.style.display='block';
+    if(eParcial){
+      badge.style.background='rgba(245,158,11,.12)';
+      badge.style.color='var(--am)';
+      badge.style.border='1px solid rgba(245,158,11,.4)';
+      badge.textContent = '⚡ PAGAMENTO PARCIAL — o holerite será emitido só com este valor. O ponto continua ativo.';
+    } else {
+      badge.style.background='rgba(16,185,129,.12)';
+      badge.style.color='var(--gn)';
+      badge.style.border='1px solid rgba(16,185,129,.4)';
+      badge.textContent = '✅ PAGAMENTO FINAL — ' + (pgCalcAtual.totalJaPago>0 ? 'quita os R$ ' + pgCalcAtual.totalJaPago.toFixed(2).replace('.',',') + ' já pagos. ' : '') + 'Ponto será zerado.';
+    }
   }
 }
 
@@ -4146,88 +4214,117 @@ function confirmarPagamentoFunc(){
   if(val('pg-pago')!=='sim'){alert('Selecione "Sim" para confirmar o pagamento.');return;}
   if(!pgCalcAtual){alert('Calcule o pagamento primeiro.');return;}
 
-  // Determina valor a pagar (parcial ou total)
   var vPagar = Number(val('pg-val-pagar'));
   if(!vPagar || vPagar <= 0){
-    vPagar = pgCalcAtual.valor;
+    alert('Informe o valor a pagar.');return;
   }
+
+  var saldo = pgCalcAtual.saldoRestante !== undefined ? pgCalcAtual.saldoRestante : pgCalcAtual.valor;
+  var eParcial = vPagar < (saldo - 0.009);
   var descAdiant = val('pg-desc-adiant')==='sim';
-  var totalAdiantDesc = (descAdiant && pgCalcAtual.totalAdiant > 0) ? pgCalcAtual.totalAdiant : 0;
-
-  // Confirmação antes de lançar
-  var msgConfirm = '✔ Confirmar pagamento?\n\n';
-  msgConfirm += 'Funcionário: ' + pgCalcAtual.func.nome + '\n';
-  msgConfirm += 'Competência: ' + pgCalcAtual.mes + '\n';
-  msgConfirm += 'Valor calculado: R$ ' + pgCalcAtual.valor.toFixed(2).replace('.',',') + '\n';
-  if(totalAdiantDesc > 0) msgConfirm += 'Desconto adiantamento: - R$ ' + totalAdiantDesc.toFixed(2).replace('.',',') + '\n';
-  msgConfirm += 'Valor a lançar: R$ ' + vPagar.toFixed(2).replace('.',',') + '\n';
-  msgConfirm += 'Forma: ' + (val('pg-forma')||'Dinheiro') + '\n\n';
-  msgConfirm += 'Os registros de ponto deste mês serão zerados após o lançamento.';
-  if(!confirm(msgConfirm)) return;
-
-  var obs='Forma: '+val('pg-forma');
-  if(val('pg-comp-obs'))obs+=' | '+val('pg-comp-obs');
-  if(totalAdiantDesc > 0) obs += ' | Descontado adiantamento: R$ '+totalAdiantDesc.toFixed(2);
-
-  DB.lancamentos.push({id:id(),tipo:'despesa',cat:'Mao de obra',obra:'',
-    data:val('pg-data-pag')||hoje(),
-    desc:'Pagamento '+pgCalcAtual.func.nome+' ('+pgCalcAtual.mes+')',
-    val:vPagar,forn:pgCalcAtual.func.nome,
-    nf:val('pg-comp')||'',obs:obs});
-
-  // Se desconto de adiantamento, marca como descontado
-  if(descAdiant && totalAdiantDesc > 0 && typeof descontarAdiantamentos === 'function'){
-    descontarAdiantamentos(pgCalcAtual.func.id);
+  var totalAdiantDesc = (descAdiant && pgCalcAtual.totalAdiant > 0 && !eParcial) ? pgCalcAtual.totalAdiant : 0;
+  // Desconto de adiantamento só no pagamento FINAL
+  if(eParcial && pgCalcAtual.totalAdiant > 0 && descAdiant){
+    if(!confirm('Atenção: o desconto de adiantamento será aplicado apenas no pagamento final.\nContinuar com o pagamento parcial sem descontar o adiantamento agora?'))return;
   }
 
-  // Zera folha de ponto do mês após pagar
   var fid_pago = pgCalcAtual.func.id;
   var mes_pago = String(pgCalcAtual.mes||'').slice(0,7);
-  if(!DB._deletedIds) DB._deletedIds = [];
-  var pontosRemovidos = 0;
+  var forma = val('pg-forma')||'Dinheiro';
+  var compObs = val('pg-comp-obs')||'';
+  var comp = val('pg-comp')||'';
 
-  DB.pontos.forEach(function(p){
-    var pmes = String(p.data||'').slice(0,7);
-    if(p.func===fid_pago && pmes===mes_pago){
-      if(DB._deletedIds.indexOf(p.id) < 0) DB._deletedIds.push(p.id);
-      pontosRemovidos++;
-    }
-  });
-  DB.pontos = DB.pontos.filter(function(p){
-    var pmes = String(p.data||'').slice(0,7);
-    return !(p.func===fid_pago && pmes===mes_pago);
-  });
-
-  if(DB.producoes){
-    DB.producoes.forEach(function(p){
-      var pmes = String(p.data||'').slice(0,7);
-      if(p.func===fid_pago && pmes===mes_pago){
-        if(DB._deletedIds.indexOf(p.id) < 0) DB._deletedIds.push(p.id);
-        pontosRemovidos++;
-      }
-    });
-    DB.producoes = DB.producoes.filter(function(p){
-      var pmes = String(p.data||'').slice(0,7);
-      return !(p.func===fid_pago && pmes===mes_pago);
-    });
+  // ── Mensagem de confirmação ──────────────────────────────────
+  var msgConfirm = (eParcial ? '⚡ CONFIRMAR PAGAMENTO PARCIAL?\n\n' : '✅ CONFIRMAR PAGAMENTO FINAL?\n\n');
+  msgConfirm += 'Funcionário: ' + pgCalcAtual.func.nome + '\n';
+  msgConfirm += 'Competência: ' + pgCalcAtual.mes + '\n';
+  msgConfirm += 'Bruto do mês: R$ ' + pgCalcAtual.valor.toFixed(2).replace('.',',') + '\n';
+  if(pgCalcAtual.totalJaPago > 0) msgConfirm += 'Já pago: R$ ' + pgCalcAtual.totalJaPago.toFixed(2).replace('.',',') + '\n';
+  if(totalAdiantDesc > 0) msgConfirm += 'Desc. adiantamento: - R$ ' + totalAdiantDesc.toFixed(2).replace('.',',') + '\n';
+  msgConfirm += 'Valor a lançar: R$ ' + vPagar.toFixed(2).replace('.',',') + '\n';
+  msgConfirm += 'Forma: ' + forma + '\n\n';
+  if(eParcial){
+    msgConfirm += '⚠️ O ponto NÃO será zerado. Use novamente para pagar o saldo restante.';
+  } else {
+    msgConfirm += '✅ O ponto será zerado após este lançamento.';
   }
-  save();
+  if(!confirm(msgConfirm)) return;
 
-  if(typeof renderPonto === 'function') renderPonto();
-  setTimeout(function(){ sincronizarCompleto(true); }, 500);
+  var obs = 'Forma: ' + forma;
+  if(compObs) obs += ' | ' + compObs;
+  if(pgCalcAtual.totalJaPago > 0) obs += ' | Já pago anteriormente: R$ ' + pgCalcAtual.totalJaPago.toFixed(2);
+  if(totalAdiantDesc > 0) obs += ' | Desc. adiantamento: R$ ' + totalAdiantDesc.toFixed(2);
+  if(eParcial) obs += ' | PARCIAL - saldo R$ ' + (saldo - vPagar).toFixed(2);
 
-  var msgOk = '✔ Pagamento lançado com sucesso!\n\n';
-  msgOk += 'Valor: R$ ' + vPagar.toFixed(2).replace('.',',') + '\n';
-  if(totalAdiantDesc > 0) msgOk += 'Adiantamento descontado: R$ ' + totalAdiantDesc.toFixed(2).replace('.',',') + '\n';
-  msgOk += pontosRemovidos + ' registro(s) de ponto de ' + mes_pago + ' foram zerados.';
-  alert(msgOk);
+  var descLanc = eParcial
+    ? 'Pagamento PARCIAL ' + pgCalcAtual.func.nome + ' (' + pgCalcAtual.mes + ')'
+    : 'Pagamento ' + pgCalcAtual.func.nome + ' (' + pgCalcAtual.mes + ')' + (pgCalcAtual.totalJaPago>0 ? ' — Final' : '');
+
+  DB.lancamentos.push({id:id(), tipo:'despesa', cat:'Mao de obra', obra:'',
+    data: val('pg-data-pag')||hoje(),
+    desc: descLanc,
+    val: vPagar, forn: pgCalcAtual.func.nome,
+    nf: comp, obs: obs});
+
+  if(eParcial){
+    // ── PARCIAL: salva no histórico de parciais, NÃO zera ponto ──
+    if(!DB.pagamentosParciais) DB.pagamentosParciais=[];
+    DB.pagamentosParciais.push({
+      id: id(), func: fid_pago, mes: mes_pago,
+      valor: vPagar, data: val('pg-data-pag')||hoje(),
+      forma: forma, obs: compObs, comp: comp
+    });
+    save();
+    setTimeout(function(){ sincronizarCompleto(true); }, 500);
+    alert('⚡ Pagamento parcial de R$ ' + vPagar.toFixed(2).replace('.',',') + ' lançado!\n\nSaldo restante: R$ ' + (saldo-vPagar).toFixed(2).replace('.',',') + '\n\nO ponto foi mantido. Volte para pagar o saldo.');
+
+  } else {
+    // ── FINAL: desconta adiantamento, zera ponto, limpa parciais ──
+    if(totalAdiantDesc > 0 && typeof descontarAdiantamentos === 'function'){
+      descontarAdiantamentos(fid_pago);
+    }
+
+    // Remove parciais deste mês (quitados)
+    if(DB.pagamentosParciais){
+      DB.pagamentosParciais = DB.pagamentosParciais.filter(function(p){
+        return !(p.func===fid_pago && p.mes===mes_pago);
+      });
+    }
+
+    // Zera pontos
+    if(!DB._deletedIds) DB._deletedIds=[];
+    var pontosRemovidos=0;
+    DB.pontos.forEach(function(p){
+      var pmes=String(p.data||'').slice(0,7);
+      if(p.func===fid_pago && pmes===mes_pago){ if(DB._deletedIds.indexOf(p.id)<0) DB._deletedIds.push(p.id); pontosRemovidos++; }
+    });
+    DB.pontos = DB.pontos.filter(function(p){ var pmes=String(p.data||'').slice(0,7); return !(p.func===fid_pago && pmes===mes_pago); });
+
+    if(DB.producoes){
+      DB.producoes.forEach(function(p){
+        var pmes=String(p.data||'').slice(0,7);
+        if(p.func===fid_pago && pmes===mes_pago){ if(DB._deletedIds.indexOf(p.id)<0) DB._deletedIds.push(p.id); pontosRemovidos++; }
+      });
+      DB.producoes = DB.producoes.filter(function(p){ var pmes=String(p.data||'').slice(0,7); return !(p.func===fid_pago && pmes===mes_pago); });
+    }
+    save();
+    if(typeof renderPonto==='function') renderPonto();
+    setTimeout(function(){ sincronizarCompleto(true); }, 500);
+
+    var msgOk = '✅ Pagamento final lançado!\n\nValor: R$ ' + vPagar.toFixed(2).replace('.',',') + '\n';
+    if(pgCalcAtual.totalJaPago>0) msgOk += 'Total do mês (com parciais): R$ ' + (pgCalcAtual.totalJaPago+vPagar).toFixed(2).replace('.',',') + '\n';
+    if(totalAdiantDesc>0) msgOk += 'Adiantamento descontado: R$ ' + totalAdiantDesc.toFixed(2).replace('.',',') + '\n';
+    msgOk += pontosRemovidos + ' registro(s) de ponto zerado(s).';
+    alert(msgOk);
+  }
 
   el('pg-pago-area').style.display='none';
   setV('pg-pago','nao');
   var ca=el('pg-comp-area');if(ca)ca.style.display='none';
   var aa=el('pg-adiant-area');if(aa)aa.style.display='none';
+  var pa2=el('pg-parciais-area');if(pa2)pa2.style.display='none';
   ['pg-comp','pg-comp-obs','pg-anotacoes','pg-val-pagar'].forEach(function(i){setV(i,'');});
-  set('pg-result','<div class="empty">Pagamento registrado! Selecione outro funcionário/mês.</div>');
+  set('pg-result','<div class="empty">Pagamento lançado! Selecione funcionário/mês para continuar.</div>');
 }
 
 // ─── salvarPonto COM H.EXTRA AUTO ────────────────────────────
@@ -4414,6 +4511,23 @@ function exportarHoleritePDF(){
   }
 
   var liquido = usandoCalcAtual ? pgCalcAtual.valor : Math.max(0, base + vHex - descFaltas);
+
+  // Determina o valor que está sendo pago agora (pode ser parcial)
+  var vPagarAgora = Number(val('pg-val-pagar')) || 0;
+  var eParcial = false;
+  var totalJaPago = 0;
+  var parciaisDoMes = [];
+  if(!DB.pagamentosParciais) DB.pagamentosParciais=[];
+  parciaisDoMes = DB.pagamentosParciais.filter(function(p){ return p.func===fid && p.mes===mes; });
+  totalJaPago = parciaisDoMes.reduce(function(s,p){ return s+Number(p.valor||0); },0);
+  var saldoRestante = Math.max(0, liquido - totalJaPago);
+
+  if(vPagarAgora > 0 && vPagarAgora < (saldoRestante - 0.009)){
+    eParcial = true;
+  }
+  // Se não digitou nada, usa o saldo
+  var valorHolerite = vPagarAgora > 0 ? vPagarAgora : saldoRestante;
+
   var comp=val('pg-comp')||'';
   var compObs=val('pg-comp-obs')||'';
   var anotacoes=isCLT?val('pg-anotacoes')||'':'';
@@ -4429,9 +4543,12 @@ function exportarHoleritePDF(){
     if(cfg.cnpj)doc.text('CNPJ: '+cfg.cnpj,105,y+14,{align:'center'});
     if(cfg.end)doc.text(cfg.end,105,y+19,{align:'center'});
     y+=26;
-    doc.setFillColor(35,52,100);doc.rect(14,y,182,8,'F');
+    // Faixa de título — cor diferente para parcial
+    if(eParcial){ doc.setFillColor(180,100,0); } else { doc.setFillColor(35,52,100); }
+    doc.rect(14,y,182,8,'F');
     doc.setTextColor(255,255,255);doc.setFontSize(10);doc.setFont(undefined,'bold');
-    doc.text(isCLT?'HOLERITE - FOLHA DE PAGAMENTO':'RECIBO DE PAGAMENTO',105,y+5.5,{align:'center'});
+    var tituloDoc = eParcial ? 'RECIBO DE PAGAMENTO PARCIAL' : (isCLT?'HOLERITE - FOLHA DE PAGAMENTO':'RECIBO DE PAGAMENTO');
+    doc.text(tituloDoc,105,y+5.5,{align:'center'});
     doc.setTextColor(0,0,0);y+=12;
     doc.setFontSize(8);doc.setFont(undefined,'bold');doc.text('DADOS DO FUNCIONÁRIO',14,y);y+=7;
     doc.setFont(undefined,'normal');
@@ -4448,36 +4565,51 @@ function exportarHoleritePDF(){
     doc.setFont(undefined,'bold');doc.text('Descrição',14,y);doc.text('Referência',120,y,{align:'right'});doc.text('Valor (R$)',196,y,{align:'right'});
     doc.line(14,y+2,196,y+2);y+=7;doc.setFont(undefined,'normal');
     if(isCLT||vl==='mensal'){
-      var refLbl = presentes>0 ? presentes+' dias × R$'+fmtN(valorDia) : (func.horasMes||220)+'h';
-      doc.text('Salário base '+(isCLT?'CLT':'mensal'),14,y);doc.text(refLbl,120,y,{align:'right'});doc.text(fmtN(base),196,y,{align:'right'});
+      var refLbl = presentes>0 ? presentes+' dias x R$'+fmtN(valorDia) : (func.horasMes||220)+'h';
+      doc.text('Salario base '+(isCLT?'CLT':'mensal'),14,y);doc.text(refLbl,120,y,{align:'right'});doc.text(fmtN(base),196,y,{align:'right'});
     } else if(vl==='diaria'){
-      doc.text('Diárias trabalhadas',14,y);doc.text(presentes+' × R$'+fmtN(salario),120,y,{align:'right'});doc.text(fmtN(base),196,y,{align:'right'});
+      doc.text('Diarias trabalhadas',14,y);doc.text(presentes+' x R$'+fmtN(salario),120,y,{align:'right'});doc.text(fmtN(base),196,y,{align:'right'});
     } else {
       var prodsH=(DB.producoes||[]).filter(function(p){return p.func===fid&&(p.data||'').slice(0,7)===mes;});
-      doc.text('Empreitada/Produção',14,y);doc.text(prodsH.length+' lançamento(s)',120,y,{align:'right'});doc.text(fmtN(base),196,y,{align:'right'});
+      doc.text('Empreitada/Producao',14,y);doc.text(prodsH.length+' lancamento(s)',120,y,{align:'right'});doc.text(fmtN(base),196,y,{align:'right'});
     }
     y+=6;
-    if(vHex>0){doc.text('H. extras (adic. 50%)',14,y);doc.text(hexTotal.toFixed(2)+'h × R$'+fmtN(valorHoraExt),120,y,{align:'right'});doc.text(fmtN(vHex),196,y,{align:'right'});y+=6;}
-    if(descFaltas>0){doc.text('Desc. faltas injust.',14,y);doc.text(faltasInj+' × R$'+fmtN(vl==='diaria'?salario:valorDia),120,y,{align:'right'});doc.text('('+fmtN(descFaltas)+')',196,y,{align:'right'});y+=6;}
+    if(vHex>0){doc.text('H. extras (adic. 50%)',14,y);doc.text(hexTotal.toFixed(2)+'h x R$'+fmtN(valorHoraExt),120,y,{align:'right'});doc.text(fmtN(vHex),196,y,{align:'right'});y+=6;}
+    if(descFaltas>0){doc.text('Desc. faltas injust.',14,y);doc.text(faltasInj+' x R$'+fmtN(vl==='diaria'?salario:valorDia),120,y,{align:'right'});doc.text('('+fmtN(descFaltas)+')',196,y,{align:'right'});y+=6;}
+    // Parciais anteriores no holerite final
+    if(!eParcial && totalJaPago > 0){
+      doc.line(14,y,196,y);y+=4;
+      doc.setFont(undefined,'bold');doc.text('Bruto do mes',14,y);doc.text(fmtN(liquido),196,y,{align:'right'});y+=5;
+      doc.setFont(undefined,'normal');doc.text('Pagamentos anteriores ('+parciaisDoMes.length+'x)',14,y);doc.text('('+fmtN(totalJaPago)+')',196,y,{align:'right'});y+=5;
+    }
     doc.line(14,y,196,y);y+=5;
     doc.setFont(undefined,'bold');doc.setFontSize(11);
-    doc.text('LÍQUIDO A PAGAR',14,y);doc.text('R$ '+fmtN(liquido),196,y,{align:'right'});
+    var labelFinal = eParcial ? 'PAGAMENTO PARCIAL' : (totalJaPago>0 ? 'SALDO FINAL PAGO' : 'LIQUIDO A PAGAR');
+    doc.text(labelFinal,14,y);doc.text('R$ '+fmtN(valorHolerite),196,y,{align:'right'});
+    if(eParcial){
+      doc.setFontSize(8);doc.setFont(undefined,'normal');
+      doc.setTextColor(180,80,0);
+      doc.text('* PARCIAL — Saldo restante: R$ '+fmtN(saldoRestante-valorHolerite)+' — Ponto mantido em aberto',14,y+5);
+      doc.setTextColor(0,0,0);
+      y+=5;
+    }
     doc.setFont(undefined,'normal');doc.setFontSize(8);y+=8;
     if(isCLT&&anotacoes){
       doc.line(14,y,196,y);y+=5;
-      doc.setFont(undefined,'bold');doc.text('ANOTAÇÕES',14,y);y+=6;
+      doc.setFont(undefined,'bold');doc.text('ANOTACOES',14,y);y+=6;
       doc.setFont(undefined,'normal');
       var la=doc.splitTextToSize(anotacoes,180);doc.text(la,14,y);y+=la.length*5+4;
     }
     if(comp){doc.line(14,y,196,y);y+=5;doc.text('Comprovante: '+comp+(compObs?' - '+compObs:''),14,y);doc.text('Forma: '+(val('pg-forma')||'-'),150,y);y+=8;}
     y+=10;doc.line(30,y,90,y);doc.line(110,y,180,y);
-    doc.text('Assinatura do funcionário',60,y+5,{align:'center'});
+    doc.text('Assinatura do funcionario',60,y+5,{align:'center'});
     doc.text('Assinatura do empregador',145,y+5,{align:'center'});
     y+=11;doc.text('Nome: '+func.nome,30,y);doc.text('Nome: '+(cfg.resp||cfg.empresa||''),110,y);
     doc.setFontSize(7);doc.setTextColor(120,120,120);
     doc.text('Gerado em: '+new Date().toLocaleString('pt-BR'),105,285,{align:'center'});
     if(cfg.crea)doc.text(cfg.crea,105,290,{align:'center'});
-    doc.save('recibo_'+func.nome.replace(/ /g,'_')+'_'+mes+'.pdf');
+    var sufixo = eParcial ? '_parcial' : '';
+    doc.save('recibo_'+func.nome.replace(/ /g,'_')+'_'+mes+sufixo+'.pdf');
   }catch(ex){alert('Erro ao gerar PDF: '+ex.message);}
 }
 
