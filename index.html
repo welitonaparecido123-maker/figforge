@@ -1106,7 +1106,29 @@ function navegar(p){
   renderPanel(p);
 }
 
-el('btn-sb').addEventListener('click',()=>el('sb').classList.toggle('mini'));
+el('btn-sb').addEventListener('click',function(){
+  var sb=el('sb');
+  if(window.innerWidth<=768){
+    // Mobile: drawer overlay
+    sb.classList.toggle('open');
+    document.body.classList.toggle('sb-open');
+  } else {
+    // Desktop: minimiza
+    sb.classList.toggle('mini');
+  }
+});
+
+// Fecha drawer ao clicar fora (mobile)
+document.body.addEventListener('click',function(e){
+  if(window.innerWidth>768) return;
+  var sb=el('sb');
+  if(sb && sb.classList.contains('open') && e.target.id!=='btn-sb' && !sb.contains(e.target)){
+    sb.classList.remove('open');
+    document.body.classList.remove('sb-open');
+  }
+});
+
+
 el('btn-acao').addEventListener('click',()=>{
   const mo={obras:'mo-obra',orcamentos:null,clientes:'mo-cli',funcionarios:'mo-func',estoque:'mo-estq',diario:'mo-diario',usuarios:'mo-user'};
   if(panelAtual==='orcamentos'){ itab('orc','novo',document.querySelectorAll('.itab')[0]); return; }
