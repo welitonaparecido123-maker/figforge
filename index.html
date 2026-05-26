@@ -241,9 +241,121 @@ textarea{resize:vertical;min-height:60px}
 
 
 @keyframes spin{to{transform:rotate(360deg)}}
+
+/* ═════════════════════════════════════════════════════════════════════
+   SPLASH SCREEN
+   ═════════════════════════════════════════════════════════════════════ */
+.splash-screen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #0A0E18 0%, #111827 50%, #0A0E18 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 99999;
+  opacity: 1;
+  visibility: visible;
+  transition: opacity .6s ease-out, visibility .6s ease-out;
+}
+
+.splash-screen.hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.splash-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  text-align: center;
+}
+
+.splash-logo {
+  width: 140px;
+  height: 140px;
+  object-fit: contain;
+  animation: splashLogoFloat 3s ease-in-out infinite;
+  filter: drop-shadow(0 0 30px rgba(16,185,129,.3));
+}
+
+@keyframes splashLogoFloat {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-12px); }
+}
+
+.splash-title {
+  font-size: 28px;
+  font-weight: 800;
+  background: linear-gradient(135deg, #10B981, #06B6D4);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: -0.5px;
+}
+
+.splash-subtitle {
+  font-size: 13px;
+  color: #9CA3AF;
+  letter-spacing: .5px;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.splash-loading {
+  display: flex;
+  gap: 6px;
+  margin-top: 20px;
+  justify-content: center;
+}
+
+.splash-loading-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #10B981;
+  animation: splashPulse 1.4s ease-in-out infinite;
+}
+
+.splash-loading-dot:nth-child(2) {
+  animation-delay: .2s;
+}
+
+.splash-loading-dot:nth-child(3) {
+  animation-delay: .4s;
+}
+
+@keyframes splashPulse {
+  0%, 100% { opacity: .3; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.2); }
+}
+
 </style>
 </head>
 <body>
+<!-- ═══ SPLASH SCREEN ═════════════════════════════════════════════════════════ -->
+<div class="splash-screen" id="splash-screen">
+  <div class="splash-container">
+    <img class="splash-logo" src="/home/ubuntu/upload/logo-figforge.jpg" alt="FigForce Logo"/>
+    <div class="splash-title">FigForce</div>
+    <div class="splash-subtitle">Força em cada etapa. Controle em cada decisão.</div>
+    <div class="splash-loading">
+      <div class="splash-loading-dot"></div>
+      <div class="splash-loading-dot"></div>
+      <div class="splash-loading-dot"></div>
+    </div>
+  </div>
+</div>
+
+
 
 <!-- ═══ TELA DE LICENÇA / ATIVAÇÃO ═════════════════════════════════════ -->
 <div class="auth-screen" id="screen-license">
@@ -4947,6 +5059,30 @@ function deletarProducao(prodId){
   renderProducao();
   setTimeout(function(){ sincronizarCompleto(true); }, 800);
 }
+
+// ═════════════════════════════════════════════════════════════════════
+// SPLASH SCREEN CONTROLLER
+// ═════════════════════════════════════════════════════════════════════
+(function() {
+  const splashScreen = document.getElementById('splash-screen');
+  const authScreen = document.getElementById('screen-license');
+  
+  // Ocultar splash screen após 3 segundos
+  setTimeout(function() {
+    if (splashScreen) {
+      splashScreen.classList.add('hidden');
+    }
+  }, 3000);
+  
+  // Permitir fechar splash ao clicar
+  if (splashScreen) {
+    splashScreen.addEventListener('click', function() {
+      this.classList.add('hidden');
+    });
+  }
+})();
+
+
 </script>
 
 <div class="mo" id="mo-estq-edit"><div class="mbox">
