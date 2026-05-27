@@ -5130,30 +5130,29 @@ function ativarLicenca(){
   err.style.display='none';
 
   if(!email||!email.includes('@')){
-    err.textContent='Digite um e-mail valido.';
+    err.textContent='Digite um e-mail válido.';
     err.style.display='block';return;
   }
 
+  // Salva email no localStorage para pré-preencher em reloads
+  localStorage.setItem('_lic_email_tentativa', email);
+
   // Modo teste
   if(isModoTeste()){
-    _salvarLicenca({
-      email,ativa:true,nome:'Teste',plano:'pro',
-      ativadoEm:new Date().toISOString()
-    });
+    _salvarLicenca({email,ativa:true,nome:'Teste',plano:'pro',ativadoEm:new Date().toISOString()});
     el('screen-license').style.display='none';
     registrarUsuarioDoLink();
     mostrarLoginApos(email);
     return;
   }
 
-  // Cache local
+  // Cache local válido
   var licLocal=localStorage.getItem(SK_LIC);
   if(licLocal){
     try{
       var obj=JSON.parse(licLocal);
       if(obj.email===email&&obj.ativa){
         el('screen-license').style.display='none';
-        // Registra usuário do link mesmo vindo do cache
         registrarUsuarioDoLink();
         mostrarLoginApos(email);
         return;
@@ -5162,44 +5161,95 @@ function ativarLicenca(){
   }
 
   btn.disabled=true;
-  btn.textContent='Verificando...';
+  btn.textContent='⏳ Verificando...';
   if(status) status.textContent='Consultando servidor...';
 
-  var url=URL_SERVIDOR+'?action=validar&email='+encodeURIComponent(email);
-  chamarServidorJSONP(url,
-    function(json){
-      btn.disabled=false;btn.textContent='Ativar agora';
+  // Adiciona botão de cancelar/tentar novamente após 4s
+  var retryTimer = setTimeout(function(){
+    var cancelBtn = document.createElement('button');
+    cancelBtn.id = 'btn-cancelar-ativacao';
+    cancelBtn.className = 'auth-btn';
+    cancelBtn.style.cssText = 'margin-top:8px;background:transparent;border:1px solid var(--br);color:var(--tx2);font-size:12px';
+    cancelBtn.textContent = '↩ Cancelar e tentar novamente';
+    cancelBtn.onclick = function(){
+      btn.disabled=false; btn.textContent='✔ Ativar agora';
       if(status) status.textContent='';
-      if(json&&json.ok){
-        _salvarLicenca({
-          email,ativa:true,nome:json.nome||'',
-          plano:json.plano||'Basico',
-          ativadoEm:new Date().toISOString()
-        });
-        el('screen-license').style.display='none';
-        // Antes de mostrar o login, verifica backup na nuvem
-        restaurarBackupEMostrarLogin(email);
-      } else {
-        err.textContent=(json&&json.msg)||'E-mail nao encontrado. Verifique ou adquira uma licenca.';
-        err.style.display='block';
-      }
-    },
-    function(){
-      btn.disabled=false;btn.textContent='Ativar agora';
-      if(status) status.textContent='';
-      if(licLocal){
-        try{
-          var o=JSON.parse(licLocal);
-          if(o.email===email&&o.ativa){
-            el('screen-license').style.display='none';
-            mostrarLogin();return;
-          }
-        }catch(e2){}
-      }
-      err.textContent='Nao foi possivel conectar ao servidor. Verifique sua internet.';
+      cancelBtn.remove();
+    };
+    if(btn.parentNode && !document.getElementById('btn-cancelar-ativacao')){
+      btn.parentNode.insertBefore(cancelBtn, btn.nextSibling);
+    }
+  }, 4000);
+
+  function onSucesso(json){
+    clearTimeout(retryTimer);
+    var c = document.getElementById('btn-cancelar-ativacao');
+    if(c) c.remove();
+    btn.disabled=false; btn.textContent='✔ Ativar agora';
+    if(status) status.textContent='';
+    if(json&&json.ok){
+      _salvarLicenca({email,ativa:true,nome:json.nome||'',
+        plano:json.plano||'Basico',ativadoEm:new Date().toISOString()});
+      localStorage.removeItem('_lic_email_tentativa');
+      el('screen-license').style.display='none';
+      restaurarBackupEMostrarLogin(email);
+    } else {
+      err.textContent=(json&&json.msg)||'E-mail não encontrado. Verifique ou adquira uma licença.';
       err.style.display='block';
     }
-  );
+  }
+
+  function onErro(){
+    clearTimeout(retryTimer);
+    var c = document.getElementById('btn-cancelar-ativacao');
+    if(c) c.remove();
+    btn.disabled=false; btn.textContent='✔ Ativar agora';
+    if(status) status.textContent='';
+    // Tenta licença em cache como último recurso
+    if(licLocal){
+      try{
+        var o=JSON.parse(licLocal);
+        if(o.email===email&&o.ativa){
+          el('screen-license').style.display='none';
+          mostrarLogin();return;
+        }
+      }catch(e2){}
+    }
+    err.textContent='Não foi possível conectar. Verifique sua internet e tente novamente.';
+    err.style.display='block';
+  }
+
+  var url = URL_SERVIDOR+'?action=validar&email='+encodeURIComponent(email);
+
+  // Tenta fetch primeiro (mais confiável no mobile), JSONP como fallback
+  _validarComFetch(url, onSucesso, function(){
+    // fetch falhou, tenta JSONP
+    chamarServidorJSONP(url, onSucesso, onErro, 10000);
+  });
+}
+
+function _validarComFetch(url, onSucesso, onErro){
+  if(typeof fetch === 'undefined'){ onErro(); return; }
+  var controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+  var timer = controller ? setTimeout(function(){ controller.abort(); }, 8000) : null;
+  fetch(url + '&_fmt=json', controller ? {signal:controller.signal} : {})
+    .then(function(r){ return r.text(); })
+    .then(function(txt){
+      clearTimeout(timer);
+      // Extrai JSON do resultado (pode vir como JSONP ou JSON puro)
+      var json = null;
+      try{ json = JSON.parse(txt); }catch(e){
+        // Tenta extrair de JSONP: callback({...})
+        var m = txt.match(/\{[\s\S]*\}/);
+        if(m) try{ json = JSON.parse(m[0]); }catch(e2){}
+      }
+      if(json) onSucesso(json);
+      else onErro();
+    })
+    .catch(function(){
+      clearTimeout(timer);
+      onErro();
+    });
 }
 
 // JSONP — funciona de arquivo local sem restricao de CORS
@@ -5457,7 +5507,16 @@ function initAuth(){
     el('app-shell').style.display='none';
     setTimeout(function(){
       lerEmailDaURL();
+      // Tenta pré-preencher email da última tentativa ou da licença
+      var emailSalvo = localStorage.getItem('_lic_email_tentativa') || '';
+      if(!emailSalvo){
+        try{ var lc=_lerLicenca(); emailSalvo=lc.email||''; }catch(e){}
+      }
+      if(emailSalvo && el('lic-email') && !el('lic-email').value){
+        el('lic-email').value = emailSalvo;
+      }
       if(el('lic-email')&&!el('lic-email').value) el('lic-email').focus();
+      else if(el('lic-btn')) el('lic-btn').focus();
     },300);
     return;
   }
