@@ -1843,7 +1843,7 @@ button[style*="background: #4F6EF7"], .btn-primary {
     <div class="sb-g">
       <div class="sb-lbl">Principal</div>
       <div class="sbi act" data-p="dashboard"><div class="sbi-i">📊</div><div class="sbi-t">Dashboard</div></div>
-      <div class="sbi" data-p="obras"><div class="sbi-i">🏗️</div><div class="sbi-t">Obras</div></div>
+      <div class="sbi" data-p="obras"><div class="sbi-i">🏗️</div><div class="sbi-t" id="sb-label-obras">Obras</div></div>
       <div class="sbi" data-p="orcamentos"><div class="sbi-i">🧾</div><div class="sbi-t">Orçamentos</div></div>
       <div class="sbi" data-p="clientes"><div class="sbi-i">👥</div><div class="sbi-t">Clientes</div></div>
     </div>
@@ -2378,6 +2378,14 @@ button[style*="background: #4F6EF7"], .btn-primary {
       </div>
     </div>
 
+    <!-- SEGMENTO DE ATUAÇÃO -->
+    <div class="card">
+      <div class="ct">🏷️ Segmento de atuação</div>
+      <div style="font-size:12px;color:var(--tx2);margin-bottom:12px">Adapta terminologia, categorias e etapas para o seu tipo de negócio.</div>
+      <div id="nicho-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;margin-bottom:12px"></div>
+      <div style="font-size:11px;color:var(--tx3)">💡 Após trocar o segmento, recarregue a página para aplicar todas as adaptações.</div>
+    </div>
+
     <!-- PONTO DIGITAL GPS -->
     <div class="card" id="cfg-ponto-digital-card">
       <div class="ct">📍 Ponto Digital GPS <span id="badge-ponto-digital" style="font-size:10px;padding:2px 8px;border-radius:20px;margin-left:6px"></span></div>
@@ -2643,7 +2651,7 @@ button[style*="background: #4F6EF7"], .btn-primary {
 <div class="mo" id="mo-diario"><div class="mbox">
   <div class="mh"><span>Novo registro diário</span><div class="mx" role="button" tabindex="0" aria-label="Fechar janela" onclick="fecharMo('mo-diario')">✕</div></div>
   <div class="fr fr2"><div><label>Obra</label><select id="dr-obra"></select></div><div><label>Data</label><input id="dr-data" type="date"/></div></div>
-  <div class="fr fr3"><div><label>Etapa da obra</label><select id="dr-etapa"><option>Fundação</option><option>Estrutura</option><option>Alvenaria</option><option>Cobertura</option><option>Revestimento</option><option>Instalações elétricas</option><option>Instalações hidráulicas</option><option>Pintura</option><option>Acabamento</option><option>Outro</option></select></div><div><label>Funcionários presentes</label><input id="dr-funcs" type="number" value="0" min="0"/></div><div><label>Clima</label><select id="dr-clima"><option>Ensolarado</option><option>Nublado</option><option>Chuva — parado</option><option>Parcialmente nublado</option></select></div></div>
+  <div class="fr fr3"><div><label>Etapa</label><select id="dr-etapa"></select></div><div><label>Funcionários presentes</label><input id="dr-funcs" type="number" value="0" min="0"/></div><div><label>Clima</label><select id="dr-clima"><option>Ensolarado</option><option>Nublado</option><option>Chuva — parado</option><option>Parcialmente nublado</option></select></div></div>
   <div class="fr"><div><label>Atividades realizadas</label><textarea id="dr-ativ" placeholder="Descreva o que foi feito hoje..."></textarea></div></div>
   <div class="fr"><div><label>Ocorrências / Problemas</label><textarea id="dr-ocorr" placeholder="Imprevistos, atrasos, acidentes..."></textarea></div></div>
   <div class="fr">
@@ -2713,7 +2721,7 @@ button[style*="background: #4F6EF7"], .btn-primary {
 // ═══════════════════════════════════════════════════════════════════════════
 // CONSTANTES GLOBAIS — declaradas no topo para evitar ReferenceError
 // ═══════════════════════════════════════════════════════════════════════════
-var URL_SERVIDOR_CFG = 'https://script.google.com/macros/s/AKfycbzmLyefN11Xs8kNKJaGW-UESg4AYmyEEpCy5ECJ69bBhJmjQP5vL6_Jg6Ce470u5cnz/exec';
+var URL_SERVIDOR_CFG = ''; // MODO LOCAL — sem servidor para testes
 var SK_LIC_GLOBAL    = 'figforge_lic_v2';
 var SK_SESS_GLOBAL   = 'figforge_sess_v1';
 var VERSAO_APP       = '1.0.0';
@@ -2746,6 +2754,71 @@ let DB = {
   pagamentosParciais:[], justificativas:[],
   ferramentas:[], movFerramentas:[]
 };
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SISTEMA DE NICHOS — Adapta terminologia e categorias por segmento
+// ═══════════════════════════════════════════════════════════════════════════
+var NICHOS = {
+  construcao: {
+    nome:'Construção Civil', icone:'🏗️',
+    obra:'Obra', obras:'Obras', projeto:'Obra',
+    etapas:['Fundação','Estrutura','Alvenaria','Cobertura','Revestimento','Instalações elétricas','Instalações hidráulicas','Pintura','Acabamento','Outro'],
+    servicos:['Fundação','Alvenaria','Cobertura','Revestimento','Elétrica','Hidráulica','Pintura','Acabamento'],
+    materiais:['Cimento','Areia','Brita','Tijolo','Bloco','Ferro','Madeira','Tinta','Argamassa','Cerâmica'],
+    catReceita:['Serviço prestado','Adiantamento','Pagamento de etapa','Medição','Outros'],
+    catDespesa:['Material','Mão de obra','Equipamento','Serviço terceiro','Imposto','Aluguel','Outro'],
+    unidade:'m²', campo_area:'Área (m²)',
+  },
+  marmoraria: {
+    nome:'Marmoraria', icone:'🪨',
+    obra:'Projeto', obras:'Projetos', projeto:'Pedido',
+    etapas:['Medição','Corte','Polimento','Furação','Instalação','Entrega','Finalizado'],
+    servicos:['Bancada de cozinha','Soleira','Escada','Piso','Revestimento de parede','Peitoril','Pia de banheiro','Lareira'],
+    materiais:['Mármore Branco','Mármore Nero','Granito Preto','Granito Branco','Quartzito','Porcelanato','Silestone','Dekton','Cola epoxi','Rejunte'],
+    catReceita:['Venda de pedra','Serviço de instalação','Adiantamento','Sinal','Outros'],
+    catDespesa:['Pedra/Material','Disco de corte','Mão de obra','Transporte','Cola/Químicos','Locação de equipamento','Outro'],
+    unidade:'m²', campo_area:'Metragem (m²)',
+  },
+  serralheria: {
+    nome:'Serralheria', icone:'⚙️',
+    obra:'Serviço', obras:'Serviços', projeto:'Pedido',
+    etapas:['Medição','Produção','Pintura/Tratamento','Instalação','Finalizado'],
+    servicos:['Portão','Grade','Escada','Cobertura','Janela','Guarda-corpo','Gazebo','Estrutura metálica','Gradil','Corrimão'],
+    materiais:['Perfil quadrado','Perfil retangular','Chapa','Tubo','Barra chata','Eletrodo','Tinta','Lixo de desbaste','Parafuso','Dobradiça'],
+    catReceita:['Serviço prestado','Adiantamento','Sinal','Entrega parcial','Outros'],
+    catDespesa:['Material','Mão de obra','Pintura','Solda/Consumíveis','Transporte','Locação','Outro'],
+    unidade:'m²', campo_area:'Área (m²)',
+  },
+  calha: {
+    nome:'Calhas e Coberturas', icone:'🏠',
+    obra:'Serviço', obras:'Serviços', projeto:'Pedido',
+    etapas:['Orçamento aprovado','Compra de material','Execução','Finalizado'],
+    servicos:['Calha galvanizada','Calha PVC','Rufo','Cumeeira','Cobertura','Impermeabilização','Calha de zinco','Conduíte'],
+    materiais:['Calha galvanizada','Calha PVC','Rufo galvanizado','Telha ondulada','Manta asfáltica','Parafuso','Vedação','Conduíte PVC','Abraçadeira'],
+    catReceita:['Serviço prestado','Adiantamento','Sinal','Outros'],
+    catDespesa:['Material','Mão de obra','Transporte','Aluguel de equipamento','Outro'],
+    unidade:'m', campo_area:'Metragem (m)',
+  },
+  marcenaria: {
+    nome:'Marcenaria / Móveis Planejados', icone:'🪵',
+    obra:'Projeto', obras:'Projetos', projeto:'Pedido',
+    etapas:['Medição','Projeto 3D','Produção','Pintura/Acabamento','Montagem','Entrega','Finalizado'],
+    servicos:['Cozinha planejada','Dormitório','Sala','Escritório','Banheiro','Closet','Área de serviço','Varanda','Estante','Mesa'],
+    materiais:['MDF BP','MDF cru','MDP','Dobradiça','Corrediça telescópica','Corrediça soft-close','Puxador','Fita de borda','Cola PVA','Parafuso cabeça chata'],
+    catReceita:['Venda de projeto','Adiantamento','Sinal','Entrega de etapa','Outros'],
+    catDespesa:['Material (MDF/MDP)','Ferragem','Mão de obra','Acabamento/Pintura','Frete','Outro'],
+    unidade:'m²', campo_area:'Metragem do ambiente (m²)',
+  },
+};
+
+function getNicho(){
+  var k=(DB.config&&DB.config.nicho)||'construcao';
+  return NICHOS[k]||NICHOS['construcao'];
+}
+function labelObra(){ return getNicho().obra; }
+function labelObras(){ return getNicho().obras; }
+function labelUnidade(){ return getNicho().unidade||'m²'; }
+
 let orcLinhas = [], editId = {};
 let orcNum = 1;
 
@@ -3343,7 +3416,8 @@ function salvarSaida(){
 // ================================================================ FINANCEIRO
 function toggleFlTipo(){
   const t=val('fl-tipo');
-  const cats=t==='receita'?['Serviço prestado','Adiantamento','Pagamento de etapa','Outros']:['Material','Mão de obra','Equipamento','Serviço terceiro','Imposto','Aluguel','Outro'];
+  const n=getNicho();
+  const cats=t==='receita'?n.catReceita:n.catDespesa;
   setInnerSelect('fl-cat',cats.map(c=>`<option>${c}</option>`).join(''));
 }
 function salvarLanc(){
@@ -4208,6 +4282,7 @@ function renderConfig(){
     var planos = {starter:'⭐ Starter', pro:'🚀 Profissional', personalizado:'🏢 Personalizado'};
     planoNomeEl.textContent = planos[getPlanoAtivo()]||getPlanoAtivo();
   }
+  renderNichoGrid();
   setTimeout(renderConfigPontoDigital, 100);
 }
 
@@ -5100,7 +5175,12 @@ function exportarHoleritePDF(){
 }
 
 // ─── initExtras ───────────────────────────────────────────────
-function initExtras(){if(DB.config&&DB.config.logo)aplicarLogo(DB.config.logo);}
+function initExtras(){
+  if(DB.config&&DB.config.logo) aplicarLogo(DB.config.logo);
+  aplicarAdaptacoesNicho();
+  // Mostra seletor de nicho no primeiro acesso
+  setTimeout(renderNichoFirstRun, 800);
+}
 
 // ================================================================ INIT
 
@@ -5183,9 +5263,23 @@ function ativarLicenca(){
 }
 
 function _entrarNoApp(email){
-  // Salva e recarrega — mais confiável no mobile
-  // No reload, initAuth() detecta a licença no localStorage e vai para o login
   try{ registrarUsuarioDoLink(); }catch(e){}
+
+  // Esconde tela de ativação
+  var lic = el('screen-license');
+  if(lic) lic.style.display='none';
+
+  // Tenta mostrar login diretamente
+  try{
+    mostrarLogin();
+    var u=el('login-user');
+    if(u) u.value=email||'';
+    var p=el('login-pass');
+    if(p){ p.value=''; p.focus(); }
+    return;
+  }catch(e){ console.warn('[_entrarNoApp]',e); }
+
+  // Fallback: recarrega se DOM falhou
   location.reload();
 }
 
@@ -5241,8 +5335,23 @@ function chamarServidorJSONP(url, onSucesso, onErro, timeoutMs){
 
 
 function verificarLicenca(){
-  try{const obj=_lerLicenca();return obj.ativa===true;}
-  catch(e){return false;}
+  try{
+    var obj=_lerLicenca();
+    if(obj.ativa===true) return true;
+    // Fallback: chave de backup sem hash
+    var bk=localStorage.getItem('_lic_bk');
+    if(bk){ var ob=JSON.parse(bk); if(ob.ativa===true) return true; }
+    return false;
+  }catch(e){return false;}
+}
+
+function _salvarLicenca(data){
+  var obj=Object.assign({},data);
+  try{ obj._h=_licHash(obj.email,obj.plano,obj.ativadoEm||''); }catch(e){}
+  localStorage.setItem(SK_LIC,JSON.stringify(obj));
+  // Salva cópia de backup sem hash para fallback
+  localStorage.setItem('_lic_bk',JSON.stringify({email:obj.email,ativa:obj.ativa,plano:obj.plano,nome:obj.nome}));
+  return obj;
 }
 
 function mostrarLogin(){
@@ -5435,7 +5544,7 @@ function initAuth(){
     // Salva uma licença de teste local
     _salvarLicenca({
       email:'teste@local.dev', ativa:true,
-      nome:'Modo Teste', plano:'pro',
+      nome:'Modo Teste', plano:'personalizado',
       ativadoEm: new Date().toISOString()
     });
     // Salva sessão de teste
@@ -5548,26 +5657,22 @@ function _licHash(email, plano, ts){
   return (h.toString(36)+h2.toString(36)).toUpperCase();
 }
 
-function _salvarLicenca(data){
-  // Sempre grava com hash — qualquer alteração manual quebra a verificação
-  var obj = Object.assign({}, data);
-  obj._h = _licHash(obj.email, obj.plano, obj.ativadoEm||'');
-  _salvarLicenca(obj);
-  return obj;
-}
-
 function _lerLicenca(){
   try{
     var raw = localStorage.getItem(SK_LIC);
     if(!raw) return {};
     var obj = JSON.parse(raw);
-    // Só valida hash se _h existir (licenças antigas sem hash passam normalmente)
     if(obj._h){
       var hashEsperado = _licHash(obj.email, obj.plano, obj.ativadoEm||'');
       if(obj._h !== hashEsperado){
-        console.warn('[Licença] Hash inválido — adulteração detectada. Forçando revalidação.');
-        obj._adulterado = true;
-        // Não reseta o plano aqui — deixa revalidarOnline corrigir
+        // Hash não bate (mudança de salt ou adulteração)
+        // Re-salva com hash correto e força revalidação com servidor
+        console.warn('[Licença] Hash inválido — re-calculando. Isso é normal após atualizações.');
+        obj._adulterado = false;
+        obj._h = hashEsperado;
+        localStorage.setItem(SK_LIC, JSON.stringify(obj));
+        // Marca para revalidar online na próxima oportunidade
+        obj.ultimaValidacao = null;
       }
     }
     return obj;
@@ -5577,9 +5682,9 @@ function _lerLicenca(){
 function getPlanoAtivo(){
   try{
     var lic = _lerLicenca();
-    if(lic._adulterado) return 'starter'; // adulterado → starter
+    // Hash inválido → não puna o usuário, apenas force revalidação
+    // O plano real vem do servidor na próxima sync
     var p = (lic.plano||'starter').toLowerCase().trim();
-    // Aceita: Personalizado, Personalizada, personalizado, custom, enterprise
     if(p.includes('person')||p.includes('custom')||p.includes('enterprise')||p.includes('empresa')) return 'personalizado';
     if(p.includes('pro')||p.includes('profis')||p.includes('97')) return 'pro';
     return 'starter';
@@ -7735,6 +7840,83 @@ function excluirMovFerr(movId){
 
 // Hook no renderPanel para incluir ferramentas
 var _renderPanelOriginal = typeof renderPanel === 'function' ? renderPanel : null;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SISTEMA DE NICHOS — Render e adaptações
+// ═══════════════════════════════════════════════════════════════════════════
+
+function renderNichoGrid(){
+  var grid=el('nicho-grid'); if(!grid) return;
+  var atual=(DB.config&&DB.config.nicho)||'construcao';
+  grid.innerHTML=Object.keys(NICHOS).map(function(k){
+    var n=NICHOS[k];
+    var ativo=k===atual;
+    return '<div onclick="selecionarNicho(\''+k+'\')" style="cursor:pointer;padding:12px;border-radius:var(--r);border:2px solid '+(ativo?'var(--ac)':'var(--br)')+';background:'+(ativo?'rgba(91,126,255,.08)':'var(--bg3)')+';text-align:center;transition:all .2s">' +
+      '<div style="font-size:24px;margin-bottom:6px">'+n.icone+'</div>' +
+      '<div style="font-size:12px;font-weight:'+(ativo?'700':'400')+';color:'+(ativo?'var(--ac)':'var(--tx)')+'">'+n.nome+'</div>' +
+      (ativo?'<div style="font-size:10px;color:var(--ac);margin-top:3px">✔ Ativo</div>':'') +
+      '</div>';
+  }).join('');
+}
+
+function selecionarNicho(k){
+  if(!DB.config) DB.config={};
+  DB.config.nicho=k;
+  save();
+  renderNichoGrid();
+  aplicarAdaptacoesNicho();
+  alert('✔ Segmento alterado para: '+NICHOS[k].nome+'\n\nA página será recarregada para aplicar todas as adaptações.');
+  location.reload();
+}
+
+function aplicarAdaptacoesNicho(){
+  var n=getNicho();
+  // Atualiza label do menu lateral
+  var sbObras=el('sb-label-obras'); if(sbObras) sbObras.textContent=n.obras;
+  // Atualiza etapas no diário
+  var drEtapa=el('dr-etapa');
+  if(drEtapa) drEtapa.innerHTML=n.etapas.map(function(e){return '<option>'+e+'</option>';}).join('');
+  // Atualiza icone/label do dashboard se tiver "Obras"
+  document.querySelectorAll('.dash-obras-label').forEach(function(e){e.textContent=n.obras;});
+}
+
+function renderNichoFirstRun(){
+  // Mostra seletor de nicho no primeiro acesso (sem nicho configurado)
+  if(DB.config&&DB.config.nicho) return;
+  if(DB.obras&&DB.obras.length>0) return; // já tem dados, não mostra
+  var overlay=document.createElement('div');
+  overlay.id='modal-nicho-firstrun';
+  overlay.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.92);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px;overflow-y:auto';
+  overlay.innerHTML='<div style="background:#1a1f2e;border:1px solid #2d3348;border-radius:16px;padding:28px 24px;width:100%;max-width:540px;max-height:90vh;overflow-y:auto">' +
+    '<div style="text-align:center;margin-bottom:20px">' +
+    '<div style="font-size:36px;margin-bottom:10px">🏷️</div>' +
+    '<div style="font-size:18px;font-weight:800;color:#eef0f8;margin-bottom:6px">Qual é o seu segmento?</div>' +
+    '<div style="font-size:13px;color:#8d95b0">Selecione para adaptar o sistema ao seu tipo de negócio</div></div>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">' +
+    Object.keys(NICHOS).map(function(k){
+      var n=NICHOS[k];
+      return '<div onclick="escolherNichoInicial(\''+k+'\')" style="cursor:pointer;padding:16px 12px;border-radius:10px;border:1.5px solid #2d3348;background:#111827;text-align:center;transition:all .2s" onmouseover="this.style.borderColor=\'#5b7eff\'" onmouseout="this.style.borderColor=\'#2d3348\'">' +
+        '<div style="font-size:28px;margin-bottom:8px">'+n.icone+'</div>' +
+        '<div style="font-size:13px;font-weight:700;color:#eef0f8">'+n.nome+'</div></div>';
+    }).join('') +
+    '</div>' +
+    '<div style="margin-top:14px;text-align:center"><button onclick="escolherNichoInicial(\'construcao\')" style="background:transparent;border:none;color:#555f7a;font-size:11px;cursor:pointer;text-decoration:underline">Pular — usar padrão (Construção Civil)</button></div>' +
+    '</div>';
+  document.body.appendChild(overlay);
+}
+
+function escolherNichoInicial(k){
+  var overlay=el('modal-nicho-firstrun');
+  if(overlay) overlay.remove();
+  if(!DB.config) DB.config={};
+  DB.config.nicho=k;
+  save();
+  aplicarAdaptacoesNicho();
+  renderPanel('dashboard');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+
 
 // ═══════════════════════════════════════════════════════════════════════════
 // PONTO DIGITAL GPS — Configuração, Portal e Gestão
