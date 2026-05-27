@@ -5124,110 +5124,81 @@ var SK_SESS = SK_SESS_GLOBAL;
 
 function ativarLicenca(){
   var email=(el('lic-email').value||'').trim().toLowerCase();
-  var err=el('lic-err');
-  var btn=el('lic-btn');
-  var status=el('lic-status');
+  var err=el('lic-err'); var btn=el('lic-btn'); var status=el('lic-status');
   err.style.display='none';
 
   if(!email||!email.includes('@')){
-    err.textContent='Digite um e-mail válido.';
-    err.style.display='block';return;
+    err.textContent='Digite um e-mail válido.'; err.style.display='block'; return;
   }
-
-  // Salva email no localStorage para pré-preencher em reloads
   localStorage.setItem('_lic_email_tentativa', email);
 
-  // Modo teste
   if(isModoTeste()){
-    _salvarLicenca({email,ativa:true,nome:'Teste',plano:'pro',ativadoEm:new Date().toISOString()});
-    el('screen-license').style.display='none';
-    registrarUsuarioDoLink();
-    mostrarLoginApos(email);
-    return;
+    _salvarLicenca({email:email,ativa:true,nome:'Teste',plano:'pro',ativadoEm:new Date().toISOString()});
+    _entrarNoApp(email); return;
   }
 
-  // Cache local válido
   var licLocal=localStorage.getItem(SK_LIC);
-  if(licLocal){
-    try{
-      var obj=JSON.parse(licLocal);
-      if(obj.email===email&&obj.ativa){
-        el('screen-license').style.display='none';
-        registrarUsuarioDoLink();
-        mostrarLoginApos(email);
-        return;
-      }
-    }catch(e){}
-  }
+  if(licLocal){ try{ var obj=JSON.parse(licLocal); if(obj.email===email&&obj.ativa){ _entrarNoApp(email); return; } }catch(e){} }
 
-  btn.disabled=true;
-  btn.textContent='⏳ Verificando...';
-  if(status) status.textContent='Consultando servidor...';
+  btn.disabled=true; btn.textContent='⏳ Aguarde...';
+  if(status) status.textContent='';
 
-  // Botão de cancelar aparece após 2s (mobile pode ser lento)
-  var retryTimer = setTimeout(function(){
-    if(!btn.disabled) return; // já terminou
-    var cancelBtn = document.createElement('button');
-    cancelBtn.id = 'btn-cancelar-ativacao';
-    cancelBtn.style.cssText = 'display:block;width:100%;margin-top:10px;padding:12px;background:transparent;border:1px solid rgba(255,255,255,.15);border-radius:8px;color:rgba(255,255,255,.5);font-size:13px;cursor:pointer;font-family:inherit';
-    cancelBtn.textContent = '↩ Demorou? Toque aqui para tentar novamente';
-    cancelBtn.onclick = function(){
-      if(typeof xhr !== 'undefined') try{ xhr.abort(); }catch(e2){}
-      btn.disabled=false; btn.textContent='✔ Ativar agora';
-      if(status) status.textContent='';
-      cancelBtn.remove();
-    };
-    if(btn.parentNode && !document.getElementById('btn-cancelar-ativacao')){
-      btn.parentNode.insertBefore(cancelBtn, btn.nextSibling);
-    }
-  }, 2000);
+  var cancelTimer = setTimeout(function(){
+    if(!btn.disabled) return;
+    var c=document.createElement('button');
+    c.id='btn-cancel-atv';
+    c.style.cssText='display:block;width:100%;margin-top:10px;padding:12px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);border-radius:8px;color:#ccc;font-size:13px;cursor:pointer';
+    c.textContent='↩ Tentar novamente';
+    c.onclick=function(){ btn.disabled=false; btn.textContent='✔ Ativar agora'; if(status)status.textContent=''; c.remove(); };
+    if(btn.parentNode&&!document.getElementById('btn-cancel-atv')) btn.parentNode.insertBefore(c,btn.nextSibling);
+  }, 3000);
 
-  function onSucesso(json){
-    clearTimeout(retryTimer);
-    var c = document.getElementById('btn-cancelar-ativacao');
-    if(c) c.remove();
-    btn.disabled=false; btn.textContent='✔ Ativar agora';
-    if(status) status.textContent='';
+  function fim(){ clearTimeout(cancelTimer); btn.disabled=false; btn.textContent='✔ Ativar agora'; var c=document.getElementById('btn-cancel-atv'); if(c)c.remove(); if(status)status.textContent=''; }
+
+  function ok(json){
+    fim();
     if(json&&json.ok){
-      _salvarLicenca({email,ativa:true,nome:json.nome||'',
-        plano:json.plano||'Basico',ativadoEm:new Date().toISOString()});
+      _salvarLicenca({email:email,ativa:true,nome:json.nome||'',plano:json.plano||'Basico',ativadoEm:new Date().toISOString()});
       localStorage.removeItem('_lic_email_tentativa');
-      el('screen-license').style.display='none';
-      restaurarBackupEMostrarLogin(email);
+      _entrarNoApp(email);
     } else {
-      err.textContent=(json&&json.msg)||'E-mail não encontrado. Verifique ou adquira uma licença.';
+      err.textContent=(json&&json.msg)||'E-mail não encontrado. Verifique o e-mail cadastrado.';
       err.style.display='block';
     }
   }
 
-  function onErro(){
-    clearTimeout(retryTimer);
-    var c = document.getElementById('btn-cancelar-ativacao');
-    if(c) c.remove();
-    btn.disabled=false; btn.textContent='✔ Ativar agora';
-    if(status) status.textContent='';
-    // Tenta licença em cache como último recurso
-    if(licLocal){
-      try{
-        var o=JSON.parse(licLocal);
-        if(o.email===email&&o.ativa){
-          el('screen-license').style.display='none';
-          mostrarLogin();return;
-        }
-      }catch(e2){}
-    }
-    err.textContent='Não foi possível conectar. Verifique sua internet e tente novamente.';
-    err.style.display='block';
-  }
+  function erro(){ fim(); err.textContent='Sem resposta do servidor. Verifique sua internet e tente novamente.'; err.style.display='block'; }
 
-  var url = URL_SERVIDOR+'?action=validar&email='+encodeURIComponent(email);
-
-  // Tenta XHR primeiro (confiável no mobile), depois JSONP como fallback
-  _validarComFetch(url, onSucesso, function(){
-    // XHR falhou → tenta JSONP com 8s
-    chamarServidorJSONP(url, onSucesso, onErro, 8000);
-  });
+  var url=URL_SERVIDOR+'?action=validar&email='+encodeURIComponent(email);
+  var xhr=new XMLHttpRequest();
+  xhr.timeout=8000;
+  xhr.onload=function(){
+    var txt=xhr.responseText||''; var json=null;
+    try{ json=JSON.parse(txt); }catch(e){ var m=txt.match(/\{[\s\S]*\}/); if(m)try{json=JSON.parse(m[0]);}catch(e2){} }
+    if(json) ok(json); else chamarServidorJSONP(url,ok,erro,8000);
+  };
+  xhr.onerror=xhr.ontimeout=function(){ chamarServidorJSONP(url,ok,erro,8000); };
+  xhr.onabort=erro;
+  try{ xhr.open('GET',url,true); xhr.send(); }catch(e){ chamarServidorJSONP(url,ok,erro,8000); }
 }
+
+function _entrarNoApp(email){
+  try{
+    el('screen-license').style.display='none';
+    registrarUsuarioDoLink();
+    var loginBox=el('screen-login');
+    if(loginBox) loginBox.style.display='flex';
+    var cfg=DB.config||{};
+    var nomeEmp=cfg.empresa||'FigForge';
+    var av=nomeEmp.split(' ').slice(0,2).map(function(w){return w[0]||'';}).join('').toUpperCase()||'FF';
+    var en=el('login-empresa-nome'); if(en) en.textContent=nomeEmp;
+    var lb=el('login-logo-box'); if(lb) lb.innerHTML=cfg.logo?'<img src="'+cfg.logo+'" style="width:100%;height:100%;object-fit:contain;border-radius:14px"/>':av;
+    var lb2=el('lic-logo-box'); if(lb2) lb2.innerHTML=cfg.logo?'<img src="'+cfg.logo+'" style="width:100%;height:100%;object-fit:contain;border-radius:14px"/>':av;
+    var u=el('login-user'); if(u&&email) u.value=email;
+    var p=el('login-pass'); if(p){ p.value=''; p.focus(); }
+  }catch(e){ console.error('[_entrarNoApp] erro:',e); }
+}
+
 
 function _validarComFetch(url, onSucesso, onErro){
   // Usa XMLHttpRequest com timeout nativo do browser
@@ -5285,16 +5256,13 @@ function verificarLicenca(){
 }
 
 function mostrarLogin(){
-  el('screen-login').style.display='flex';
-  const cfg=DB.config||{};
-  const nomeEmp=cfg.empresa||'FigForge';
-  const av=nomeEmp.split(' ').slice(0,2).map(w=>w[0]||'').join('').toUpperCase()||'OB';
-  el('login-empresa-nome').textContent=nomeEmp;
-  const lb=el('login-logo-box');
-  if(lb) lb.innerHTML=cfg.logo?'<img src="'+cfg.logo+'" style="width:100%;height:100%;object-fit:contain;border-radius:14px"/>':av;
-  const lb2=el('lic-logo-box');
-  if(lb2) lb2.innerHTML=cfg.logo?'<img src="'+cfg.logo+'" style="width:100%;height:100%;object-fit:contain;border-radius:14px"/>':av;
-  setTimeout(()=>{if(!val('login-user'))el('login-user').focus();},100);
+  var loginBox=el('screen-login'); if(loginBox) loginBox.style.display='flex';
+  var cfg=DB.config||{};
+  var nomeEmp=cfg.empresa||'FigForge';
+  var av=nomeEmp.split(' ').slice(0,2).map(function(w){return w[0]||'';}).join('').toUpperCase()||'FF';
+  var en=el('login-empresa-nome'); if(en) en.textContent=nomeEmp;
+  var lb=el('login-logo-box'); if(lb) lb.innerHTML=cfg.logo?'<img src="'+cfg.logo+'" style="width:100%;height:100%;object-fit:contain;border-radius:14px"/>':av;
+  var lb2=el('lic-logo-box'); if(lb2) lb2.innerHTML=cfg.logo?'<img src="'+cfg.logo+'" style="width:100%;height:100%;object-fit:contain;border-radius:14px"/>':av;
 }
 
 function verificarSessao(){
@@ -6307,48 +6275,11 @@ function autoEmailUsuario(){
 
 // ── RESTAURA BACKUP ANTES DE MOSTRAR LOGIN ──────────────────────────────────
 function restaurarBackupEMostrarLogin(email){
-  var temDadosLocais = (DB.obras&&DB.obras.length>0) ||
-                       (DB.users&&DB.users.length>0) ||
-                       (DB.clientes&&DB.clientes.length>0);
-
-  if(temDadosLocais){
-    // Já tem dados locais — vai direto para o login sem buscar backup
-    registrarUsuarioDoLink();
-    mostrarLoginApos(email);
-    return;
-  }
-
-  // Sem dados locais — tenta buscar backup (timeout de 3s, não trava)
-  var loginBox = el('screen-login');
-  if(loginBox) loginBox.style.display='flex';
-  var painel = el('painel-login');
-  if(painel){
-    painel.innerHTML = '<div style="text-align:center;padding:20px 0">' +
-      '<div style="font-size:32px;margin-bottom:12px">⏳</div>' +
-      '<div style="font-size:14px;font-weight:600;margin-bottom:6px">Verificando backup...</div>' +
-      '<div style="font-size:12px;color:var(--tx2)">Aguarde alguns segundos</div>' +
-      '</div>';
-  }
-
-  // Timeout de segurança: mesmo se verificarBackupNuvem travar, avança em 4s
-  var avancoSeguro = setTimeout(function(){
-    registrarUsuarioDoLink();
-    _rebuildarPainelLogin(painel, email);
-  }, 4500);
-
-  verificarBackupNuvem(email, function(backup, dataBackup){
-    clearTimeout(avancoSeguro);
-    if(backup){
-      try{
-        var dados = JSON.parse(backup);
-        Object.assign(DB, dados);
-        save();
-        console.log('[Backup] Restaurado automaticamente');
-      }catch(e){ console.log('[Backup] Erro ao restaurar:', e); }
-    }
-    registrarUsuarioDoLink();
-    _rebuildarPainelLogin(painel, email);
-  });
+  // Vai direto para o login — sem setTimeout, sem espera por backup
+  // Backup pode ser verificado em segundo plano após o login
+  el('screen-license').style.display='none';
+  registrarUsuarioDoLink();
+  mostrarLoginApos(email);
 }
 
 function _rebuildarPainelLogin(painel, email){
@@ -6368,31 +6299,17 @@ function _rebuildarPainelLogin(painel, email){
 
 function mostrarLoginApos(email){
   mostrarLogin();
-  setTimeout(function(){
-    var preUser = sessionStorage.getItem('_pre_user')||'';
-    var prePass = sessionStorage.getItem('_pre_pass')||'';
-    var u = el('login-user');
-    var p = el('login-pass');
-
-    if(preUser && u){
-      u.value = preUser;
-      sessionStorage.removeItem('_pre_user');
-    } else if(u){
-      u.value = '';
-    }
-
-    if(prePass && p){
-      p.value = prePass;
-      sessionStorage.removeItem('_pre_pass');
-      // Foca no botão de entrar
-      var btn = document.querySelector('.auth-btn');
-      if(btn) setTimeout(function(){ btn.focus(); }, 100);
-    } else if(p){
-      p.value = '';
-      if(u && !u.value) u.focus();
-      else if(p) p.focus();
-    }
-  }, 300);
+  // Sem setTimeout — preenche imediatamente
+  var preUser = sessionStorage.getItem('_pre_user')||'';
+  var prePass = sessionStorage.getItem('_pre_pass')||'';
+  var u = el('login-user');
+  var p = el('login-pass');
+  if(u){ u.value = preUser||email||''; sessionStorage.removeItem('_pre_user'); }
+  if(p){ p.value = prePass||''; sessionStorage.removeItem('_pre_pass'); }
+  if(u && !u.value && email) u.value = email;
+  // Foca no campo correto
+  if(u && !u.value) u.focus();
+  else if(p && !p.value) p.focus();
 }
 
 function enviarAcessoWhatsApp(uid){
