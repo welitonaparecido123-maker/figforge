@@ -2114,8 +2114,10 @@ button[style*="background: #4F6EF7"], .btn-primary {
 <!-- ========== ESTOQUE ========== -->
 <div class="pnl" id="pnl-estoque">
   <div class="itabs">
-    <div class="itab on" onclick="itab('estq','itens',this)">📦 Itens</div>
+    <div class="itab on" onclick="itab('estq','itens',this)">📦 Materiais</div>
     <div class="itab" onclick="itab('estq','movs',this)">📋 Movimentações</div>
+    <div class="itab" onclick="itab('estq','ferramentas',this)">🔧 Ferramentas</div>
+    <div class="itab" onclick="itab('estq','mov-ferr',this)">📋 Mov. Ferramentas</div>
   </div>
   <div class="itp on" id="estq-itens">
     <div style="display:flex;gap:8px;margin-bottom:10px">
@@ -2133,6 +2135,44 @@ button[style*="background: #4F6EF7"], .btn-primary {
     </div>
     <div class="tw"><table class="tbl"><thead><tr><th>Data</th><th>Tipo</th><th>Material</th><th>Qtd.</th><th>Obra</th><th>Responsável</th><th>Obs.</th><th>Ações</th></tr></thead>
     <tbody id="tbl-estq-movs"></tbody></table></div>
+  </div>
+
+  <!-- ABA FERRAMENTAS -->
+  <div class="itp" id="estq-ferramentas">
+    <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;align-items:center">
+      <input type="text" id="ferr-busca" placeholder="Buscar ferramenta..." style="flex:1" oninput="renderFerramentas()"/>
+      <select id="ferr-filtro-status" style="width:auto" onchange="renderFerramentas()">
+        <option value="">Todos os status</option>
+        <option value="disponivel">✅ Disponível</option>
+        <option value="emprestada">🔴 Em uso</option>
+        <option value="manutencao">🔧 Manutenção</option>
+      </select>
+      <button class="btn bp" onclick="abrirCadastroFerramenta()">+ Nova ferramenta</button>
+    </div>
+    <!-- Resumo rápido -->
+    <div id="ferr-resumo" style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap"></div>
+    <div class="tw"><table class="tbl">
+      <thead><tr><th>Foto</th><th>Ferramenta</th><th>Categoria</th><th>Patrimônio</th><th>Status</th><th>Com quem</th><th>Obra</th><th>Ações</th></tr></thead>
+      <tbody id="tbl-ferramentas"></tbody>
+    </table></div>
+  </div>
+
+  <!-- ABA MOVIMENTAÇÕES DE FERRAMENTAS -->
+  <div class="itp" id="estq-mov-ferr">
+    <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;align-items:center">
+      <select id="movferr-filtro" style="width:auto" onchange="renderMovFerramentas()">
+        <option value="">Todas as ferramentas</option>
+      </select>
+      <select id="movferr-tipo" style="width:auto" onchange="renderMovFerramentas()">
+        <option value="">Entrada e Saída</option>
+        <option value="saida">📤 Saídas</option>
+        <option value="retorno">📥 Retornos</option>
+      </select>
+    </div>
+    <div class="tw"><table class="tbl">
+      <thead><tr><th>Data/Hora</th><th>Tipo</th><th>Ferramenta</th><th>Responsável</th><th>Obra</th><th>Condição saída</th><th>Condição retorno</th><th>Fotos</th><th>Obs.</th><th>Ações</th></tr></thead>
+      <tbody id="tbl-mov-ferramentas"></tbody>
+    </table></div>
   </div>
 </div>
 
@@ -2299,24 +2339,13 @@ button[style*="background: #4F6EF7"], .btn-primary {
       </table></div>
     </div>
     <div class="card">
-      <div class="ct">🔐 Níveis de acesso</div>
-      <div style="font-size:11px">
-        <div style="padding:9px;background:rgba(123,63,228,.08);border-radius:var(--r);margin-bottom:6px">
-          <div style="font-weight:700;color:#7B3FE4">👑 Administrador</div>
-          <div style="color:var(--tx2);margin-top:2px">Acesso completo: obras, financeiro, estoque, funcionários, usuários e configurações.</div>
-        </div>
-        <div style="padding:9px;background:rgba(79,110,247,.08);border-radius:var(--r);margin-bottom:6px">
-          <div style="font-weight:700;color:var(--ac)">💰 Financeiro</div>
-          <div style="color:var(--tx2);margin-top:2px">Lançamentos, receitas, despesas, relatórios e exportações. Sem acesso a usuários e config.</div>
-        </div>
-        <div style="padding:9px;background:rgba(229,148,16,.08);border-radius:var(--r);margin-bottom:6px">
-          <div style="font-weight:700;color:var(--am)">📦 Almoxarifado</div>
-          <div style="color:var(--tx2);margin-top:2px">Cadastro de materiais, entradas e saídas de estoque. Não vê financeiro nem funcionários.</div>
-        </div>
-        <div style="padding:9px;background:rgba(24,176,106,.08);border-radius:var(--r)">
-          <div style="font-weight:700;color:var(--gn)">🏗️ Gestor de obra</div>
-          <div style="color:var(--tx2);margin-top:2px">Obras, diário de obra, ponto de funcionários e estoque (somente leitura).</div>
-        </div>
+      <div class="ct">🔐 Perfis de acesso</div>
+      <div style="font-size:11px;display:flex;flex-direction:column;gap:6px">
+        <div style="padding:8px;background:rgba(123,63,228,.08);border-radius:var(--r)"><div style="font-weight:700;color:#7B3FE4">👑 Administrador</div><div style="color:var(--tx2);margin-top:2px">Tudo: obras, financeiro, estoque, funcionários, usuários e config.</div></div>
+        <div style="padding:8px;background:rgba(79,110,247,.08);border-radius:var(--r)"><div style="font-weight:700;color:var(--ac)">💰 Financeiro</div><div style="color:var(--tx2);margin-top:2px">Lançamentos, receitas, despesas e relatórios.</div></div>
+        <div style="padding:8px;background:rgba(229,148,16,.08);border-radius:var(--r)"><div style="font-weight:700;color:var(--am)">📦 Almoxarifado</div><div style="color:var(--tx2);margin-top:2px">Estoque de materiais e ferramentas.</div></div>
+        <div style="padding:8px;background:rgba(24,176,106,.08);border-radius:var(--r)"><div style="font-weight:700;color:var(--gn)">🏗️ Gestor de obra</div><div style="color:var(--tx2);margin-top:2px">Obras, diário, ponto de funcionários e estoque.</div></div>
+        <div style="padding:8px;background:rgba(16,185,129,.08);border-radius:1px solid var(--gn);border-radius:var(--r)"><div style="font-weight:700;color:var(--gn)">⚙️ Personalizado</div><div style="color:var(--tx2);margin-top:2px">Você escolhe exatamente quais módulos e ações cada usuário pode ter — do zero ou baseado em um perfil existente.</div></div>
       </div>
     </div>
   </div>
@@ -2633,55 +2662,49 @@ button[style*="background: #4F6EF7"], .btn-primary {
 <div class="mo" id="mo-user"><div class="mbox">
   <div class="mh"><span id="mo-user-titulo">Novo usuário</span><div class="mx" role="button" tabindex="0" aria-label="Fechar janela" onclick="fecharMo('mo-user')">✕</div></div>
   <div class="fr fr2">
-    <div><label>Nome completo</label><input id="us-nome" type="text" placeholder="Ex: Joao Silva" oninput="autoEmailUsuario()"/></div>
-    <div><label>E-mail (usado no login)</label><input id="us-email" type="email" placeholder="joao@empresa.com"/></div>
+    <div><label>Nome completo</label><input id="us-nome" type="text" placeholder="Ex: João Silva" oninput="autoEmailUsuario()"/></div>
+    <div><label>E-mail (login)</label><input id="us-email" type="email" placeholder="joao@empresa.com"/></div>
   </div>
   <div class="fr fr2">
     <div>
-      <label>Nível de acesso</label>
-      <select id="us-nivel" onchange="mostrarDescNivel()">
-        <option value="adm">Administrador — acesso total</option>
-        <option value="fin">Financeiro — lancamentos e relatorios</option>
-        <option value="alm">Almoxarifado — estoque</option>
-        <option value="ges">Gestor de obra — obras, ponto, diário e estoque</option>
+      <label>Perfil base</label>
+      <select id="us-nivel" onchange="onChangeNivel()">
+        <option value="adm">👑 Administrador — acesso total</option>
+        <option value="fin">💰 Financeiro — lançamentos e relatórios</option>
+        <option value="alm">📦 Almoxarifado — estoque</option>
+        <option value="ges">🏗️ Gestor de obra — obras, ponto, diário</option>
+        <option value="custom">⚙️ Personalizado — defina manualmente</option>
       </select>
       <div id="nivel-desc" style="font-size:10px;color:var(--ac);margin-top:4px;padding:4px 8px;background:var(--bg4);border-radius:var(--r)"></div>
     </div>
     <div>
       <label>Senha de acesso</label>
-      <input id="us-senha" type="password" placeholder="Minimo 4 caracteres"/>
+      <input id="us-senha" type="password" placeholder="Mínimo 4 caracteres"/>
       <div style="font-size:10px;color:var(--tx3);margin-top:3px">Login: e-mail + esta senha</div>
     </div>
   </div>
-  <div style="display:flex;justify-content:flex-end;gap:7px">
-    <button class="btn" onclick="fecharMo('mo-user')">Cancelar</button>
-    <button class="btn bp" onclick="salvarUser()">Salvar usuário</button>
-  </div>
-</div></div>
-  <div class="fr fr2">
-    <div><label>Nome completo</label><input id="us-nome" type="text" placeholder="Ex: Joao Silva" oninput="autoEmailUsuario()"/></div>
-    <div><label>E-mail (usado no login)</label><input id="us-email" type="email" placeholder="joao@empresa.com"/></div>
-  </div>
-  <div class="fr fr2">
-    <div>
-      <label>Nível de acesso</label>
-      <select id="us-nivel" onchange="mostrarDescNivel()">
-        <option value="adm">Administrador — acesso total</option>
-        <option value="fin">Financeiro — lancamentos e relatorios</option>
-        <option value="alm">Almoxarifado — estoque</option>
-        <option value="ges">Gestor de obra — obras, ponto, diário e estoque</option>
-      </select>
-      <div id="nivel-desc" style="font-size:10px;color:var(--ac);margin-top:4px;padding:4px 8px;background:var(--bg4);border-radius:var(--r)"></div>
-    </div>
-    <div>
-      <label>Senha de acesso</label>
-      <input id="us-senha" type="password" placeholder="Minimo 4 caracteres"/>
-      <div style="font-size:10px;color:var(--tx3);margin-top:3px">Login: e-mail + esta senha</div>
+
+  <!-- PERMISSÕES PERSONALIZADAS -->
+  <div id="us-custom-perms" style="display:none;margin-top:8px;padding:12px;background:var(--bg3);border-radius:var(--r);border:1px solid var(--br)">
+    <div style="font-size:12px;font-weight:700;color:var(--tx);margin-bottom:10px">⚙️ Permissões personalizadas</div>
+
+    <div style="font-size:11px;font-weight:600;color:var(--tx2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">Módulos visíveis</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:12px" id="us-modulos-grid"></div>
+
+    <div style="font-size:11px;font-weight:600;color:var(--tx2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">Ações permitidas</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px" id="us-acoes-grid"></div>
+
+    <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">
+      <button class="btn sm bg" onclick="marcarTodosPerms(true)">✅ Selecionar tudo</button>
+      <button class="btn sm br-" onclick="marcarTodosPerms(false)">⬜ Desmarcar tudo</button>
+      <button class="btn sm bp" onclick="aplicarPerfilBase('adm')">👑 Copiar Admin</button>
+      <button class="btn sm" onclick="aplicarPerfilBase('ges')">🏗️ Copiar Gestor</button>
     </div>
   </div>
-  <div style="display:flex;justify-content:flex-end;gap:7px">
+
+  <div style="display:flex;justify-content:flex-end;gap:7px;margin-top:10px">
     <button class="btn" onclick="fecharMo('mo-user')">Cancelar</button>
-    <button class="btn bp" onclick="salvarUser()">Salvar usuário</button>
+    <button class="btn bp" onclick="salvarUser()">💾 Salvar usuário</button>
   </div>
 </div></div>
 
@@ -2720,7 +2743,8 @@ const SK = 'figforge-v1';
 let DB = {
   obras:[], clientes:[], funcionarios:[], pontos:[], materiais:[],
   movEstq:[], lancamentos:[], fixas:[], diario:[], orcamentos:[], users:[], config:{},
-  pagamentosParciais:[], justificativas:[]
+  pagamentosParciais:[], justificativas:[],
+  ferramentas:[], movFerramentas:[]
 };
 let orcLinhas = [], editId = {};
 let orcNum = 1;
@@ -2731,6 +2755,8 @@ function load(){
   if(!DB.pagamentosParciais) DB.pagamentosParciais=[];
   if(!DB.justificativas) DB.justificativas=[];
   if(!DB.producoes) DB.producoes=[];
+  if(!DB.ferramentas) DB.ferramentas=[];
+  if(!DB.movFerramentas) DB.movFerramentas=[];
 }
 function save(){ try{ localStorage.setItem(SK,JSON.stringify(DB)); }catch(e){ alert('Erro ao salvar: '+e.message); } }
 
@@ -2877,7 +2903,7 @@ function renderPanel(p){
   if(p==='orcamentos'){ renderOrcLista(); preencherSelects(); }
   if(p==='clientes') renderClientes();
   if(p==='funcionarios'){ renderFuncionarios(); preencherPontoSelects(); }
-  if(p==='estoque') renderEstoque();
+  if(p==='estoque'){ renderEstoque(); renderFerramentas(); renderMovFerramentas(); }
   if(p==='financeiro'){ renderLanc(); renderResumo(); renderFixas(); preencherFinSelects(); }
   if(p==='diario') renderDiario();
   if(p==='relatorios') renderRelatorios();
@@ -3936,83 +3962,242 @@ function addDias(dateStr,dias){
   return d.toISOString().split('T')[0];
 }
 
+// ── MÓDULOS E AÇÕES DISPONÍVEIS ──────────────────────────────────────────
+var TODOS_MODULOS = [
+  {k:'dashboard',    label:'📊 Dashboard'},
+  {k:'obras',        label:'🏗️ Obras'},
+  {k:'orcamentos',   label:'🧾 Orçamentos'},
+  {k:'clientes',     label:'👥 Clientes'},
+  {k:'funcionarios', label:'👷 Funcionários'},
+  {k:'estoque',      label:'📦 Estoque / Ferramentas'},
+  {k:'financeiro',   label:'💰 Financeiro'},
+  {k:'diario',       label:'📸 Diário de Obra'},
+  {k:'relatorios',   label:'📋 Relatórios'},
+  {k:'usuarios',     label:'🔐 Usuários'},
+  {k:'config',       label:'⚙️ Configurações'}
+];
+var TODAS_ACOES = [
+  {k:'salvar',           label:'✏️ Criar e salvar registros'},
+  {k:'editar',           label:'✏️ Editar registros'},
+  {k:'excluir',          label:'🗑️ Excluir registros'},
+  {k:'lancar_financeiro',label:'💰 Lançar financeiro'},
+  {k:'lancar_ponto',     label:'📍 Lançar ponto'},
+  {k:'lancar_diario',    label:'📸 Lançar diário'},
+  {k:'lancar_estoque',   label:'📦 Movimentar estoque'},
+  {k:'gerenciar_usuarios',label:'🔐 Gerenciar usuários'},
+  {k:'configurar',       label:'⚙️ Configurar sistema'},
+  {k:'exportar',         label:'📄 Exportar PDF / CSV'}
+];
+
+var PERMISSOES = {
+  adm: {
+    modulos: ['dashboard','obras','orcamentos','clientes','funcionarios','estoque','financeiro','diario','relatorios','usuarios','config'],
+    acoes:   ['salvar','editar','excluir','lancar_financeiro','lancar_ponto','lancar_diario','lancar_estoque','gerenciar_usuarios','configurar','exportar']
+  },
+  fin: {
+    modulos: ['dashboard','obras','orcamentos','clientes','financeiro','relatorios'],
+    acoes:   ['salvar','editar','lancar_financeiro','exportar']
+  },
+  alm: {
+    modulos: ['dashboard','obras','estoque'],
+    acoes:   ['salvar','editar','lancar_estoque']
+  },
+  ges: {
+    modulos: ['dashboard','obras','clientes','funcionarios','estoque','diario'],
+    acoes:   ['salvar','editar','lancar_ponto','lancar_diario','lancar_estoque']
+  }
+};
+
+function podeAcessar(modulo){
+  var sess = null;
+  try{ sess = JSON.parse(sessionStorage.getItem(SK_SESS_GLOBAL)||'{}'); }catch(e){}
+  var nivel = nivelUsuario || 'adm';
+  // Permissões custom salvas na sessão
+  if(nivel === 'custom' || (sess && sess.nivel === 'custom')){
+    var mods = (sess && sess.modulosCustom) || [];
+    return mods.includes(modulo);
+  }
+  var perms = PERMISSOES[nivel] || PERMISSOES['adm'];
+  return perms.modulos.includes(modulo);
+}
+
+function podeExecutar(acao){
+  var sess = null;
+  try{ sess = JSON.parse(sessionStorage.getItem(SK_SESS_GLOBAL)||'{}'); }catch(e){}
+  var nivel = nivelUsuario || 'adm';
+  if(nivel === 'custom' || (sess && sess.nivel === 'custom')){
+    var acs = (sess && sess.acoesCustom) || [];
+    return acs.includes(acao);
+  }
+  var perms = PERMISSOES[nivel] || PERMISSOES['adm'];
+  return perms.acoes.includes(acao) || perms.acoes.includes('salvar');
+}
+
+function aplicarRestricoesPorNivel(){
+  var nivel = nivelUsuario || 'adm';
+  if(nivel === 'adm') return;
+  document.querySelectorAll('.sbi').forEach(function(sbi){
+    var p = sbi.getAttribute('data-p');
+    if(!p) return;
+    sbi.style.display = podeAcessar(p) ? '' : 'none';
+  });
+}
+
+// ── RENDER USERS ──────────────────────────────────────────────────────────
 function renderUsers(){
   setTimeout(gerarLinkAcesso, 100);
-  const nivelNome={adm:'Administrador',fin:'Financeiro',alm:'Almoxarifado',ges:'Gestor de obra'};
-  const nivelCor ={adm:'bgp',         fin:'bgb',        alm:'bgo',         ges:'bgg'};
-  const nivelDesc={
-    adm:'Acesso total ao sistema',
-    fin:'Financeiro e relatórios',
-    alm:'Estoque — entradas e saídas',
-    ges:'Obras, diário (escrever), ponto de funcionários, estoque (ler)'
-  };
-  const adminRow=`<tr style="background:rgba(79,110,247,.04)">
-    <td><strong>Administrador</strong> <span style="font-size:9px;color:var(--tx3)">(padrão do sistema)</span></td>
-    <td style="font-family:monospace;font-size:11px;color:var(--tx2)">admin</td>
-    <td><span class="bdg bgp">Administrador</span></td>
-    <td style="font-size:10px;color:var(--tx2)">Acesso total · senha padrão: admin123</td>
-    <td style="font-size:10px;color:var(--tx3)">Fixo</td>
-  </tr>`;
-  const rows=DB.users.map(u=>`<tr>
-    <td><strong>${u.nome}</strong></td>
-    <td style="font-size:11px">${u.email||'—'}</td>
-    <td><span class="bdg ${nivelCor[u.nivel]||'bgb'}">${nivelNome[u.nivel]||u.nivel}</span></td>
-    <td style="font-size:10px;color:var(--tx2)">${nivelDesc[u.nivel]||'—'}</td>
-    <td><div style="display:flex;gap:4px">
-      <button class="btn xs bp" onclick="editarUser('${u.id}')">✏️</button>
-      <button class="btn xs bg" onclick="enviarAcessoWhatsApp('${u.id}')">📱</button>
-      <button class="btn xs br-" onclick="deletar('users','${u.id}');renderUsers()">🗑</button>
-    </div></td>
-  </tr>`).join('');
-  set('tbl-users',adminRow+(rows||`<tr><td colspan="5" style="padding:9px;font-size:11px;color:var(--tx3)">Nenhum usuário adicional cadastrado.</td></tr>`));
+  var nivelNome = {adm:'Administrador',fin:'Financeiro',alm:'Almoxarifado',ges:'Gestor de obra',custom:'Personalizado'};
+  var nivelCor  = {adm:'bgp',fin:'bgb',alm:'bgo',ges:'bgg',custom:'bga'};
+
+  var adminRow = '<tr style="background:rgba(79,110,247,.04)">'+
+    '<td><strong>Administrador</strong> <span style="font-size:9px;color:var(--tx3)">(padrão)</span></td>'+
+    '<td style="font-size:11px">admin</td>'+
+    '<td><span class="bdg bgp">👑 Administrador</span></td>'+
+    '<td style="font-size:10px;color:var(--tx2)">Acesso total</td>'+
+    '<td style="font-size:10px;color:var(--tx3)">Fixo</td></tr>';
+
+  var rows = (DB.users||[]).filter(function(u){return u.role!=='ponto';}).map(function(u){
+    var descPerms = '';
+    if(u.nivel === 'custom'){
+      var mods = (u.modulosCustom||[]).map(function(k){
+        var m = TODOS_MODULOS.find(function(x){return x.k===k;}); return m?m.label.split(' ').slice(1).join(' '):k;
+      }).join(', ');
+      descPerms = '<div style="font-size:10px;color:var(--tx2);margin-top:2px">Módulos: '+(mods||'nenhum')+'</div>';
+    } else {
+      var permsBase = PERMISSOES[u.nivel]||PERMISSOES['adm'];
+      descPerms = '<div style="font-size:10px;color:var(--tx2);margin-top:2px">'+permsBase.modulos.length+' módulo(s)</div>';
+    }
+    return '<tr>'+
+      '<td><strong>'+u.nome+'</strong></td>'+
+      '<td style="font-size:11px">'+(u.email||'—')+'</td>'+
+      '<td><span class="bdg '+(nivelCor[u.nivel]||'bgb')+'">'+( u.nivel==='custom'?'⚙️ Personalizado':(nivelNome[u.nivel]||u.nivel))+'</span></td>'+
+      '<td>'+descPerms+'</td>'+
+      '<td><div style="display:flex;gap:4px">'+
+        '<button class="btn xs bp" onclick="editarUser(\''+u.id+'\')">✏️</button>'+
+        '<button class="btn xs bg" onclick="enviarAcessoWhatsApp(\''+u.id+'\')">📱</button>'+
+        '<button class="btn xs br-" onclick="deletar(\'users\',\''+u.id+'\');renderUsers()">🗑</button>'+
+      '</div></td></tr>';
+  }).join('');
+  set('tbl-users', adminRow + (rows || '<tr><td colspan="5" style="padding:9px;font-size:11px;color:var(--tx3)">Nenhum usuário adicional.</td></tr>'));
 }
+
 function novoUsuario(){
   editId.user=null;
   el('mo-user-titulo').textContent='Novo usuário';
-  ['us-nome','us-email','us-senha'].forEach(function(i){ setV(i,''); });
-  // Reseta nivel para Administrador (primeiro da lista)
-  var selNivel = el('us-nivel');
-  if(selNivel) selNivel.value = 'adm';
+  ['us-nome','us-email','us-senha'].forEach(function(i){setV(i,'');});
+  var sel = el('us-nivel'); if(sel) sel.value='adm';
   abrirMo('mo-user');
-  setTimeout(mostrarDescNivel, 100);
-  setTimeout(function(){ el('us-nome') && el('us-nome').focus(); }, 150);
+  setTimeout(function(){onChangeNivel(); if(el('us-nome'))el('us-nome').focus();},150);
 }
+
 function editarUser(uid){
-  const u=DB.users.find(x=>x.id===uid);if(!u)return;
+  var u=(DB.users||[]).find(function(x){return x.id===uid;}); if(!u) return;
   editId.user=uid;
   el('mo-user-titulo').textContent='Editar usuário';
   abrirMo('mo-user');
-  setTimeout(()=>{
-    setV('us-nome',u.nome);setV('us-email',u.email);
-    el('us-nivel').value=u.nivel||'adm';setV('us-senha',u.senha);
-    mostrarDescNivel();
+  setTimeout(function(){
+    setV('us-nome',u.nome); setV('us-email',u.email); setV('us-senha',u.senha);
+    el('us-nivel').value = u.nivel||'adm';
+    onChangeNivel();
+    // Restaura checkboxes se custom
+    if(u.nivel==='custom'){
+      setTimeout(function(){
+        (u.modulosCustom||[]).forEach(function(k){var c=el('chk-mod-'+k);if(c)c.checked=true;});
+        (u.acoesCustom||[]).forEach(function(k){var c=el('chk-ac-'+k);if(c)c.checked=true;});
+      },100);
+    }
   },80);
 }
 
 function salvarUser(){
-  const dados={nome:val('us-nome'),email:(val('us-email')||'').toLowerCase().trim(),nivel:val('us-nivel'),senha:val('us-senha')};
+  var dados={
+    nome:val('us-nome'), email:(val('us-email')||'').toLowerCase().trim(),
+    nivel:val('us-nivel'), senha:val('us-senha')
+  };
   if(!dados.nome){alert('Preencha o nome.');return;}
-  if(!dados.email||!dados.email.includes('@')){alert('Preencha um e-mail valido.');return;}
+  if(!dados.email||!dados.email.includes('@')){alert('Preencha um e-mail válido.');return;}
   if(!dados.senha||dados.senha.length<4){alert('A senha deve ter pelo menos 4 caracteres.');return;}
-  const dup=DB.users.find(u=>u.email===dados.email&&u.id!==editId.user);
-  if(dup){alert('Ja existe um usuario com este e-mail.');return;}
-  if(editId.user){
-    Object.assign(DB.users.find(x=>x.id===editId.user),dados);
-    delete editId.user;
-    el('mo-user-titulo').textContent='Novo usuario';
-  } else {
-    dados.id=id();DB.users.push(dados);
+  var dup=(DB.users||[]).find(function(u){return u.email===dados.email&&u.id!==editId.user;});
+  if(dup){alert('Já existe um usuário com este e-mail.');return;}
+
+  // Coleta permissões customizadas
+  if(dados.nivel==='custom'){
+    dados.modulosCustom = TODOS_MODULOS.map(function(m){return m.k;}).filter(function(k){var c=el('chk-mod-'+k);return c&&c.checked;});
+    dados.acoesCustom   = TODAS_ACOES.map(function(a){return a.k;}).filter(function(k){var c=el('chk-ac-'+k);return c&&c.checked;});
+    if(dados.modulosCustom.length===0){alert('Selecione pelo menos um módulo para o usuário acessar.');return;}
   }
-  save();fecharMo('mo-user');renderUsers();
-  ['us-nome','us-email','us-senha'].forEach(i=>setV(i,''));
+
+  if(editId.user){
+    Object.assign((DB.users||[]).find(function(x){return x.id===editId.user;}), dados);
+    delete editId.user; el('mo-user-titulo').textContent='Novo usuário';
+  } else {
+    dados.id=id(); if(!DB.users)DB.users=[]; DB.users.push(dados);
+  }
+  save(); fecharMo('mo-user'); renderUsers();
+  ['us-nome','us-email','us-senha'].forEach(function(i){setV(i,'');});
 }
 
-function renderPerms(nivel){
-  const perms={'adm':['Ver tudo','Editar tudo','Excluir registros','Gerenciar usuários','Configurar sistema','Acessar financeiro','Gerar PDFs'],'fin':['Ver lançamentos','Criar lançamentos','Ver relatórios','Gerar PDFs'],'alm':['Ver estoque','Entrada de material','Saída de material'],'ges':['Ver obras','Lançar diário','Lançar ponto','Entrada de material','Saída de material','Ver funcionários']};
-  const todasPerms=['Ver tudo','Editar tudo','Excluir registros','Gerenciar usuários','Configurar sistema','Acessar financeiro','Gerar PDFs','Ver lançamentos','Criar lançamentos','Ver relatórios','Ver estoque','Entrada de material','Saída de material','Ver obras','Ver diário','Lançar diário','Ver funcionários'];
-  const ativas=perms[nivel]||[];
-  set('perm-list',todasPerms.map(p=>`<div class="perm-r"><span>${p}</span><div class="tog ${ativas.includes(p)?'on':''}" onclick="this.classList.toggle('on')"></div></div>`).join(''));
+// ── UI de nível e permissões custom ──────────────────────────────────────
+var NIVEL_DESC = {
+  adm:'Acesso total ao sistema — vê e edita tudo',
+  fin:'Financeiro, orçamentos, receitas, despesas e relatórios',
+  alm:'Estoque de materiais e ferramentas (entradas e saídas)',
+  ges:'Obras, diário de obra, ponto de funcionários e estoque',
+  custom:'Você define exatamente o que este usuário pode ver e fazer'
+};
+
+function onChangeNivel(){
+  var nivel = val('us-nivel')||'adm';
+  var descEl = el('nivel-desc');
+  if(descEl) descEl.textContent = NIVEL_DESC[nivel]||'';
+  var customArea = el('us-custom-perms');
+  if(!customArea) return;
+  if(nivel==='custom'){
+    customArea.style.display='block';
+    _renderCheckboxPerms();
+  } else {
+    customArea.style.display='none';
+    // Preview das permissões do perfil base
+    aplicarPerfilBase(nivel, true);
+  }
 }
+
+function mostrarDescNivel(){ onChangeNivel(); }
+
+function _renderCheckboxPerms(){
+  var gridMod = el('us-modulos-grid');
+  var gridAc  = el('us-acoes-grid');
+  if(!gridMod||!gridAc) return;
+  gridMod.innerHTML = TODOS_MODULOS.map(function(m){
+    return '<label style="display:flex;align-items:center;gap:6px;font-size:11px;cursor:pointer;padding:5px 8px;background:var(--bg);border-radius:6px;border:1px solid var(--br)">'+
+      '<input type="checkbox" id="chk-mod-'+m.k+'" style="width:14px;height:14px">'+
+      '<span>'+m.label+'</span></label>';
+  }).join('');
+  gridAc.innerHTML = TODAS_ACOES.map(function(a){
+    return '<label style="display:flex;align-items:center;gap:6px;font-size:11px;cursor:pointer;padding:5px 8px;background:var(--bg);border-radius:6px;border:1px solid var(--br)">'+
+      '<input type="checkbox" id="chk-ac-'+a.k+'" style="width:14px;height:14px">'+
+      '<span>'+a.label+'</span></label>';
+  }).join('');
+}
+
+function marcarTodosPerms(marcar){
+  TODOS_MODULOS.forEach(function(m){var c=el('chk-mod-'+m.k);if(c)c.checked=marcar;});
+  TODAS_ACOES.forEach(function(a){var c=el('chk-ac-'+a.k);if(c)c.checked=marcar;});
+}
+
+function aplicarPerfilBase(nivel, somenteDesc){
+  if(!somenteDesc) el('us-nivel').value='custom';
+  var p = PERMISSOES[nivel]||PERMISSOES['adm'];
+  _renderCheckboxPerms();
+  setTimeout(function(){
+    p.modulos.forEach(function(k){var c=el('chk-mod-'+k);if(c)c.checked=true;});
+    p.acoes.forEach(function(k){var c=el('chk-ac-'+k);if(c)c.checked=true;});
+    if(!somenteDesc){el('us-nivel').value='custom';onChangeNivel();}
+  },50);
+}
+
+function renderPerms(nivel){} // mantido por compatibilidade
+
 
 // ================================================================ CONFIG
 function renderConfig(){
@@ -4044,7 +4229,7 @@ function sincronizarPlano(){
     chamarServidorJSONP(url, function(json){
       if(json&&json.ok){
         var ps = String(json.plano||'').toLowerCase();
-        if(ps.includes('person')||ps.includes('custom')||ps.includes('enterprise')){
+        if(ps.includes('person')||ps.includes('custom')||ps.includes('enterprise')||ps==='personalizada'){
           lic.plano = 'Personalizado';
         } else {
           lic.plano = json.plano||lic.plano;
@@ -5083,7 +5268,6 @@ function fazerLogin(){
   if(!found){
     try{
       const lic=_lerLicenca();
-      // Login com e-mail da licença usa a senha do admin (não hardcoded)
       if(lic.email&&lic.email===usuario){
         var senhaLic=(DB.config&&DB.config.adminSenha)||'admin123';
         if(senha===senhaLic)
@@ -5093,11 +5277,38 @@ function fazerLogin(){
   }
 
   if(!found&&DB.users){
-    const u=DB.users.find(u=>(u.email||'').toLowerCase()===usuario||(u.nome||'').toLowerCase()===usuario);
-    if(u&&u.senha===senha) found={nome:u.nome,nivel:u.nivel||'adm',email:u.email};
+    const u=DB.users.find(function(u){
+      return (u.email||'').toLowerCase()===usuario||(u.nome||'').toLowerCase()===usuario;
+    });
+    if(u){
+      // Aceita senha OU pin como autenticação
+      var senhaOk = (u.senha&&u.senha===senha)||(u.pin&&String(u.pin)===String(senha));
+      if(senhaOk){
+        found={nome:u.nome, nivel:u.nivel||'adm', email:u.email, role:u.role, funcId:u.funcId,
+               modulosCustom:u.modulosCustom||null, acoesCustom:u.acoesCustom||null};
+      }
+    }
   }
 
   if(found){
+    // ── Funcionário de ponto → portal exclusivo ──────────────────────────────
+    if(found.role==='ponto'){
+      var funcPonto = DB.funcionarios.find(function(f){return f.id===found.funcId;});
+      if(!funcPonto){err.textContent='Funcionário não encontrado. Contate o responsável.';err.style.display='block';return;}
+      var contaPonto = (DB.users||[]).find(function(u){return u.funcId===found.funcId&&u.role==='ponto';});
+      if(contaPonto&&contaPonto.ativo===false){err.textContent='Conta desativada. Contate o responsável.';err.style.display='block';return;}
+      // Verifica se ponto digital está habilitado
+      var pd=(DB.config&&DB.config.pontoDigital)||{};
+      if(pd.habilitado===false){err.textContent='Portal de ponto desabilitado. Contate o responsável.';err.style.display='block';return;}
+      // Salva sessão do portal
+      sessionStorage.setItem(SK_SESS,JSON.stringify({nome:found.nome,nivel:'ponto',role:'ponto',funcId:found.funcId,email:found.email,loginEm:new Date().toISOString()}));
+      el('screen-login').style.display='none';
+      // Inicia o portal do funcionário diretamente
+      _portalUser = {funcId:found.funcId,nome:found.nome,email:found.email,role:'ponto'};
+      renderPortalPrincipal();
+      return;
+    }
+    // ── Admin / outros papéis → app principal ────────────────────────────────
     sessionStorage.setItem(SK_SESS,JSON.stringify({...found,loginEm:new Date().toISOString()}));
     nivelUsuario=found.nivel||'adm';
     el('screen-login').style.display='none';
@@ -5114,7 +5325,6 @@ function fazerLogin(){
     setTimeout(function(){
       atualizarLogoSidebar();
       atualizarIconesPWA();
-      // Mostra logo padrão na tela de login
       var loginLogo = el('login-logo-box');
       if(loginLogo && LOGO_PADRAO){
         loginLogo.style.backgroundImage='url('+LOGO_PADRAO+')';
@@ -5126,6 +5336,7 @@ function fazerLogin(){
     }, 1000);
     setTimeout(revalidarOnline, 2000);
     setTimeout(verificarAtualizacao, 4000);
+    setTimeout(function(){ revalidarOnline(true); }, 3000);
   } else {
     err.textContent='Usuario ou senha incorretos.';
     err.style.display='block';
@@ -5186,7 +5397,7 @@ function revalidarOnline(forcado){
         // Aceita qualquer variação do plano Personalizado vinda do servidor
         var planoServidor = String(json.plano||lic.plano||'');
         var ps = planoServidor.toLowerCase();
-        if(ps.includes('person')||ps.includes('custom')||ps.includes('enterprise')){
+        if(ps.includes('person')||ps.includes('custom')||ps.includes('enterprise')||ps==='personalizada'){
           lic.plano = 'Personalizado';
         } else {
           lic.plano = planoServidor || lic.plano;
@@ -5263,6 +5474,18 @@ function initAuth(){
     mostrarLogin();
     el('app-shell').style.display='none';
     return;
+  }
+  // ── Sessão de ponto → portal direto ──────────────────────────────────────
+  if(sess.role==='ponto'||sess.nivel==='ponto'){
+    var funcPonto = DB.funcionarios.find(function(f){return f.id===sess.funcId;});
+    if(funcPonto){
+      el('screen-license').style.display='none';
+      el('screen-login').style.display='none';
+      el('app-shell').style.display='none';
+      _portalUser = {funcId:sess.funcId,nome:sess.nome,email:sess.email,role:'ponto'};
+      renderPortalPrincipal();
+      return;
+    }
   }
   nivelUsuario=sess.nivel||'adm';
   el('screen-license').style.display='none';
@@ -5348,7 +5571,8 @@ function getPlanoAtivo(){
   try{
     var lic = _lerLicenca();
     if(lic._adulterado) return 'starter'; // adulterado → starter
-    var p = (lic.plano||'starter').toLowerCase();
+    var p = (lic.plano||'starter').toLowerCase().trim();
+    // Aceita: Personalizado, Personalizada, personalizado, custom, enterprise
     if(p.includes('person')||p.includes('custom')||p.includes('enterprise')||p.includes('empresa')) return 'personalizado';
     if(p.includes('pro')||p.includes('profis')||p.includes('97')) return 'pro';
     return 'starter';
@@ -5759,55 +5983,6 @@ function lerEmailDaURL(){
 // ═══════════════════════════════════════════════════════════════════════════
 // CONTROLE DE ACESSO POR NÍVEL DE USUÁRIO
 // ═══════════════════════════════════════════════════════════════════════════
-var PERMISSOES = {
-  adm: {
-    modulos:  ['dashboard','obras','orcamentos','clientes','funcionarios',
-               'estoque','financeiro','diario','relatorios','usuarios','config'],
-    acoes:    ['salvar','editar','excluir','lancar_ponto','lancar_diario',
-               'lancar_financeiro','gerenciar_usuarios','configurar']
-  },
-  fin: {
-    modulos:  ['dashboard','obras','orcamentos','clientes','financeiro','relatorios'],
-    acoes:    ['salvar','editar','lancar_financeiro']
-  },
-  alm: {
-    modulos:  ['dashboard','obras','estoque'],
-    acoes:    ['salvar','editar','lancar_estoque']
-  },
-  ges: {
-    modulos:  ['dashboard','obras','clientes','funcionarios','estoque','diario'],
-    acoes:    ['salvar','editar','lancar_ponto','lancar_diario',
-               'lancar_estoque','ver_estoque']
-  }
-};
-
-function podeAcessar(modulo){
-  var nivel = nivelUsuario || 'adm';
-  var perms = PERMISSOES[nivel] || PERMISSOES['adm'];
-  return perms.modulos.includes(modulo);
-}
-
-function podeExecutar(acao){
-  var nivel = nivelUsuario || 'adm';
-  var perms = PERMISSOES[nivel] || PERMISSOES['adm'];
-  return perms.acoes.includes(acao) || perms.acoes.includes('salvar');
-}
-
-// Aplica restrições de nível na interface após login
-function aplicarRestricoesPorNivel(){
-  var nivel = nivelUsuario || 'adm';
-  if(nivel === 'adm') return; // admin vê tudo
-
-  // Restringe itens do menu conforme o nível
-  document.querySelectorAll('.sbi').forEach(function(sbi){
-    var p = sbi.getAttribute('data-p');
-    if(!p) return;
-    if(!podeAcessar(p)){
-      sbi.style.display = 'none';
-    }
-  });
-}
-
 // ── RECUPERAÇÃO DE SENHA (inline na tela de login) ──────────────────────────
 var recEmailAtual = '';
 
@@ -7259,6 +7434,342 @@ function confirmarAdiantamento(idFuncionario, nomeFuncionario) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// MÓDULO FERRAMENTAS — Controle de saída, retorno e fotos
+// ═══════════════════════════════════════════════════════════════════════════
+
+var CATS_FERR = ['Elétrica','Mecânica','Manual','Medição','Segurança','Transporte','Outra'];
+var COND_FERR = ['Ótima','Boa','Regular','Com defeito'];
+
+function nomeFerrr(id){ var f=(DB.ferramentas||[]).find(function(x){return x.id===id;}); return f?f.nome:id||'-'; }
+
+// ── Render listagem de ferramentas ────────────────────────────────────────
+function renderFerramentas(){
+  if(!DB.ferramentas) DB.ferramentas=[];
+  if(!DB.movFerramentas) DB.movFerramentas=[];
+
+  // Resumo
+  var tot=DB.ferramentas.length;
+  var disp=DB.ferramentas.filter(function(f){return f.status==='disponivel';}).length;
+  var uso=DB.ferramentas.filter(function(f){return f.status==='emprestada';}).length;
+  var man=DB.ferramentas.filter(function(f){return f.status==='manutencao';}).length;
+  var res=el('ferr-resumo');
+  if(res) res.innerHTML=
+    '<div style="background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);border-radius:var(--r);padding:8px 14px;font-size:12px;text-align:center"><div style="font-weight:700;font-size:18px;color:var(--gn)">'+disp+'</div><div style="color:var(--tx3)">Disponíveis</div></div>'+
+    '<div style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:var(--r);padding:8px 14px;font-size:12px;text-align:center"><div style="font-weight:700;font-size:18px;color:var(--rd)">'+uso+'</div><div style="color:var(--tx3)">Em uso</div></div>'+
+    '<div style="background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:var(--r);padding:8px 14px;font-size:12px;text-align:center"><div style="font-weight:700;font-size:18px;color:var(--am)">'+man+'</div><div style="color:var(--tx3)">Manutenção</div></div>'+
+    '<div style="background:var(--bg3);border:1px solid var(--br);border-radius:var(--r);padding:8px 14px;font-size:12px;text-align:center"><div style="font-weight:700;font-size:18px;color:var(--tx)">'+tot+'</div><div style="color:var(--tx3)">Total</div></div>';
+
+  var q=(val('ferr-busca')||'').toLowerCase();
+  var filtSt=val('ferr-filtro-status')||'';
+  var lista=DB.ferramentas.filter(function(f){
+    var ok=!q||(f.nome||'').toLowerCase().includes(q)||(f.categoria||'').toLowerCase().includes(q)||(f.patrimonio||'').toLowerCase().includes(q);
+    var okSt=!filtSt||f.status===filtSt;
+    return ok&&okSt;
+  });
+
+  var badges={disponivel:'<span class="bdg bgg">✅ Disponível</span>',emprestada:'<span class="bdg bgr">🔴 Em uso</span>',manutencao:'<span class="bdg bgo">🔧 Manutenção</span>'};
+  var rows=lista.map(function(f){
+    var ult=_ultimaMovFerrr(f.id);
+    var comQuem=ult&&f.status==='emprestada'?(ult.responsavel||'-'):'-';
+    var obra=ult&&f.status==='emprestada'?nomeOb(ult.obra||''):'-';
+    var fotoCell=f.foto?'<img src="'+f.foto+'" style="width:36px;height:36px;object-fit:cover;border-radius:4px;cursor:pointer" onclick="verFotoFerr(\''+f.id+'\')"/>':'<span style="color:var(--tx3);font-size:10px">—</span>';
+    return '<tr>'+
+      '<td>'+fotoCell+'</td>'+
+      '<td><strong>'+f.nome+'</strong>'+(f.descricao?'<br><span style="font-size:10px;color:var(--tx3)">'+f.descricao+'</span>':'')+'</td>'+
+      '<td>'+(f.categoria||'-')+'</td>'+
+      '<td><code style="font-size:11px">'+(f.patrimonio||'-')+'</code></td>'+
+      '<td>'+(badges[f.status]||f.status||'-')+'</td>'+
+      '<td style="font-size:12px">'+comQuem+'</td>'+
+      '<td style="font-size:12px">'+obra+'</td>'+
+      '<td><div style="display:flex;gap:4px;flex-wrap:wrap">'+
+        (f.status==='disponivel'?'<button class="btn xs bg" onclick="abrirSaidaFerr(\''+f.id+'\')">📤 Retirar</button>':'')+
+        (f.status==='emprestada'?'<button class="btn xs bp" onclick="abrirRetornoFerr(\''+f.id+'\')">📥 Devolver</button>':'')+
+        '<button class="btn xs" onclick="editarFerramenta(\''+f.id+'\')">✏️</button>'+
+        '<button class="btn xs br-" onclick="excluirFerramenta(\''+f.id+'\')">🗑</button>'+
+      '</div></td>'+
+    '</tr>';
+  }).join('');
+  set('tbl-ferramentas', lista.length?rows:'<tr><td colspan="8" class="empty">Nenhuma ferramenta cadastrada. Clique em "+ Nova ferramenta".</td></tr>');
+
+  // Atualiza filtro no select de movimentações
+  var sel=el('movferr-filtro');
+  if(sel){
+    var prev=sel.value;
+    sel.innerHTML='<option value="">Todas as ferramentas</option>'+
+      DB.ferramentas.map(function(f){return '<option value="'+f.id+'">'+f.nome+'</option>';}).join('');
+    sel.value=prev;
+  }
+}
+
+function _ultimaMovFerrr(ferrId){
+  var movs=(DB.movFerramentas||[]).filter(function(m){return m.ferr===ferrId&&m.tipo==='saida';});
+  movs.sort(function(a,b){return(b.data+b.hora)<(a.data+a.hora)?-1:1;});
+  return movs[0]||null;
+}
+
+// ── Render movimentações de ferramentas ──────────────────────────────────
+function renderMovFerramentas(){
+  if(!DB.movFerramentas) DB.movFerramentas=[];
+  var ferrFilt=val('movferr-filtro')||'';
+  var tipoFilt=val('movferr-tipo')||'';
+  var lista=DB.movFerramentas.filter(function(m){
+    return (!ferrFilt||m.ferr===ferrFilt)&&(!tipoFilt||m.tipo===tipoFilt);
+  });
+  lista.sort(function(a,b){return (b.data+(b.hora||''))<(a.data+(a.hora||''))?-1:1;});
+  var badgeTipo={saida:'<span class="bdg bgr">📤 Saída</span>',retorno:'<span class="bdg bgg">📥 Retorno</span>'};
+  var rows=lista.map(function(m){
+    var fotosHtml='';
+    if(m.fotoSaida) fotosHtml+='<button class="btn xs" onclick="verFotoMovFerr(\''+m.id+'\',\'saida\')" title="Foto de saída">📷 Saída</button> ';
+    if(m.fotoRetorno) fotosHtml+='<button class="btn xs bp" onclick="verFotoMovFerr(\''+m.id+'\',\'retorno\')" title="Foto de retorno">📷 Retorno</button>';
+    if(!fotosHtml) fotosHtml='<span style="color:var(--tx3);font-size:10px">—</span>';
+    return '<tr>'+
+      '<td style="white-space:nowrap;font-size:12px">'+fmtData(m.data)+(m.hora?' '+m.hora:'')+'</td>'+
+      '<td>'+(badgeTipo[m.tipo]||m.tipo)+'</td>'+
+      '<td><strong>'+nomeFerrr(m.ferr)+'</strong></td>'+
+      '<td>'+(m.responsavel||'-')+'</td>'+
+      '<td>'+nomeOb(m.obra||'')+'</td>'+
+      '<td><span class="bdg '+(m.condicaoSaida==='Ótima'||m.condicaoSaida==='Boa'?'bgg':'bgo')+'">'+( m.condicaoSaida||'-')+'</span></td>'+
+      '<td>'+(m.condicaoRetorno?'<span class="bdg '+(m.condicaoRetorno==='Ótima'||m.condicaoRetorno==='Boa'?'bgg':m.condicaoRetorno==='Regular'?'bgo':'bgr')+'">'+m.condicaoRetorno+'</span>':'<span style="color:var(--tx3);font-size:10px">Pendente</span>')+'</td>'+
+      '<td>'+fotosHtml+'</td>'+
+      '<td style="font-size:11px;color:var(--tx2)">'+(m.obs||'-')+'</td>'+
+      '<td><button class="btn xs br-" onclick="excluirMovFerr(\''+m.id+'\')">🗑</button></td>'+
+    '</tr>';
+  }).join('');
+  set('tbl-mov-ferramentas', lista.length?rows:'<tr><td colspan="10" class="empty">Nenhuma movimentação registrada.</td></tr>');
+}
+
+// ── Cadastro de ferramenta ───────────────────────────────────────────────
+function abrirCadastroFerramenta(id){
+  var f = id ? (DB.ferramentas||[]).find(function(x){return x.id===id;}) : null;
+  var overlay=document.createElement('div');
+  overlay.id='modal-ferr-cad';
+  overlay.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.8);z-index:9999;display:flex;align-items:flex-end;justify-content:center;padding:12px;overflow-y:auto;-webkit-overflow-scrolling:touch';
+  overlay.innerHTML='<div style="background:#1a1f2e;border:1px solid #2d3348;border-radius:16px 16px 0 0;padding:20px;width:100%;max-width:500px;max-height:88vh;overflow-y:auto">'+
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">'+
+    '<h3 style="color:#eef0f8;margin:0;font-size:15px">🔧 '+(f?'Editar':'Nova')+' Ferramenta</h3>'+
+    '<button id="btn-fechar-ferrcad" style="background:rgba(141,149,176,.15);color:#8d95b0;border:1px solid #2d3348;border-radius:8px;padding:4px 10px;cursor:pointer">✕</button></div>'+
+    '<div style="display:flex;flex-direction:column;gap:12px">'+
+    '<div><label style="color:#8d95b0;font-size:11px;display:block;margin-bottom:5px;font-weight:600">NOME DA FERRAMENTA *</label>'+
+    '<input id="ferr-cad-nome" type="text" placeholder="Ex: Furadeira Bosch 750W" value="'+(f?f.nome:'')+'" style="width:100%;padding:10px;background:#111827;color:#eef0f8;border:1px solid #2d3348;border-radius:8px;box-sizing:border-box"></div>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'+
+    '<div><label style="color:#8d95b0;font-size:11px;display:block;margin-bottom:5px;font-weight:600">CATEGORIA</label>'+
+    '<select id="ferr-cad-cat" style="width:100%;padding:10px;background:#111827;color:#eef0f8;border:1px solid #2d3348;border-radius:8px">'+
+    CATS_FERR.map(function(c){return '<option'+(f&&f.categoria===c?' selected':'')+'>'+c+'</option>';}).join('')+'</select></div>'+
+    '<div><label style="color:#8d95b0;font-size:11px;display:block;margin-bottom:5px;font-weight:600">Nº PATRIMÔNIO / SÉRIE</label>'+
+    '<input id="ferr-cad-pat" type="text" placeholder="FER-001" value="'+(f?f.patrimonio||'':'')+'" style="width:100%;padding:10px;background:#111827;color:#eef0f8;border:1px solid #2d3348;border-radius:8px;box-sizing:border-box"></div></div>'+
+    '<div><label style="color:#8d95b0;font-size:11px;display:block;margin-bottom:5px;font-weight:600">DESCRIÇÃO</label>'+
+    '<input id="ferr-cad-desc" type="text" placeholder="Marca, modelo, voltagem..." value="'+(f?f.descricao||'':'')+'" style="width:100%;padding:10px;background:#111827;color:#eef0f8;border:1px solid #2d3348;border-radius:8px;box-sizing:border-box"></div>'+
+    '<div><label style="color:#8d95b0;font-size:11px;display:block;margin-bottom:5px;font-weight:600">STATUS INICIAL</label>'+
+    '<select id="ferr-cad-status" style="width:100%;padding:10px;background:#111827;color:#eef0f8;border:1px solid #2d3348;border-radius:8px">'+
+    '<option value="disponivel"'+(f&&f.status==='disponivel'?' selected':'')+'>✅ Disponível</option>'+
+    '<option value="manutencao"'+(f&&f.status==='manutencao'?' selected':'')+'>🔧 Manutenção</option>'+
+    '<option value="emprestada"'+(f&&f.status==='emprestada'?' selected':'')+'>🔴 Em uso</option>'+
+    '</select></div>'+
+    '<div><label style="color:#8d95b0;font-size:11px;display:block;margin-bottom:5px;font-weight:600">📷 FOTO DA FERRAMENTA (opcional)</label>'+
+    '<input type="file" id="ferr-cad-foto" accept="image/*" style="display:none" onchange="prevFotoFerr(this,\'ferr-cad-prev\')"/>'+
+    '<div style="display:flex;gap:8px;align-items:center">'+
+    '<button class="btn sm bp" onclick="el(\'ferr-cad-foto\').click()">📷 Selecionar</button>'+
+    '<img id="ferr-cad-prev" src="'+(f&&f.foto?f.foto:'')+'" style="height:50px;border-radius:6px;display:'+(f&&f.foto?'block':'none')+'"/></div></div>'+
+    '<button id="btn-salvar-ferr" style="width:100%;padding:13px;background:#10b981;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer">💾 '+(f?'Salvar alterações':'Cadastrar ferramenta')+'</button>'+
+    '</div></div>';
+  document.body.appendChild(overlay);
+  document.getElementById('btn-fechar-ferrcad').onclick=function(){overlay.remove();};
+  document.getElementById('btn-salvar-ferr').onclick=function(){
+    var nome=el('ferr-cad-nome').value.trim();
+    if(!nome){alert('Informe o nome da ferramenta.');return;}
+    var imgEl=el('ferr-cad-prev');
+    var foto=(imgEl&&imgEl.src&&!imgEl.src.endsWith('figforce.html'))?imgEl.src:(f?f.foto:'');
+    if(f){
+      f.nome=nome; f.categoria=el('ferr-cad-cat').value;
+      f.patrimonio=el('ferr-cad-pat').value; f.descricao=el('ferr-cad-desc').value;
+      f.status=el('ferr-cad-status').value; if(foto) f.foto=foto;
+    } else {
+      DB.ferramentas.push({id:id(),nome:nome,categoria:el('ferr-cad-cat').value,
+        patrimonio:el('ferr-cad-pat').value,descricao:el('ferr-cad-desc').value,
+        status:el('ferr-cad-status').value,foto:foto||''});
+    }
+    save(); overlay.remove(); renderFerramentas();
+  };
+}
+function editarFerramenta(fid){abrirCadastroFerramenta(fid);}
+function excluirFerramenta(fid){
+  var f=(DB.ferramentas||[]).find(function(x){return x.id===fid;});
+  if(!f||!confirm('Excluir "'+f.nome+'"?')) return;
+  DB.ferramentas=DB.ferramentas.filter(function(x){return x.id!==fid;});
+  DB.movFerramentas=(DB.movFerramentas||[]).filter(function(m){return m.ferr!==fid;});
+  save(); renderFerramentas(); renderMovFerramentas();
+}
+
+// ── Preview de foto ──────────────────────────────────────────────────────
+function prevFotoFerr(input, prevId){
+  var file=input.files[0]; if(!file) return;
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var img=el(prevId);
+    if(img){img.src=e.target.result;img.style.display='block';}
+    input._base64=e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+// ── SAÍDA de ferramenta ──────────────────────────────────────────────────
+function abrirSaidaFerr(ferrId){
+  var f=(DB.ferramentas||[]).find(function(x){return x.id===ferrId;});
+  if(!f) return;
+  var overlay=document.createElement('div');
+  overlay.id='modal-ferr-saida';
+  overlay.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.85);z-index:9999;display:flex;align-items:flex-end;justify-content:center;padding:12px;overflow-y:auto;-webkit-overflow-scrolling:touch';
+  var obrasOpts=(DB.obras||[]).map(function(o){return '<option value="'+o.id+'">'+o.nome+'</option>';}).join('');
+  overlay.innerHTML='<div style="background:#1a1f2e;border:1px solid rgba(239,68,68,.4);border-radius:16px 16px 0 0;padding:20px;width:100%;max-width:500px;max-height:88vh;overflow-y:auto">'+
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">'+
+    '<h3 style="color:#ef4444;margin:0;font-size:15px">📤 Registrar Saída</h3>'+
+    '<button id="btn-fechar-ferrsai" style="background:rgba(141,149,176,.15);color:#8d95b0;border:1px solid #2d3348;border-radius:8px;padding:4px 10px;cursor:pointer">✕</button></div>'+
+    '<div style="padding:10px;background:rgba(239,68,68,.08);border-radius:8px;margin-bottom:14px">'+
+    '<div style="font-weight:700;color:#eef0f8">'+f.nome+'</div>'+
+    (f.patrimonio?'<div style="font-size:11px;color:#8d95b0">Patrimônio: '+f.patrimonio+'</div>':'')+
+    '</div>'+
+    '<div style="display:flex;flex-direction:column;gap:12px">'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'+
+    '<div><label style="color:#8d95b0;font-size:11px;display:block;margin-bottom:5px;font-weight:600">DATA *</label>'+
+    '<input id="ferrsai-data" type="date" value="'+hoje()+'" style="width:100%;padding:10px;background:#111827;color:#eef0f8;border:1px solid #2d3348;border-radius:8px;box-sizing:border-box"></div>'+
+    '<div><label style="color:#8d95b0;font-size:11px;display:block;margin-bottom:5px;font-weight:600">HORA</label>'+
+    '<input id="ferrsai-hora" type="time" value="'+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})+'" style="width:100%;padding:10px;background:#111827;color:#eef0f8;border:1px solid #2d3348;border-radius:8px;box-sizing:border-box"></div></div>'+
+    '<div><label style="color:#8d95b0;font-size:11px;display:block;margin-bottom:5px;font-weight:600">RESPONSÁVEL (quem retirou) *</label>'+
+    '<input id="ferrsai-resp" type="text" placeholder="Nome do funcionário" style="width:100%;padding:10px;background:#111827;color:#eef0f8;border:1px solid #2d3348;border-radius:8px;box-sizing:border-box" list="ferrsai-resp-list"/>'+
+    '<datalist id="ferrsai-resp-list">'+DB.funcionarios.map(function(f){return '<option value="'+f.nome+'"/>';}).join('')+'</datalist></div>'+
+    '<div><label style="color:#8d95b0;font-size:11px;display:block;margin-bottom:5px;font-weight:600">OBRA DE DESTINO</label>'+
+    '<select id="ferrsai-obra" style="width:100%;padding:10px;background:#111827;color:#eef0f8;border:1px solid #2d3348;border-radius:8px"><option value="">Sem obra específica</option>'+obrasOpts+'</select></div>'+
+    '<div><label style="color:#8d95b0;font-size:11px;display:block;margin-bottom:5px;font-weight:600">CONDIÇÃO NA SAÍDA</label>'+
+    '<select id="ferrsai-cond" style="width:100%;padding:10px;background:#111827;color:#eef0f8;border:1px solid #2d3348;border-radius:8px">'+
+    COND_FERR.map(function(c){return '<option>'+c+'</option>';}).join('')+'</select></div>'+
+    '<div><label style="color:#8d95b0;font-size:11px;display:block;margin-bottom:5px;font-weight:600">📷 FOTO DA FERRAMENTA NA SAÍDA</label>'+
+    '<input type="file" id="ferrsai-foto" accept="image/*" style="display:none" onchange="prevFotoFerr(this,\'ferrsai-prev\')"/>'+
+    '<div style="display:flex;gap:8px;align-items:center">'+
+    '<button class="btn sm bp" onclick="el(\'ferrsai-foto\').click()">📷 Tirar / Selecionar</button>'+
+    '<img id="ferrsai-prev" src="" style="height:50px;border-radius:6px;display:none"/></div>'+
+    '<div style="font-size:10px;color:#555f7a;margin-top:3px">Registre como a ferramenta saiu do almoxarifado</div></div>'+
+    '<div><label style="color:#8d95b0;font-size:11px;display:block;margin-bottom:5px;font-weight:600">OBSERVAÇÕES</label>'+
+    '<textarea id="ferrsai-obs" placeholder="Acessórios, malas, bits..." style="width:100%;padding:10px;background:#111827;color:#eef0f8;border:1px solid #2d3348;border-radius:8px;min-height:60px;resize:none;box-sizing:border-box"></textarea></div>'+
+    '<button id="btn-conf-ferrsai" style="width:100%;padding:13px;background:#ef4444;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer">📤 Confirmar Saída</button>'+
+    '</div></div>';
+  document.body.appendChild(overlay);
+  document.getElementById('btn-fechar-ferrsai').onclick=function(){overlay.remove();};
+  document.getElementById('btn-conf-ferrsai').onclick=function(){
+    var resp=el('ferrsai-resp').value.trim();
+    if(!resp){alert('Informe o responsável (quem retirou).');return;}
+    var fotoEl=el('ferrsai-prev');
+    var foto=fotoEl&&fotoEl.src&&!fotoEl.src.endsWith('figforce.html')?fotoEl.src:'';
+    if(!confirm('Confirmar saída de "'+f.nome+'" para '+resp+'?')) return;
+    DB.movFerramentas.push({
+      id:id(),ferr:ferrId,tipo:'saida',
+      data:el('ferrsai-data').value,hora:el('ferrsai-hora').value,
+      responsavel:resp,obra:el('ferrsai-obra').value,
+      condicaoSaida:el('ferrsai-cond').value,
+      fotoSaida:foto,obs:el('ferrsai-obs').value
+    });
+    f.status='emprestada';
+    save(); overlay.remove(); renderFerramentas(); renderMovFerramentas();
+    alert('✔ Saída registrada!\n'+f.nome+' retirada por '+resp);
+  };
+}
+
+// ── RETORNO de ferramenta ────────────────────────────────────────────────
+function abrirRetornoFerr(ferrId){
+  var f=(DB.ferramentas||[]).find(function(x){return x.id===ferrId;});
+  if(!f) return;
+  var ult=_ultimaMovFerrr(ferrId);
+  var overlay=document.createElement('div');
+  overlay.id='modal-ferr-ret';
+  overlay.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.85);z-index:9999;display:flex;align-items:flex-end;justify-content:center;padding:12px;overflow-y:auto;-webkit-overflow-scrolling:touch';
+  overlay.innerHTML='<div style="background:#1a1f2e;border:1px solid rgba(16,185,129,.4);border-radius:16px 16px 0 0;padding:20px;width:100%;max-width:500px;max-height:88vh;overflow-y:auto">'+
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">'+
+    '<h3 style="color:#10b981;margin:0;font-size:15px">📥 Registrar Retorno</h3>'+
+    '<button id="btn-fechar-ferrret" style="background:rgba(141,149,176,.15);color:#8d95b0;border:1px solid #2d3348;border-radius:8px;padding:4px 10px;cursor:pointer">✕</button></div>'+
+    '<div style="padding:10px;background:rgba(16,185,129,.08);border-radius:8px;margin-bottom:14px">'+
+    '<div style="font-weight:700;color:#eef0f8">'+f.nome+'</div>'+
+    (ult?'<div style="font-size:11px;color:#8d95b0">Retirada por: <strong style="color:#eef0f8">'+ult.responsavel+'</strong> em '+fmtData(ult.data)+'</div>':'')+
+    '</div>'+
+    '<div style="display:flex;flex-direction:column;gap:12px">'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'+
+    '<div><label style="color:#8d95b0;font-size:11px;display:block;margin-bottom:5px;font-weight:600">DATA DE RETORNO</label>'+
+    '<input id="ferrret-data" type="date" value="'+hoje()+'" style="width:100%;padding:10px;background:#111827;color:#eef0f8;border:1px solid #2d3348;border-radius:8px;box-sizing:border-box"></div>'+
+    '<div><label style="color:#8d95b0;font-size:11px;display:block;margin-bottom:5px;font-weight:600">HORA</label>'+
+    '<input id="ferrret-hora" type="time" value="'+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})+'" style="width:100%;padding:10px;background:#111827;color:#eef0f8;border:1px solid #2d3348;border-radius:8px;box-sizing:border-box"></div></div>'+
+    '<div><label style="color:#8d95b0;font-size:11px;display:block;margin-bottom:5px;font-weight:600">CONDIÇÃO NO RETORNO *</label>'+
+    '<select id="ferrret-cond" style="width:100%;padding:10px;background:#111827;color:#eef0f8;border:1px solid #2d3348;border-radius:8px">'+
+    COND_FERR.map(function(c){return '<option>'+c+'</option>';}).join('')+'</select></div>'+
+    '<div><label style="color:#8d95b0;font-size:11px;display:block;margin-bottom:5px;font-weight:600">📷 FOTO DA FERRAMENTA NO RETORNO</label>'+
+    '<input type="file" id="ferrret-foto" accept="image/*" style="display:none" onchange="prevFotoFerr(this,\'ferrret-prev\')"/>'+
+    '<div style="display:flex;gap:8px;align-items:center">'+
+    '<button class="btn sm bp" onclick="el(\'ferrret-foto\').click()">📷 Tirar / Selecionar</button>'+
+    '<img id="ferrret-prev" src="" style="height:50px;border-radius:6px;display:none"/></div>'+
+    '<div style="font-size:10px;color:#555f7a;margin-top:3px">Registre como a ferramenta voltou para o almoxarifado</div></div>'+
+    '<div><label style="color:#8d95b0;font-size:11px;display:block;margin-bottom:5px;font-weight:600">DESTINO APÓS RETORNO</label>'+
+    '<select id="ferrret-dest" style="width:100%;padding:10px;background:#111827;color:#eef0f8;border:1px solid #2d3348;border-radius:8px">'+
+    '<option value="disponivel">✅ Disponível (voltar ao almoxarifado)</option>'+
+    '<option value="manutencao">🔧 Enviar para manutenção</option>'+
+    '</select></div>'+
+    '<div><label style="color:#8d95b0;font-size:11px;display:block;margin-bottom:5px;font-weight:600">OBSERVAÇÕES</label>'+
+    '<textarea id="ferrret-obs" placeholder="Avarias, peças faltando, limpeza necessária..." style="width:100%;padding:10px;background:#111827;color:#eef0f8;border:1px solid #2d3348;border-radius:8px;min-height:60px;resize:none;box-sizing:border-box"></textarea></div>'+
+    '<button id="btn-conf-ferrret" style="width:100%;padding:13px;background:#10b981;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer">📥 Confirmar Retorno</button>'+
+    '</div></div>';
+  document.body.appendChild(overlay);
+  document.getElementById('btn-fechar-ferrret').onclick=function(){overlay.remove();};
+  document.getElementById('btn-conf-ferrret').onclick=function(){
+    var cond=el('ferrret-cond').value;
+    var fotoEl=el('ferrret-prev');
+    var foto=fotoEl&&fotoEl.src&&!fotoEl.src.endsWith('figforce.html')?fotoEl.src:'';
+    var dest=el('ferrret-dest').value;
+    if(!confirm('Confirmar retorno de "'+f.nome+'"?\nCondição: '+cond)) return;
+    // Atualiza a movimentação de saída com o retorno
+    if(ult){
+      ult.fotoRetorno=foto||ult.fotoRetorno;
+      ult.condicaoRetorno=cond;
+      ult.dataRetorno=el('ferrret-data').value;
+      ult.horaRetorno=el('ferrret-hora').value;
+      ult.obsRetorno=el('ferrret-obs').value;
+    }
+    // Adiciona registro de retorno
+    DB.movFerramentas.push({
+      id:id(),ferr:ferrId,tipo:'retorno',
+      data:el('ferrret-data').value,hora:el('ferrret-hora').value,
+      responsavel:ult?ult.responsavel:'',obra:ult?ult.obra:'',
+      condicaoRetorno:cond,fotoRetorno:foto,obs:el('ferrret-obs').value
+    });
+    f.status=dest||'disponivel';
+    save(); overlay.remove(); renderFerramentas(); renderMovFerramentas();
+    var msg='✔ Retorno registrado!\n'+f.nome+'\nCondição: '+cond;
+    if(dest==='manutencao') msg+='\n⚠️ Enviada para manutenção.';
+    alert(msg);
+  };
+}
+
+// ── Visualizar fotos ─────────────────────────────────────────────────────
+function verFotoFerr(ferrId){
+  var f=(DB.ferramentas||[]).find(function(x){return x.id===ferrId;});
+  if(!f||!f.foto) return;
+  var w=window.open('','_blank');
+  w.document.write('<html><body style="margin:0;background:#000;display:flex;align-items:center;justify-content:center;min-height:100vh"><img src="'+f.foto+'" style="max-width:100%;max-height:100vh"/></body></html>');
+}
+function verFotoMovFerr(movId, tipo){
+  var m=(DB.movFerramentas||[]).find(function(x){return x.id===movId;});
+  if(!m) return;
+  var src=tipo==='saida'?m.fotoSaida:m.fotoRetorno;
+  if(!src){alert('Nenhuma foto registrada para este '+tipo+'.');return;}
+  var w=window.open('','_blank');
+  w.document.write('<html><body style="margin:0;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh"><div style="color:#fff;font-size:14px;margin-bottom:10px;font-family:sans-serif">📷 Foto de '+(tipo==='saida'?'Saída':'Retorno')+' — '+nomeFerrr(m.ferr)+'</div><img src="'+src+'" style="max-width:100%;max-height:90vh"/></body></html>');
+}
+
+function excluirMovFerr(movId){
+  if(!confirm('Excluir este registro?')) return;
+  DB.movFerramentas=(DB.movFerramentas||[]).filter(function(m){return m.id!==movId;});
+  save(); renderMovFerramentas();
+}
+
+// Hook no renderPanel para incluir ferramentas
+var _renderPanelOriginal = typeof renderPanel === 'function' ? renderPanel : null;
+
+// ═══════════════════════════════════════════════════════════════════════════
 // PONTO DIGITAL GPS — Configuração, Portal e Gestão
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -7304,7 +7815,7 @@ function renderConfigPontoDigital(){
       if(chk) chk.checked = v[k]===true;
     });
     var urlBase = window.location.href.split('?')[0];
-    if(el('cfg-ponto-url')) el('cfg-ponto-url').value = urlBase+'?ponto=1';
+    if(el('cfg-ponto-url')) el('cfg-ponto-url').value = urlBase;
     // Badge justificativas
     var pend = (DB.justificativas||[]).filter(function(j){return j.status==='pendente';}).length;
     var badgeJ = el('badge-justif-pendentes');
@@ -7399,11 +7910,18 @@ function abrirCriarContaPonto(){
     if(!pin||pin.length<4){ alert('PIN deve ter pelo menos 4 dígitos.'); return; }
     var func = DB.funcionarios.find(function(f){return f.id===funcId;});
     if(!DB.users) DB.users=[];
-    DB.users.push({ id:id(), role:'ponto', funcId:funcId, nome:func?func.nome:'', email:email||funcId+'@ponto', pin:pin, ativo:true });
+    // email gerado automaticamente se não informado (baseado no nome)
+    var emailFinal = email || (func ? func.nome.toLowerCase().replace(/\s+/g,'.')+'.ponto@empresa' : funcId+'@ponto');
+    DB.users.push({
+      id:id(), role:'ponto', funcId:funcId,
+      nome:func?func.nome:'', email:emailFinal,
+      pin:pin, senha:pin, // pin serve como senha no login
+      ativo:true
+    });
     save();
     overlay.remove();
     renderContasPonto();
-    alert('✔ Conta criada!\n\nFuncionário: '+(func?func.nome:'')+'\nPIN: '+pin+'\n\nEnvie o PIN e o link do portal para o funcionário.');
+    alert('✔ Conta criada!\n\nFuncionário: '+(func?func.nome:'')+'\nLogin: '+(emailFinal)+'\nPIN / Senha: '+pin+'\n\n📱 O funcionário usa o e-mail e o PIN para entrar no sistema.\nCompartilhe o link de acesso pelo WhatsApp.');
   };
 }
 
@@ -7824,7 +8342,15 @@ function abrirJustificativaPortal(){
   };
 }
 
-function logoutPortal(){_portalUser=null;_gpsPortal=null;renderPortalLogin();}
+function logoutPortal(){
+  _portalUser=null;
+  _gpsPortal=null;
+  sessionStorage.removeItem(SK_SESS_GLOBAL);
+  // Volta para a tela de login normal
+  document.body.innerHTML='';
+  document.body.style.cssText='';
+  location.reload();
+}
 
 // Detecta modo portal ao inicializar
 document.addEventListener('DOMContentLoaded', function(){
