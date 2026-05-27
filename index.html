@@ -2904,7 +2904,7 @@ function renderPanel(p){
   if(p==='clientes') renderClientes();
   if(p==='funcionarios'){ renderFuncionarios(); preencherPontoSelects(); }
   if(p==='estoque'){ renderEstoque(); renderFerramentas(); renderMovFerramentas(); }
-  if(p==='financeiro'){ renderLanc(); renderResumo(); renderFixas(); preencherFinSelects(); }
+  if(p==='financeiro'){ renderLanc(); renderResumo(); renderFixas(); preencherFinSelects(); setTimeout(toggleFlTipo,50); }
   if(p==='diario') renderDiario();
   if(p==='relatorios') renderRelatorios();
   if(p==='usuarios') renderUsers();
@@ -3034,30 +3034,29 @@ function renderDash(){
 
 // ================================================================ OBRAS
 function renderObras(){
-  // Totalizador geral
-  var totalContratado=0, totalRecebido=0;
-  DB.obras.forEach(function(o){
-    totalContratado += Number(o.valor||0);
-    var rec = DB.lancamentos.filter(function(l){return l.obra===o.id&&l.tipo==='receita';}).reduce(function(s,l){return s+Number(l.val||0);},0);
-    totalRecebido += rec;
-  });
-  var totalPendente = Math.max(0, totalContratado - totalRecebido);
+  var isAdmin = (nivelUsuario==='adm');
+  var verFinanceiro = isAdmin || podeAcessar('financeiro');
+  var verClientes   = isAdmin || podeAcessar('clientes');
 
-  var resumoHtml = DB.obras.length > 0 ? (
-    '<div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap">' +
-    '<div style="flex:1;min-width:120px;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);border-radius:var(--r);padding:10px;text-align:center">' +
-    '<div style="font-size:10px;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px">Contratado</div>' +
-    '<div style="font-size:16px;font-weight:700;color:var(--gn)">'+fmt(totalContratado)+'</div></div>' +
-    '<div style="flex:1;min-width:120px;background:rgba(91,126,255,.1);border:1px solid rgba(91,126,255,.3);border-radius:var(--r);padding:10px;text-align:center">' +
-    '<div style="font-size:10px;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px">Recebido</div>' +
-    '<div style="font-size:16px;font-weight:700;color:var(--ac)">'+fmt(totalRecebido)+'</div></div>' +
-    '<div style="flex:1;min-width:120px;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:var(--r);padding:10px;text-align:center">' +
-    '<div style="font-size:10px;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px">A receber</div>' +
-    '<div style="font-size:16px;font-weight:700;color:var(--am)">'+fmt(totalPendente)+'</div></div>' +
-    '</div>'
-  ) : '';
+  // Totalizador geral — só para quem vê financeiro
+  var resumoHtml = '';
+  if(verFinanceiro && DB.obras.length > 0){
+    var totalContratado=0, totalRecebido=0;
+    DB.obras.forEach(function(o){
+      totalContratado += Number(o.valor||0);
+      var rec = DB.lancamentos.filter(function(l){return l.obra===o.id&&l.tipo==='receita';}).reduce(function(s,l){return s+Number(l.val||0);},0);
+      totalRecebido += rec;
+    });
+    var totalPendente = Math.max(0, totalContratado - totalRecebido);
+    resumoHtml =
+      '<div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap">' +
+      '<div style="flex:1;min-width:120px;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);border-radius:var(--r);padding:10px;text-align:center"><div style="font-size:10px;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px">Contratado</div><div style="font-size:16px;font-weight:700;color:var(--gn)">'+fmt(totalContratado)+'</div></div>' +
+      '<div style="flex:1;min-width:120px;background:rgba(91,126,255,.1);border:1px solid rgba(91,126,255,.3);border-radius:var(--r);padding:10px;text-align:center"><div style="font-size:10px;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px">Recebido</div><div style="font-size:16px;font-weight:700;color:var(--ac)">'+fmt(totalRecebido)+'</div></div>' +
+      '<div style="flex:1;min-width:120px;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:var(--r);padding:10px;text-align:center"><div style="font-size:10px;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px">A receber</div><div style="font-size:16px;font-weight:700;color:var(--am)">'+fmt(totalPendente)+'</div></div>' +
+      '</div>';
+  }
 
-  const statusList=[{k:'Em andamento',cls:'t-and'},{k:'Orçamento',cls:'t-orc'},{k:'Parada',cls:'t-par'},{k:'Concluída',cls:'t-fin'}];
+  var statusList=[{k:'Em andamento',cls:'t-and'},{k:'Orçamento',cls:'t-orc'},{k:'Parada',cls:'t-par'},{k:'Concluída',cls:'t-fin'}];
   var kanbanHtml = statusList.map(function(s){
     var obras = DB.obras.filter(function(o){return o.status===s.k;});
     var cards = obras.map(function(o){
@@ -3065,28 +3064,22 @@ function renderObras(){
       var recebido = DB.lancamentos.filter(function(l){return l.obra===o.id&&l.tipo==='receita';}).reduce(function(s,l){return s+Number(l.val||0);},0);
       var aReceber = Math.max(0, valorContratado - recebido);
       var pctRecebido = valorContratado > 0 ? Math.min(100, Math.round(recebido/valorContratado*100)) : 0;
+      // Cliente: gestor só vê o nome, sem detalhes de contato
+      var clienteLabel = verClientes ? nomeCl(o.cliente) : (o.cliente ? '🔒 Dados restritos' : '—');
 
-      var financRow = valorContratado > 0 ? (
+      var financRow = verFinanceiro && valorContratado > 0 ? (
         '<div style="margin-top:8px;padding:7px;background:var(--bg3);border-radius:6px;font-size:10px">' +
-        '<div style="display:flex;justify-content:space-between;margin-bottom:3px">' +
-        '<span style="color:var(--tx3)">Contratado</span>' +
-        '<span style="color:var(--tx);font-weight:600">'+fmt(valorContratado)+'</span></div>' +
-        '<div style="display:flex;justify-content:space-between;margin-bottom:3px">' +
-        '<span style="color:var(--tx3)">Recebido</span>' +
-        '<span style="color:var(--gn);font-weight:600">'+fmt(recebido)+'</span></div>' +
-        (aReceber > 0.01 ?
-          '<div style="display:flex;justify-content:space-between;padding-top:3px;border-top:1px solid var(--br)">' +
-          '<span style="color:var(--am);font-weight:700">A receber</span>' +
-          '<span style="color:var(--am);font-weight:700">'+fmt(aReceber)+'</span></div>' : '') +
-        '<div style="margin-top:5px;height:4px;background:var(--bg);border-radius:2px;overflow:hidden">' +
-        '<div style="height:4px;border-radius:2px;width:'+pctRecebido+'%;background:'+( pctRecebido>=100?'var(--gn)':'var(--ac)')+'"></div></div>' +
-        '<div style="text-align:right;font-size:9px;color:var(--tx3);margin-top:2px">'+pctRecebido+'% recebido</div>' +
-        '</div>'
-      ) : '';
+        '<div style="display:flex;justify-content:space-between;margin-bottom:3px"><span style="color:var(--tx3)">Contratado</span><span style="color:var(--tx);font-weight:600">'+fmt(valorContratado)+'</span></div>' +
+        '<div style="display:flex;justify-content:space-between;margin-bottom:3px"><span style="color:var(--tx3)">Recebido</span><span style="color:var(--gn);font-weight:600">'+fmt(recebido)+'</span></div>' +
+        (aReceber > 0.01 ? '<div style="display:flex;justify-content:space-between;padding-top:3px;border-top:1px solid var(--br)"><span style="color:var(--am);font-weight:700">A receber</span><span style="color:var(--am);font-weight:700">'+fmt(aReceber)+'</span></div>' : '') +
+        '<div style="margin-top:5px;height:4px;background:var(--bg);border-radius:2px;overflow:hidden"><div style="height:4px;border-radius:2px;width:'+pctRecebido+'%;background:'+( pctRecebido>=100?'var(--gn)':'var(--ac)')+'"></div></div>' +
+        '<div style="text-align:right;font-size:9px;color:var(--tx3);margin-top:2px">'+pctRecebido+'% recebido</div></div>'
+      ) : (!verFinanceiro && valorContratado > 0 ?
+        '<div style="margin-top:6px;padding:5px 8px;background:var(--bg3);border-radius:6px;font-size:10px;color:var(--tx3)">🔒 Valores financeiros restritos</div>' : '');
 
       return '<div class="kb-c">' +
         '<div class="kb-ct">'+o.nome+'</div>' +
-        '<div class="kb-cs">'+nomeCl(o.cliente)+' · '+(o.area||'—')+' m²</div>' +
+        '<div class="kb-cs">'+clienteLabel+' · '+(o.area||'—')+' m²</div>' +
         '<div class="prog" style="margin-top:6px"><div class="pf" style="width:'+(o.progresso||0)+'%"></div></div>' +
         '<div style="font-size:9px;color:var(--tx2);margin-top:2px">'+(o.progresso||0)+'% obra · '+fmtData(o.prazo)+'</div>' +
         financRow +
@@ -3096,7 +3089,7 @@ function renderObras(){
         '<select class="btn xs" onchange="alterarStatus(\''+o.id+'\',this.value)" style="padding:2px 4px">' +
         statusList.map(function(ss){return '<option'+(ss.k===o.status?' selected':'')+'>'+ss.k+'</option>';}).join('') +
         '</select>' +
-        '<button class="btn xs br-" onclick="deletar(\'obras\',\''+o.id+'\');renderObras()">🗑</button>' +
+        (isAdmin?'<button class="btn xs br-" onclick="deletar(\'obras\',\''+o.id+'\');renderObras()">🗑</button>':'') +
         '</div></div>';
     }).join('');
 
@@ -4003,7 +3996,7 @@ var PERMISSOES = {
     acoes:   ['salvar','editar','lancar_estoque']
   },
   ges: {
-    modulos: ['dashboard','obras','clientes','funcionarios','estoque','diario'],
+    modulos: ['dashboard','obras','funcionarios','estoque','diario'],
     acoes:   ['salvar','editar','lancar_ponto','lancar_diario','lancar_estoque']
   }
 };
@@ -5526,10 +5519,10 @@ function mostrarDescNivel(){
 
 // Retorna o plano ativo (lê da licença salva localmente)
 // ── CHECKSUM ANTI-TAMPER ─────────────────────────────────────────────────────
-// Se alguém editar o plano no localStorage, o hash não vai bater → cai para starter
+// Salt fixo — não depende do navegador para ser consistente entre dispositivos
 var _LH_SALT = (function(){
   var p=['fg','f_','pl','an','o_','v2','_s','ec'];
-  return p.join('')+'!'+navigator.userAgent.length;
+  return p.join('')+'!k9x7';
 })();
 
 function _licHash(email, plano, ts){
@@ -5555,13 +5548,14 @@ function _lerLicenca(){
     var raw = localStorage.getItem(SK_LIC);
     if(!raw) return {};
     var obj = JSON.parse(raw);
-    // Valida hash — se falhar, trata como starter e agenda revalidação
-    var hashEsperado = _licHash(obj.email, obj.plano, obj.ativadoEm||'');
-    if(obj._h && obj._h !== hashEsperado){
-      // Alguém mexeu no plano manualmente
-      console.warn('[Licença] Hash inválido — possível adulteração. Resetando para starter.');
-      obj.plano = 'Basico'; // força starter até revalidar com servidor
-      obj._adulterado = true;
+    // Só valida hash se _h existir (licenças antigas sem hash passam normalmente)
+    if(obj._h){
+      var hashEsperado = _licHash(obj.email, obj.plano, obj.ativadoEm||'');
+      if(obj._h !== hashEsperado){
+        console.warn('[Licença] Hash inválido — adulteração detectada. Forçando revalidação.');
+        obj._adulterado = true;
+        // Não reseta o plano aqui — deixa revalidarOnline corrigir
+      }
     }
     return obj;
   }catch(e){ return {}; }
@@ -7539,8 +7533,8 @@ function renderMovFerramentas(){
 }
 
 // ── Cadastro de ferramenta ───────────────────────────────────────────────
-function abrirCadastroFerramenta(id){
-  var f = id ? (DB.ferramentas||[]).find(function(x){return x.id===id;}) : null;
+function abrirCadastroFerramenta(ferrCadId){
+  var f = ferrCadId ? (DB.ferramentas||[]).find(function(x){return x.id===ferrCadId;}) : null;
   var overlay=document.createElement('div');
   overlay.id='modal-ferr-cad';
   overlay.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.8);z-index:9999;display:flex;align-items:flex-end;justify-content:center;padding:12px;overflow-y:auto;-webkit-overflow-scrolling:touch';
@@ -7578,17 +7572,20 @@ function abrirCadastroFerramenta(id){
     var nome=el('ferr-cad-nome').value.trim();
     if(!nome){alert('Informe o nome da ferramenta.');return;}
     var imgEl=el('ferr-cad-prev');
-    var foto=(imgEl&&imgEl.src&&!imgEl.src.endsWith('figforce.html'))?imgEl.src:(f?f.foto:'');
+    var foto=(imgEl&&imgEl.src&&imgEl.src.startsWith('data:'))?imgEl.src:(f?f.foto:'');
     if(f){
       f.nome=nome; f.categoria=el('ferr-cad-cat').value;
       f.patrimonio=el('ferr-cad-pat').value; f.descricao=el('ferr-cad-desc').value;
       f.status=el('ferr-cad-status').value; if(foto) f.foto=foto;
     } else {
-      DB.ferramentas.push({id:id(),nome:nome,categoria:el('ferr-cad-cat').value,
+      var novaFerr={nome:nome,categoria:el('ferr-cad-cat').value,
         patrimonio:el('ferr-cad-pat').value,descricao:el('ferr-cad-desc').value,
-        status:el('ferr-cad-status').value,foto:foto||''});
+        status:el('ferr-cad-status').value,foto:foto||''};
+      novaFerr.id = typeof id==='function' ? id() : (Date.now().toString(36)+Math.random().toString(36).slice(2));
+      DB.ferramentas.push(novaFerr);
     }
     save(); overlay.remove(); renderFerramentas();
+    alert('✔ Ferramenta '+(f?'atualizada':'cadastrada')+'!');
   };
 }
 function editarFerramenta(fid){abrirCadastroFerramenta(fid);}
