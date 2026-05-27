@@ -2721,7 +2721,7 @@ button[style*="background: #4F6EF7"], .btn-primary {
 // ═══════════════════════════════════════════════════════════════════════════
 // CONSTANTES GLOBAIS — declaradas no topo para evitar ReferenceError
 // ═══════════════════════════════════════════════════════════════════════════
-var URL_SERVIDOR_CFG = ''; // MODO LOCAL — sem servidor para testes
+var URL_SERVIDOR_CFG = 'https://script.google.com/macros/s/AKfycbzmLyefN11Xs8kNKJaGW-UESg4AYmyEEpCy5ECJ69bBhJmjQP5vL6_Jg6Ce470u5cnz/exec';
 var SK_LIC_GLOBAL    = 'figforge_lic_v2';
 var SK_SESS_GLOBAL   = 'figforge_sess_v1';
 var VERSAO_APP       = '1.0.0';
@@ -5712,13 +5712,9 @@ function _lerLicenca(){
     if(obj._h){
       var hashEsperado = _licHash(obj.email, obj.plano, obj.ativadoEm||'');
       if(obj._h !== hashEsperado){
-        // Hash não bate (mudança de salt ou adulteração)
-        // Re-salva com hash correto e força revalidação com servidor
-        console.warn('[Licença] Hash inválido — re-calculando. Isso é normal após atualizações.');
-        obj._adulterado = false;
+        // Re-calcula silenciosamente com o salt atual
         obj._h = hashEsperado;
         localStorage.setItem(SK_LIC, JSON.stringify(obj));
-        // Marca para revalidar online na próxima oportunidade
         obj.ultimaValidacao = null;
       }
     }
