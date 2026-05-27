@@ -5183,20 +5183,10 @@ function ativarLicenca(){
 }
 
 function _entrarNoApp(email){
-  try{
-    el('screen-license').style.display='none';
-    registrarUsuarioDoLink();
-    var loginBox=el('screen-login');
-    if(loginBox) loginBox.style.display='flex';
-    var cfg=DB.config||{};
-    var nomeEmp=cfg.empresa||'FigForge';
-    var av=nomeEmp.split(' ').slice(0,2).map(function(w){return w[0]||'';}).join('').toUpperCase()||'FF';
-    var en=el('login-empresa-nome'); if(en) en.textContent=nomeEmp;
-    var lb=el('login-logo-box'); if(lb) lb.innerHTML=cfg.logo?'<img src="'+cfg.logo+'" style="width:100%;height:100%;object-fit:contain;border-radius:14px"/>':av;
-    var lb2=el('lic-logo-box'); if(lb2) lb2.innerHTML=cfg.logo?'<img src="'+cfg.logo+'" style="width:100%;height:100%;object-fit:contain;border-radius:14px"/>':av;
-    var u=el('login-user'); if(u&&email) u.value=email;
-    var p=el('login-pass'); if(p){ p.value=''; p.focus(); }
-  }catch(e){ console.error('[_entrarNoApp] erro:',e); }
+  // Salva e recarrega — mais confiável no mobile
+  // No reload, initAuth() detecta a licença no localStorage e vai para o login
+  try{ registrarUsuarioDoLink(); }catch(e){}
+  location.reload();
 }
 
 
@@ -5477,19 +5467,10 @@ function initAuth(){
     el('screen-license').style.display='flex';
     el('screen-login').style.display='none';
     el('app-shell').style.display='none';
-    setTimeout(function(){
-      lerEmailDaURL();
-      // Tenta pré-preencher email da última tentativa ou da licença
-      var emailSalvo = localStorage.getItem('_lic_email_tentativa') || '';
-      if(!emailSalvo){
-        try{ var lc=_lerLicenca(); emailSalvo=lc.email||''; }catch(e){}
-      }
-      if(emailSalvo && el('lic-email') && !el('lic-email').value){
-        el('lic-email').value = emailSalvo;
-      }
-      if(el('lic-email')&&!el('lic-email').value) el('lic-email').focus();
-      else if(el('lic-btn')) el('lic-btn').focus();
-    },300);
+    lerEmailDaURL();
+    var emailSalvo = localStorage.getItem('_lic_email_tentativa') || '';
+    if(!emailSalvo){ try{ var lc=_lerLicenca(); emailSalvo=lc.email||''; }catch(e){} }
+    if(emailSalvo && el('lic-email') && !el('lic-email').value) el('lic-email').value = emailSalvo;
     return;
   }
   const sess=verificarSessao();
