@@ -425,6 +425,9 @@ textarea{resize:vertical;min-height:60px}
 .upgrade-banner .ub-txt{font-size:12px;color:var(--tx2)}
 .upgrade-banner .ub-txt b{color:var(--tx)}
 .badge-plano{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700}
+.badge-starter{background:rgba(245,158,11,.15);color:#f59e0b;border:1px solid rgba(245,158,11,.3)}
+.badge-pro{background:rgba(91,126,255,.15);color:#5b7eff;border:1px solid rgba(91,126,255,.3)}
+.badge-custom{background:rgba(16,185,129,.15);color:#10b981;border:1px solid rgba(16,185,129,.3)}
 .badge-starter{background:rgba(79,110,247,.15);color:#4F6EF7;border:1px solid rgba(79,110,247,.3)}
 .badge-pro{background:linear-gradient(135deg,rgba(79,110,247,.2),rgba(123,63,228,.2));color:#9B6FF5;border:1px solid rgba(123,63,228,.3)}
 
@@ -2340,6 +2343,140 @@ button[style*="background: #4F6EF7"], .btn-primary {
       <div class="fr"><div><label>Endereço</label><input id="cfg-end" type="text" placeholder="Rua, número, bairro, cidade, UF"/></div></div>
       <button class="btn bg" onclick="salvarConfig()">💾 Salvar configurações</button>
     </div>
+
+    <!-- PONTO DIGITAL GPS -->
+    <div class="card" id="cfg-ponto-digital-card">
+      <div class="ct">📍 Ponto Digital GPS <span id="badge-ponto-digital" style="font-size:10px;padding:2px 8px;border-radius:20px;margin-left:6px"></span></div>
+      <div id="cfg-ponto-locked" style="display:none;padding:16px;background:rgba(91,126,255,.06);border:1px solid rgba(91,126,255,.25);border-radius:var(--r);text-align:center">
+        <div style="font-size:28px;margin-bottom:8px">🔒</div>
+        <div style="font-weight:700;color:var(--tx);margin-bottom:6px">Ponto Digital GPS — Plano Personalizado</div>
+        <div style="font-size:12px;color:var(--tx2);margin-bottom:12px">Portal exclusivo para funcionários baterem ponto pelo celular com GPS, 4 marcações diárias, justificativas e muito mais.</div>
+        <button class="btn bp" onclick="window.open(DB.config.urlPersonalizado||'https://wa.me/5567996547866','_blank')">🏢 Solicitar plano personalizado</button>
+      </div>
+      <div id="cfg-ponto-ativo" style="display:none">
+        <!-- ABA DE NAVEGAÇÃO INTERNA -->
+        <div style="display:flex;gap:4px;margin-bottom:14px;border-bottom:1px solid var(--br);padding-bottom:10px;flex-wrap:wrap">
+          <button class="btn sm bp" id="cfg-pd-tab-geral" onclick="abrirAbaPonto('geral')">⚙️ Geral</button>
+          <button class="btn sm" id="cfg-pd-tab-horarios" onclick="abrirAbaPonto('horarios')">🕐 Horários</button>
+          <button class="btn sm" id="cfg-pd-tab-visib" onclick="abrirAbaPonto('visib')">👁️ Visibilidade</button>
+          <button class="btn sm" id="cfg-pd-tab-contas" onclick="abrirAbaPonto('contas')">👷 Contas</button>
+          <button class="btn sm" id="cfg-pd-tab-justif" onclick="abrirAbaPonto('justif')">📝 Justificativas <span id="badge-justif-pendentes" style="display:none;background:var(--rd);color:#fff;border-radius:10px;padding:1px 6px;font-size:10px;margin-left:3px">0</span></button>
+        </div>
+
+        <!-- ABA GERAL -->
+        <div id="cfg-pd-geral">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;padding:10px;background:var(--bg3);border-radius:var(--r)">
+            <label style="margin:0;font-weight:600;flex:1">Habilitar portal de ponto para funcionários</label>
+            <select id="cfg-ponto-habilitar">
+              <option value="sim">✅ Habilitado</option>
+              <option value="nao">⛔ Desabilitado</option>
+            </select>
+          </div>
+          <div class="fr fr2">
+            <div><label>Raio GPS de tolerância</label>
+              <select id="cfg-ponto-raio">
+                <option value="50">50 metros (rigoroso)</option>
+                <option value="100" selected>100 metros (recomendado)</option>
+                <option value="200">200 metros (flexível)</option>
+                <option value="500">500 metros (amplo)</option>
+                <option value="0">Sem restrição</option>
+              </select>
+            </div>
+            <div><label>Exigir selfie na marcação?</label>
+              <select id="cfg-ponto-foto">
+                <option value="nao">Não obrigatório</option>
+                <option value="sim">Sim, exigir foto</option>
+              </select>
+            </div>
+          </div>
+          <div style="margin:10px 0;padding:10px;background:var(--bg3);border-radius:var(--r)">
+            <div style="font-size:11px;font-weight:700;color:var(--tx);margin-bottom:8px">🔗 Link do portal dos funcionários</div>
+            <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+              <input id="cfg-ponto-url" type="text" readonly style="flex:1;font-size:11px;color:var(--ac)"/>
+              <button class="btn sm bp" onclick="copiarLinkPonto()">📋 Copiar</button>
+              <button class="btn sm bg" onclick="gerarQRCodePonto()">📲 QR Code</button>
+              <button class="btn sm" style="background:#25D366;color:#fff" onclick="enviarLinkPontoWhatsApp()">💬 WhatsApp</button>
+            </div>
+          </div>
+          <div id="cfg-qr-area" style="display:none;text-align:center;padding:12px;background:var(--bg3);border-radius:var(--r);margin-bottom:10px">
+            <img id="cfg-qr-canvas" style="border-radius:8px;border:4px solid #fff" alt="QR Code"/>
+            <div style="font-size:11px;color:var(--tx2);margin-top:6px">Imprima e cole na obra</div>
+          </div>
+        </div>
+
+        <!-- ABA HORÁRIOS -->
+        <div id="cfg-pd-horarios" style="display:none">
+          <div style="font-size:12px;color:var(--tx2);margin-bottom:10px">Defina os horários padrão. Os funcionários verão se estão atrasados ou no horário.</div>
+          <div class="fr fr2">
+            <div><label>🟢 Entrada</label><input type="time" id="cfg-h-entrada" value="07:00"/></div>
+            <div><label>🟡 Saída almoço</label><input type="time" id="cfg-h-saida-almoco" value="12:00"/></div>
+          </div>
+          <div class="fr fr2">
+            <div><label>🔵 Volta almoço</label><input type="time" id="cfg-h-volta-almoco" value="13:00"/></div>
+            <div><label>🔴 Saída final</label><input type="time" id="cfg-h-saida" value="17:00"/></div>
+          </div>
+          <div style="padding:10px;background:var(--bg3);border-radius:var(--r);margin-top:6px">
+            <div style="font-size:11px;font-weight:700;color:var(--tx);margin-bottom:6px">⏱ Tolerância de atraso</div>
+            <div class="fr fr2">
+              <div><label>Minutos de tolerância</label><input type="number" id="cfg-h-tolerancia" value="10" min="0" max="60" placeholder="Ex: 10"/></div>
+              <div><label>Justificativa obrigatória se atraso?</label>
+                <select id="cfg-h-justif-obrig">
+                  <option value="nao">Não obrigatório</option>
+                  <option value="sim">Sim, exigir justificativa</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ABA VISIBILIDADE -->
+        <div id="cfg-pd-visib" style="display:none">
+          <div style="font-size:12px;color:var(--tx2);margin-bottom:12px">Escolha o que o funcionário pode ver no próprio portal:</div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <label style="display:flex;align-items:center;gap:10px;padding:9px;background:var(--bg3);border-radius:var(--r);cursor:pointer">
+              <input type="checkbox" id="vis-admissao" style="width:16px;height:16px"> <span style="flex:1"><b>Data de admissão</b><br><span style="font-size:11px;color:var(--tx2)">Mostra a data que o funcionário entrou na empresa</span></span>
+            </label>
+            <label style="display:flex;align-items:center;gap:10px;padding:9px;background:var(--bg3);border-radius:var(--r);cursor:pointer">
+              <input type="checkbox" id="vis-ferias" style="width:16px;height:16px"> <span style="flex:1"><b>Saldo de férias</b><br><span style="font-size:11px;color:var(--tx2)">Mostra quantos dias de férias o funcionário tem direito</span></span>
+            </label>
+            <label style="display:flex;align-items:center;gap:10px;padding:9px;background:var(--bg3);border-radius:var(--r);cursor:pointer">
+              <input type="checkbox" id="vis-decimo" style="width:16px;height:16px"> <span style="flex:1"><b>13º salário (previsão)</b><br><span style="font-size:11px;color:var(--tx2)">Mostra estimativa do 13° com base no salário cadastrado</span></span>
+            </label>
+            <label style="display:flex;align-items:center;gap:10px;padding:9px;background:var(--bg3);border-radius:var(--r);cursor:pointer">
+              <input type="checkbox" id="vis-holerite" style="width:16px;height:16px"> <span style="flex:1"><b>Holerites do mês</b><br><span style="font-size:11px;color:var(--tx2)">Funcionário vê os recibos de pagamento anteriores</span></span>
+            </label>
+            <label style="display:flex;align-items:center;gap:10px;padding:9px;background:var(--bg3);border-radius:var(--r);cursor:pointer">
+              <input type="checkbox" id="vis-banco-horas" style="width:16px;height:16px"> <span style="flex:1"><b>Banco de horas</b><br><span style="font-size:11px;color:var(--tx2)">Mostra saldo de horas extras acumuladas</span></span>
+            </label>
+            <label style="display:flex;align-items:center;gap:10px;padding:9px;background:var(--bg3);border-radius:var(--r);cursor:pointer">
+              <input type="checkbox" id="vis-espelho" style="width:16px;height:16px"> <span style="flex:1"><b>Espelho de ponto</b><br><span style="font-size:11px;color:var(--tx2)">Funcionário vê todo o histórico de pontos do mês</span></span>
+            </label>
+            <label style="display:flex;align-items:center;gap:10px;padding:9px;background:var(--bg3);border-radius:var(--r);cursor:pointer">
+              <input type="checkbox" id="vis-salario" style="width:16px;height:16px"> <span style="flex:1"><b>Salário</b><br><span style="font-size:11px;color:var(--tx2)">Mostra o valor do salário cadastrado</span></span>
+            </label>
+          </div>
+        </div>
+
+        <!-- ABA CONTAS DE FUNCIONÁRIOS -->
+        <div id="cfg-pd-contas" style="display:none">
+          <div style="font-size:12px;color:var(--tx2);margin-bottom:10px">Crie contas para que os funcionários façam login no portal de ponto.</div>
+          <div id="lista-contas-ponto" style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px"></div>
+          <button class="btn sm bp" onclick="abrirCriarContaPonto()">+ Criar conta de funcionário</button>
+        </div>
+
+        <!-- ABA JUSTIFICATIVAS -->
+        <div id="cfg-pd-justif" style="display:none">
+          <div style="font-size:12px;color:var(--tx2);margin-bottom:10px">Justificativas enviadas pelos funcionários para faltas ou atrasos.</div>
+          <div id="lista-justificativas-admin"></div>
+        </div>
+
+        <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;border-top:1px solid var(--br);padding-top:10px">
+          <button class="btn bg" onclick="salvarConfigPontoDigital()" style="flex:1">💾 Salvar configuração do Ponto Digital</button>
+        </div>
+      </div>
+    </div>
+
+
     <div class="card">
       <div class="ct">⚙️ Sistema</div>
       <div style="display:flex;flex-direction:column;gap:8px;font-size:12px">
@@ -2564,6 +2701,13 @@ var PLANOS_CFG = {
     modulos:['dashboard','obras','orcamentos','clientes','financeiro',
              'funcionarios','estoque','diario','relatorios','usuarios','config'],
     desc:'Tudo do Starter + Funcionarios CLT, Estoque, Relatorios e Diario'
+  },
+  personalizado: {
+    nome:'Personalizado', preco:'Sob consulta', cor:'badge-custom', icone:'🏢',
+    modulos:['dashboard','obras','orcamentos','clientes','financeiro',
+             'funcionarios','estoque','diario','relatorios','usuarios','config',
+             'ponto-digital'],
+    desc:'Tudo do Profissional + Ponto Digital GPS + Personalização completa'
   }
 };
 // ================================================================ ESTADO
@@ -2571,7 +2715,7 @@ const SK = 'figforge-v1';
 let DB = {
   obras:[], clientes:[], funcionarios:[], pontos:[], materiais:[],
   movEstq:[], lancamentos:[], fixas:[], diario:[], orcamentos:[], users:[], config:{},
-  pagamentosParciais:[]
+  pagamentosParciais:[], justificativas:[]
 };
 let orcLinhas = [], editId = {};
 let orcNum = 1;
@@ -2580,6 +2724,7 @@ let orcNum = 1;
 function load(){
   try{ const v=localStorage.getItem(SK); if(v){ DB=JSON.parse(v); orcNum=Math.max(1,(DB.orcamentos||[]).length+1); } }catch(e){}
   if(!DB.pagamentosParciais) DB.pagamentosParciais=[];
+  if(!DB.justificativas) DB.justificativas=[];
   if(!DB.producoes) DB.producoes=[];
 }
 function save(){ try{ localStorage.setItem(SK,JSON.stringify(DB)); }catch(e){ alert('Erro ao salvar: '+e.message); } }
@@ -3866,7 +4011,6 @@ function renderPerms(nivel){
 
 // ================================================================ CONFIG
 function renderConfig(){
-  // Gera o link de compartilhamento
   setTimeout(gerarLinkAcesso, 100);
   const cfg=DB.config;
   setV('cfg-empresa',cfg.empresa);setV('cfg-cnpj',cfg.cnpj);setV('cfg-crea',cfg.crea);
@@ -3875,11 +4019,14 @@ function renderConfig(){
   const nomeAtual=cfg.empresa||'Construtora';
   const av=nomeAtual.split(' ').slice(0,2).map(w=>w[0]||'').join('').toUpperCase();
   el('sb-av').textContent=av||'OB';
+  // Renderiza seção Ponto Digital
+  setTimeout(renderConfigPontoDigital, 100);
 }
 function salvarConfig(){
-  // Preserva logo e adminSenha que são salvos separadamente
+  // Preserva campos que são salvos separadamente
   var logoAtual   = (DB.config && DB.config.logo)       || '';
   var senhaAtual  = (DB.config && DB.config.adminSenha) || '';
+  var pontoDigCfg = (DB.config && DB.config.pontoDigital) || {};
   DB.config = {
     empresa: val('cfg-empresa'),
     cnpj:    val('cfg-cnpj'),
@@ -3889,11 +4036,11 @@ function salvarConfig(){
     email:   val('cfg-email'),
     bdi:     Number(val('cfg-bdi'))||25,
     end:     val('cfg-end'),
-    logo:    logoAtual,      // ← preserva o logo
-    adminSenha: senhaAtual   // ← preserva a senha
+    logo:    logoAtual,
+    adminSenha: senhaAtual,
+    pontoDigital: pontoDigCfg   // preserva configuração do ponto digital
   };
   save();
-  // Atualiza logo na sidebar e ícone PWA
   atualizarLogoSidebar();
   setTimeout(atualizarIconesPWA, 500);
   renderConfig();
@@ -5098,12 +5245,20 @@ function getPlanoAtivo(){
   try{
     const lic=JSON.parse(localStorage.getItem(SK_LIC)||'{}');
     const p=(lic.plano||'starter').toLowerCase();
+    if(p.includes('person')||p.includes('custom')||p.includes('enterprise')||p.includes('empresa')) return 'personalizado';
     if(p.includes('pro')||p.includes('profis')||p.includes('97')) return 'pro';
     return 'starter';
   }catch(e){ return 'starter'; }
 }
 
-function isPro(){ return getPlanoAtivo()==='pro'; }
+function isPro(){ return getPlanoAtivo()==='pro'||getPlanoAtivo()==='personalizado'; }
+function isPersonalizado(){ return getPlanoAtivo()==='personalizado'; }
+function temPontoDigital(){
+  if(isPersonalizado()) return true;
+  // Pro pode ter se o admin habilitou via config
+  if(isPro() && DB.config && DB.config.pontoDigitalAtivo) return true;
+  return false;
+}
 
 // Verifica se o módulo está disponível no plano atual
 function moduloDisponivel(modulo){
@@ -5151,12 +5306,15 @@ function mostrarUpgradeBanner(modulo){
   const nomes={
     funcionarios:'Funcionários CLT',estoque:'Estoque',
     diario:'Diário de obra',relatorios:'Relatórios avançados',
-    usuarios:'Gestão de usuários'
+    usuarios:'Gestão de usuários',
+    'ponto-digital':'Ponto Digital GPS'
   };
   const nome=nomes[modulo]||modulo;
-  if(confirm(`🔒 "${nome}" está disponível apenas no plano Profissional (R$ 97/mês).\n\nDeseja fazer upgrade agora?`)){
-    // Abre link de upgrade (configure com a URL do seu produto Pro no Hotmart/Kiwify)
-    window.open(DB.config.urlPro||'https://hotmart.com/seu-produto-pro','_blank');
+  const ePlanoDigital = modulo==='ponto-digital';
+  const planoNecessario = ePlanoDigital ? 'Personalizado (sob consulta)' : 'Profissional (R$ 97/mês)';
+  const urlCompra = ePlanoDigital ? (DB.config.urlPersonalizado||DB.config.urlPro||'https://wa.me/5567996547866') : (DB.config.urlPro||'https://hotmart.com/seu-produto-pro');
+  if(confirm('🔒 "'+nome+'" está disponível apenas no plano '+planoNecessario+'.\n\nDeseja solicitar este plano agora?')){
+    window.open(urlCompra,'_blank');
   }
 }
 
@@ -6996,6 +7154,582 @@ function confirmarAdiantamento(idFuncionario, nomeFuncionario) {
   if(overlay) overlay.remove();
   if(typeof calcPagamento === 'function') calcPagamento();
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PONTO DIGITAL GPS — Configuração, Portal e Gestão
+// ═══════════════════════════════════════════════════════════════════════════
+
+// ─── Config UI ───────────────────────────────────────────────────────────────
+var _abaPontoAtual = 'geral';
+
+function abrirAbaPonto(aba){
+  _abaPontoAtual = aba;
+  ['geral','horarios','visib','contas','justif'].forEach(function(a){
+    var div = el('cfg-pd-'+a);
+    var btn = el('cfg-pd-tab-'+a);
+    if(div) div.style.display = a===aba ? 'block' : 'none';
+    if(btn){ btn.className = a===aba ? 'btn sm bp' : 'btn sm'; }
+  });
+  if(aba==='contas') renderContasPonto();
+  if(aba==='justif') renderJustificativasAdmin();
+}
+
+function renderConfigPontoDigital(){
+  var temAcesso = temPontoDigital();
+  var locked = el('cfg-ponto-locked');
+  var ativo  = el('cfg-ponto-ativo');
+  var badge  = el('badge-ponto-digital');
+  if(!locked||!ativo) return;
+
+  if(temAcesso){
+    locked.style.display='none'; ativo.style.display='block';
+    if(badge){ badge.textContent=isPersonalizado()?'🏢 Personalizado':'🚀 Pro+'; badge.style.background='rgba(16,185,129,.15)'; badge.style.color='var(--gn)'; }
+    var pd = (DB.config && DB.config.pontoDigital)||{};
+    var h  = pd.horarios||{};
+    var v  = pd.visibilidade||{};
+    if(el('cfg-ponto-habilitar')) el('cfg-ponto-habilitar').value = pd.habilitado===false?'nao':'sim';
+    if(el('cfg-ponto-raio'))      el('cfg-ponto-raio').value      = pd.raio||'100';
+    if(el('cfg-ponto-foto'))      el('cfg-ponto-foto').value      = pd.foto?'sim':'nao';
+    if(el('cfg-h-entrada'))       el('cfg-h-entrada').value       = h.entrada||'07:00';
+    if(el('cfg-h-saida-almoco'))  el('cfg-h-saida-almoco').value  = h.saidaAlmoco||'12:00';
+    if(el('cfg-h-volta-almoco'))  el('cfg-h-volta-almoco').value  = h.voltaAlmoco||'13:00';
+    if(el('cfg-h-saida'))         el('cfg-h-saida').value         = h.saida||'17:00';
+    if(el('cfg-h-tolerancia'))    el('cfg-h-tolerancia').value    = h.tolerancia||10;
+    if(el('cfg-h-justif-obrig'))  el('cfg-h-justif-obrig').value  = h.justifObrig?'sim':'nao';
+    ['admissao','ferias','decimo','holerite','banco-horas','espelho','salario'].forEach(function(k){
+      var chk = el('vis-'+k);
+      if(chk) chk.checked = v[k]===true;
+    });
+    var urlBase = window.location.href.split('?')[0];
+    if(el('cfg-ponto-url')) el('cfg-ponto-url').value = urlBase+'?ponto=1';
+    // Badge justificativas
+    var pend = (DB.justificativas||[]).filter(function(j){return j.status==='pendente';}).length;
+    var badgeJ = el('badge-justif-pendentes');
+    if(badgeJ){ badgeJ.style.display=pend>0?'inline':'none'; badgeJ.textContent=pend; }
+    abrirAbaPonto('geral');
+  } else {
+    locked.style.display='block'; ativo.style.display='none';
+    if(badge){ badge.textContent='🔒 Opcional'; badge.style.background='rgba(141,149,176,.15)'; badge.style.color='var(--tx3)'; }
+  }
+}
+
+function salvarConfigPontoDigital(){
+  var vis = {};
+  ['admissao','ferias','decimo','holerite','banco-horas','espelho','salario'].forEach(function(k){
+    var chk = el('vis-'+k); if(chk) vis[k]=chk.checked;
+  });
+  if(!DB.config) DB.config={};
+  DB.config.pontoDigital = {
+    habilitado: val('cfg-ponto-habilitar')!=='nao',
+    raio: Number(val('cfg-ponto-raio'))||100,
+    foto: val('cfg-ponto-foto')==='sim',
+    horarios:{
+      entrada:     el('cfg-h-entrada')      ? el('cfg-h-entrada').value      : '07:00',
+      saidaAlmoco: el('cfg-h-saida-almoco') ? el('cfg-h-saida-almoco').value : '12:00',
+      voltaAlmoco: el('cfg-h-volta-almoco') ? el('cfg-h-volta-almoco').value : '13:00',
+      saida:       el('cfg-h-saida')        ? el('cfg-h-saida').value        : '17:00',
+      tolerancia:  Number(val('cfg-h-tolerancia'))||10,
+      justifObrig: val('cfg-h-justif-obrig')==='sim'
+    },
+    visibilidade: vis
+  };
+  save();
+  alert('✔ Ponto Digital salvo!\n\nCompartilhe o link com os funcionários.');
+}
+
+// ─── Contas de funcionários (portal) ─────────────────────────────────────────
+function renderContasPonto(){
+  var container = el('lista-contas-ponto');
+  if(!container) return;
+  var contas = (DB.users||[]).filter(function(u){return u.role==='ponto';});
+  if(!contas.length){
+    container.innerHTML = '<div style="color:var(--tx3);font-size:12px;padding:8px 0">Nenhuma conta criada. Clique em "+ Criar conta" para adicionar.</div>';
+    return;
+  }
+  container.innerHTML = contas.map(function(u){
+    var func = DB.funcionarios.find(function(f){return f.id===u.funcId;});
+    return '<div style="display:flex;align-items:center;gap:8px;padding:8px;background:var(--bg3);border-radius:var(--r)">' +
+      '<div style="flex:1">' +
+      '<div style="font-weight:600;font-size:13px">'+( func?func.nome:u.nome)+'</div>' +
+      '<div style="font-size:11px;color:var(--tx3)">Login: '+u.email+' | PIN: '+(u.pin?'••••':'não definido')+'</div>' +
+      '</div>' +
+      '<span style="font-size:10px;padding:2px 7px;border-radius:10px;background:rgba(16,185,129,.15);color:var(--gn)">'+( u.ativo?'Ativo':'Inativo')+'</span>' +
+      '<button class="btn xs bp" onclick="editarContaPonto(\''+u.id+'\')">✏️</button>' +
+      '<button class="btn xs br-" onclick="deletarContaPonto(\''+u.id+'\')">🗑</button>' +
+      '</div>';
+  }).join('');
+}
+
+function abrirCriarContaPonto(){
+  var funcs = DB.funcionarios.filter(function(f){
+    var jaTemConta = (DB.users||[]).some(function(u){return u.role==='ponto'&&u.funcId===f.id;});
+    return !jaTemConta;
+  });
+  if(!funcs.length){ alert('Todos os funcionários já possuem conta de ponto, ou não há funcionários cadastrados.'); return; }
+
+  var overlay = document.createElement('div');
+  overlay.id = 'modal-conta-ponto';
+  overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.8);z-index:9999;display:flex;align-items:flex-end;justify-content:center;padding:12px;overflow-y:auto;-webkit-overflow-scrolling:touch';
+
+  var optsFunc = funcs.map(function(f){return '<option value="'+f.id+'">'+f.nome+'</option>';}).join('');
+  overlay.innerHTML = '<div style="background:#1a1f2e;border:1px solid #2d3348;border-radius:16px 16px 0 0;padding:20px;width:100%;max-width:480px;max-height:88vh;overflow-y:auto">' +
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">' +
+    '<h3 style="color:#eef0f8;margin:0;font-size:15px">👷 Criar conta de ponto</h3>' +
+    '<button id="btn-fechar-conta" style="background:rgba(141,149,176,.15);color:#8d95b0;border:1px solid #2d3348;border-radius:8px;padding:4px 10px;cursor:pointer">✕</button></div>' +
+    '<div style="display:flex;flex-direction:column;gap:12px">' +
+    '<div><label style="color:#8d95b0;font-size:11px;display:block;margin-bottom:4px">Funcionário</label>' +
+    '<select id="cp-func" style="width:100%;padding:10px;background:#111827;color:#eef0f8;border:1px solid #2d3348;border-radius:8px">'+optsFunc+'</select></div>' +
+    '<div><label style="color:#8d95b0;font-size:11px;display:block;margin-bottom:4px">PIN de acesso (4-6 dígitos)</label>' +
+    '<input type="text" id="cp-pin" inputmode="numeric" maxlength="6" placeholder="Ex: 1234" style="width:100%;padding:10px;background:#111827;color:#eef0f8;border:1px solid #2d3348;border-radius:8px;font-size:18px;text-align:center;letter-spacing:4px" oninput="this.value=this.value.replace(/[^0-9]/g,\'\').slice(0,6)"></div>' +
+    '<div><label style="color:#8d95b0;font-size:11px;display:block;margin-bottom:4px">E-mail (opcional, para recuperação)</label>' +
+    '<input type="email" id="cp-email" placeholder="joao@empresa.com" style="width:100%;padding:10px;background:#111827;color:#eef0f8;border:1px solid #2d3348;border-radius:8px"></div>' +
+    '<button id="btn-salvar-conta" style="width:100%;padding:12px;background:#10b981;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer">✔ Criar conta</button>' +
+    '</div></div>';
+
+  document.body.appendChild(overlay);
+  document.getElementById('btn-fechar-conta').onclick = function(){ overlay.remove(); };
+  document.getElementById('btn-salvar-conta').onclick = function(){
+    var funcId = el('cp-func') ? el('cp-func').value : '';
+    var pin    = el('cp-pin')  ? el('cp-pin').value.trim() : '';
+    var email  = el('cp-email')? el('cp-email').value.trim() : '';
+    if(!funcId){ alert('Selecione o funcionário.'); return; }
+    if(!pin||pin.length<4){ alert('PIN deve ter pelo menos 4 dígitos.'); return; }
+    var func = DB.funcionarios.find(function(f){return f.id===funcId;});
+    if(!DB.users) DB.users=[];
+    DB.users.push({ id:id(), role:'ponto', funcId:funcId, nome:func?func.nome:'', email:email||funcId+'@ponto', pin:pin, ativo:true });
+    save();
+    overlay.remove();
+    renderContasPonto();
+    alert('✔ Conta criada!\n\nFuncionário: '+(func?func.nome:'')+'\nPIN: '+pin+'\n\nEnvie o PIN e o link do portal para o funcionário.');
+  };
+}
+
+function editarContaPonto(uid){
+  var u = (DB.users||[]).find(function(x){return x.id===uid;});
+  if(!u) return;
+  var novoPin = prompt('Alterar PIN de '+u.nome+':\nPIN atual: '+u.pin+'\n\nNovo PIN (4-6 dígitos, ou Enter para manter):','');
+  if(novoPin===null) return;
+  if(novoPin && (novoPin.length<4||!/^\d+$/.test(novoPin))){ alert('PIN inválido.'); return; }
+  if(novoPin) u.pin=novoPin;
+  var ativo = confirm('Conta ativa? OK=Ativa / Cancelar=Inativa');
+  u.ativo = ativo;
+  save(); renderContasPonto();
+  alert('✔ Conta atualizada!');
+}
+
+function deletarContaPonto(uid){
+  var u = (DB.users||[]).find(function(x){return x.id===uid;});
+  if(!u) return;
+  if(!confirm('Remover conta de '+u.nome+'?')) return;
+  DB.users = (DB.users||[]).filter(function(x){return x.id!==uid;});
+  save(); renderContasPonto();
+}
+
+// ─── Justificativas (admin) ───────────────────────────────────────────────────
+function renderJustificativasAdmin(){
+  var container = el('lista-justificativas-admin');
+  if(!container) return;
+  var lista = (DB.justificativas||[]).sort(function(a,b){return (b.criadoEm||'').localeCompare(a.criadoEm||'');});
+  if(!lista.length){ container.innerHTML='<div style="color:var(--tx3);font-size:12px;padding:8px 0">Nenhuma justificativa enviada.</div>'; return; }
+  container.innerHTML = lista.map(function(j){
+    var func = DB.funcionarios.find(function(f){return f.id===j.func;})||{nome:'?'};
+    var corStatus = {pendente:'var(--am)', aprovado:'var(--gn)', rejeitado:'var(--rd)'}[j.status]||'var(--tx)';
+    var turnoNomes = {entrada:'Entrada',saidaAlmoco:'Saída almoço',voltaAlmoco:'Volta almoço',saida:'Saída final'};
+    return '<div style="background:var(--bg3);border-radius:var(--r);padding:10px;margin-bottom:8px;border-left:3px solid '+corStatus+'">' +
+      '<div style="display:flex;justify-content:space-between;align-items:start;flex-wrap:wrap;gap:4px">' +
+      '<div><div style="font-weight:600;font-size:13px">'+func.nome+'</div>' +
+      '<div style="font-size:11px;color:var(--tx2)">'+fmtData(j.data)+' — '+(turnoNomes[j.turno]||j.turno)+'</div></div>' +
+      '<span style="font-size:11px;font-weight:700;color:'+corStatus+'">'+j.status+'</span></div>' +
+      '<div style="font-size:12px;margin:6px 0;color:var(--tx)">📝 '+j.motivo+'</div>' +
+      (j.status==='pendente' ? '<div style="display:flex;gap:6px;margin-top:6px">' +
+        '<button class="btn sm bg" onclick="responderJustif(\''+j.id+'\',\'aprovado\')">✔ Aprovar</button>' +
+        '<button class="btn sm br-" onclick="responderJustif(\''+j.id+'\',\'rejeitado\')">✕ Rejeitar</button>' +
+        '</div>' :
+        (j.resposta ? '<div style="font-size:11px;color:var(--tx3)">Resp.: '+j.resposta+'</div>' : '')) +
+      '</div>';
+  }).join('');
+}
+
+function responderJustif(jid, status){
+  var j = (DB.justificativas||[]).find(function(x){return x.id===jid;});
+  if(!j) return;
+  var resp = '';
+  if(status==='rejeitado'){
+    resp = prompt('Motivo da rejeição (opcional):','');
+    if(resp===null) return;
+  }
+  j.status = status;
+  j.resposta = resp||'';
+  j.respondidoEm = new Date().toISOString();
+  save();
+  renderJustificativasAdmin();
+  renderConfigPontoDigital(); // atualiza badge
+}
+
+// ─── Helpers de link / QR ────────────────────────────────────────────────────
+function copiarLinkPonto(){
+  var urlEl=el('cfg-ponto-url');
+  if(!urlEl) return;
+  navigator.clipboard.writeText(urlEl.value).catch(function(){});
+  alert('✔ Link copiado!');
+}
+
+function gerarQRCodePonto(){
+  var urlEl=el('cfg-ponto-url');
+  var qrArea=el('cfg-qr-area');
+  var qrImg=el('cfg-qr-canvas');
+  if(!urlEl||!qrArea||!qrImg) return;
+  qrImg.src='https://api.qrserver.com/v1/create-qr-code/?size=200x200&data='+encodeURIComponent(urlEl.value);
+  qrArea.style.display='block';
+  qrArea.scrollIntoView({behavior:'smooth'});
+}
+
+function enviarLinkPontoWhatsApp(){
+  var urlEl=el('cfg-ponto-url');
+  if(!urlEl) return;
+  var empresa=(DB.config&&DB.config.empresa)||'FigForce';
+  var msg='Olá! 👋\n\n*'+empresa+'* — Ponto Digital\n\nAcesse o link abaixo para bater seu ponto:\n'+urlEl.value+'\n\nUse seu PIN pessoal. Em caso de dúvida, fale com o responsável.';
+  window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PORTAL DO FUNCIONÁRIO — Interface de Ponto
+// ═══════════════════════════════════════════════════════════════════════════
+
+var _portalUser = null;  // conta logada no portal
+var _gpsPortal  = null;  // posição GPS atual
+
+function verificarModoPortal(){
+  var pd = (DB.config&&DB.config.pontoDigital)||{};
+  if(pd.habilitado===false){
+    document.body.innerHTML='<div style="display:flex;align-items:center;justify-content:center;min-height:100vh;background:#0f1117;color:#8d95b0;text-align:center;padding:20px"><div><div style="font-size:48px">🔒</div><div style="font-size:16px;margin-top:12px">Portal desabilitado.<br>Contate o responsável.</div></div></div>';
+    return;
+  }
+  renderPortalLogin();
+}
+
+function renderPortalLogin(){
+  var cfg = DB.config||{};
+  var empresa = cfg.empresa||'FigForce';
+  var logo = cfg.logo||'';
+  document.body.innerHTML='';
+  document.body.style.cssText='margin:0;padding:0;background:#0f1117;min-height:100vh;font-family:system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased';
+
+  var wrap = document.createElement('div');
+  wrap.style.cssText='max-width:400px;margin:0 auto;padding:24px 16px;min-height:100vh;display:flex;flex-direction:column;justify-content:center';
+
+  var contas = (DB.users||[]).filter(function(u){return u.role==='ponto'&&u.ativo!==false;});
+  var optsContas = contas.map(function(u){
+    var f=DB.funcionarios.find(function(x){return x.id===u.funcId;})||{};
+    return '<option value="'+u.id+'">'+(f.nome||u.nome)+'</option>';
+  }).join('');
+
+  wrap.innerHTML=
+    '<div style="text-align:center;margin-bottom:32px">' +
+    (logo?'<img src="'+logo+'" style="height:60px;border-radius:10px;margin-bottom:12px"><br>':'<div style="font-size:48px;margin-bottom:12px">🏗️</div>') +
+    '<div style="font-size:22px;font-weight:800;color:#eef0f8">'+empresa+'</div>' +
+    '<div style="color:#8d95b0;font-size:13px;margin-top:4px">Ponto Digital</div></div>' +
+    '<div style="background:#1a1f2e;border:1px solid #2d3348;border-radius:16px;padding:22px">' +
+    '<div style="font-size:14px;font-weight:700;color:#eef0f8;margin-bottom:16px;text-align:center">Faça seu login</div>' +
+    '<div style="display:flex;flex-direction:column;gap:12px">' +
+    '<div><label style="color:#8d95b0;font-size:11px;display:block;margin-bottom:5px">SEU NOME</label>' +
+    '<select id="portal-conta-sel" style="width:100%;padding:12px;background:#111827;color:#eef0f8;border:1px solid #2d3348;border-radius:10px;font-size:14px">' +
+    '<option value="">Selecione...</option>'+optsContas+'</select></div>' +
+    '<div><label style="color:#8d95b0;font-size:11px;display:block;margin-bottom:5px">SEU PIN</label>' +
+    '<input type="password" id="portal-pin-input" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="••••" ' +
+    'style="width:100%;padding:14px;background:#111827;color:#eef0f8;border:1px solid #2d3348;border-radius:10px;font-size:26px;text-align:center;letter-spacing:8px;box-sizing:border-box"></div>' +
+    '<button id="btn-portal-entrar" style="width:100%;padding:14px;background:#10b981;color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer">▶ Entrar</button>' +
+    '<div id="portal-login-erro" style="color:#ef4444;font-size:12px;text-align:center;display:none">PIN incorreto.</div>' +
+    '</div></div>' +
+    '<div style="text-align:center;color:#555f7a;font-size:10px;margin-top:28px">'+new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long',year:'numeric'})+'</div>';
+
+  document.body.appendChild(wrap);
+
+  document.getElementById('btn-portal-entrar').onclick=function(){
+    var uid = el('portal-conta-sel').value;
+    var pin = el('portal-pin-input').value;
+    var erroEl=el('portal-login-erro');
+    if(!uid){erroEl.style.display='block';erroEl.textContent='Selecione seu nome.';return;}
+    if(!pin){erroEl.style.display='block';erroEl.textContent='Digite o PIN.';return;}
+    var conta = (DB.users||[]).find(function(u){return u.id===uid;});
+    if(!conta||String(conta.pin)!==String(pin)){erroEl.style.display='block';erroEl.textContent='PIN incorreto.';el('portal-pin-input').value='';return;}
+    _portalUser=conta;
+    renderPortalPrincipal();
+  };
+  // Enter no PIN faz login
+  var pinEl=el('portal-pin-input');
+  if(pinEl) pinEl.addEventListener('keydown',function(e){if(e.key==='Enter') document.getElementById('btn-portal-entrar').click();});
+}
+
+function renderPortalPrincipal(){
+  var conta = _portalUser;
+  var func  = DB.funcionarios.find(function(f){return f.id===conta.funcId;})||{nome:conta.nome};
+  var pd    = (DB.config&&DB.config.pontoDigital)||{};
+  var h     = pd.horarios||{};
+  var vis   = pd.visibilidade||{};
+  var hoje2 = hoje();
+
+  // Pontoss de hoje
+  var TURNOS = [
+    {k:'entrada',     label:'Entrada',       hora:h.entrada||'07:00',     icone:'🟢', cor:'#10b981'},
+    {k:'saidaAlmoco', label:'Saída almoço',  hora:h.saidaAlmoco||'12:00', icone:'🟡', cor:'#f59e0b'},
+    {k:'voltaAlmoco', label:'Volta almoço',  hora:h.voltaAlmoco||'13:00', icone:'🔵', cor:'#3b82f6'},
+    {k:'saida',       label:'Saída final',   hora:h.saida||'17:00',       icone:'🔴', cor:'#ef4444'}
+  ];
+
+  var pontosHoje = (DB.pontos||[]).filter(function(p){return p.func===func.id&&p.data===hoje2;});
+  var turnosRegistrados = {};
+  pontosHoje.forEach(function(p){ if(p.turno) turnosRegistrados[p.turno]=p.hora; });
+
+  // Próximo turno não registrado
+  var proximoTurno = null;
+  for(var i=0;i<TURNOS.length;i++){
+    if(!turnosRegistrados[TURNOS[i].k]){ proximoTurno=TURNOS[i]; break; }
+  }
+
+  document.body.innerHTML='';
+  document.body.style.cssText='margin:0;padding:0;background:#0f1117;min-height:100vh;font-family:system-ui,-apple-system,sans-serif';
+
+  var wrap=document.createElement('div');
+  wrap.style.cssText='max-width:420px;margin:0 auto;padding:0 0 80px 0;min-height:100vh;display:flex;flex-direction:column';
+
+  // Header
+  var horaAtual=new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  var dataAtual=new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long'});
+
+  // Seção de informações do funcionário
+  var infoHtml='';
+  if(vis.admissao && func.adm)
+    infoHtml+='<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.06)"><span style="color:#8d95b0;font-size:12px">📅 Admissão</span><span style="color:#eef0f8;font-size:12px;font-weight:600">'+fmtData(func.adm)+'</span></div>';
+  if(vis.salario && func.val)
+    infoHtml+='<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.06)"><span style="color:#8d95b0;font-size:12px">💰 Salário</span><span style="color:#eef0f8;font-size:12px;font-weight:600">'+fmt(Number(func.val))+'</span></div>';
+  if(vis.ferias && func.adm){
+    var diasAdm=Math.floor((new Date()-new Date(func.adm+'T00:00:00'))/86400000);
+    var anosComp=Math.floor(diasAdm/365);
+    var diasFerias=anosComp*30;
+    infoHtml+='<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.06)"><span style="color:#8d95b0;font-size:12px">🌴 Férias acumuladas</span><span style="color:#10b981;font-size:12px;font-weight:600">'+diasFerias+' dias</span></div>';
+  }
+  if(vis.decimo && func.val){
+    var sal=Number(func.val||0);
+    var mesAtual=new Date().getMonth()+1;
+    var decimoPrev=(sal/12)*mesAtual;
+    infoHtml+='<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.06)"><span style="color:#8d95b0;font-size:12px">🎄 13º (previsão)</span><span style="color:#f59e0b;font-size:12px;font-weight:600">'+fmt(decimoPrev)+'</span></div>';
+  }
+  if(vis['banco-horas']){
+    var meAtual=hoje2.slice(0,7);
+    var hexMes=(DB.pontos||[]).filter(function(p){return p.func===func.id&&(p.data||'').slice(0,7)===meAtual;}).reduce(function(s,p){return s+Number(p.hex||0);},0);
+    infoHtml+='<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.06)"><span style="color:#8d95b0;font-size:12px">⏱ Banco de horas (mês)</span><span style="color:#a78bfa;font-size:12px;font-weight:600">'+hexMes.toFixed(1)+'h</span></div>';
+  }
+
+  // Espelho do mês
+  var espelhoHtml='';
+  if(vis.espelho){
+    var meAtual2=hoje2.slice(0,7);
+    var pontosMes=(DB.pontos||[]).filter(function(p){return p.func===func.id&&(p.data||'').slice(0,7)===meAtual2;});
+    var diasUnicos={};
+    pontosMes.forEach(function(p){if(p.data&&!diasUnicos[p.data])diasUnicos[p.data]=[];diasUnicos[p.data].push(p);});
+    var diasArr=Object.keys(diasUnicos).sort().slice(-10);
+    if(diasArr.length){
+      espelhoHtml='<div style="margin:0 16px 12px;background:#1a1f2e;border:1px solid #2d3348;border-radius:12px;padding:14px">' +
+        '<div style="font-size:12px;font-weight:700;color:#eef0f8;margin-bottom:10px">📋 Espelho do mês (últimos 10 dias)</div>' +
+        diasArr.reverse().map(function(d){
+          var ps=diasUnicos[d];
+          var turnCheck={entrada:false,saidaAlmoco:false,voltaAlmoco:false,saida:false};
+          ps.forEach(function(p){if(p.turno)turnCheck[p.turno]=p.hora;});
+          return '<div style="display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04)">' +
+            '<span style="font-size:11px;color:#8d95b0;width:70px">'+fmtData(d).slice(0,5)+'</span>' +
+            TURNOS.map(function(t){return '<span style="font-size:10px;color:'+(turnCheck[t.k]?t.cor:'#2d3348')+'">'+t.icone+'<br><span style="font-size:9px">'+(turnCheck[t.k]||'—')+'</span></span>';}).join('') +
+            '</div>';
+        }).join('') + '</div>';
+    }
+  }
+
+  // Justificativas pendentes deste funcionário
+  var justPendFunc=(DB.justificativas||[]).filter(function(j){return j.func===func.id&&j.status==='pendente';}).length;
+
+  wrap.innerHTML=
+    // Topo
+    '<div style="background:linear-gradient(135deg,#1a1f2e 0%,#111827 100%);padding:20px 16px 16px;border-bottom:1px solid #2d3348">' +
+    '<div style="display:flex;justify-content:space-between;align-items:center">' +
+    '<div><div style="font-size:18px;font-weight:800;color:#eef0f8">'+func.nome.split(' ')[0]+'</div>' +
+    '<div style="font-size:11px;color:#8d95b0">'+(func.func||'Funcionário')+'</div></div>' +
+    '<button onclick="logoutPortal()" style="background:rgba(141,149,176,.1);color:#8d95b0;border:1px solid #2d3348;border-radius:8px;padding:6px 10px;cursor:pointer;font-size:12px">Sair</button>' +
+    '</div>' +
+    '<div style="margin-top:12px;text-align:center">' +
+    '<div style="font-size:36px;font-weight:800;color:#eef0f8;letter-spacing:-1px" id="portal-relogio">'+horaAtual+'</div>' +
+    '<div style="font-size:12px;color:#8d95b0;margin-top:2px">'+dataAtual+'</div>' +
+    '</div></div>' +
+
+    // Status de hoje
+    '<div style="padding:14px 16px">' +
+    '<div style="font-size:11px;font-weight:700;color:#8d95b0;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Marcações de hoje</div>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px">' +
+    TURNOS.map(function(t){
+      var reg=turnosRegistrados[t.k];
+      return '<div style="background:'+(reg?'rgba(16,185,129,.08)':'#1a1f2e')+';border:1px solid '+(reg?'rgba(16,185,129,.3)':'#2d3348')+';border-radius:10px;padding:10px;text-align:center">' +
+        '<div style="font-size:20px">'+t.icone+'</div>' +
+        '<div style="font-size:11px;color:#8d95b0;margin-top:2px">'+t.label+'</div>' +
+        '<div style="font-size:13px;font-weight:700;color:'+(reg?t.cor:'#555f7a')+';margin-top:3px">'+(reg||('Previsto: '+t.hora))+'</div>' +
+        (reg?'<div style="font-size:9px;color:#10b981;margin-top:1px">✔ Registrado</div>':'') +
+        '</div>';
+    }).join('') + '</div>' +
+
+    // Botão principal
+    (proximoTurno ?
+      '<button id="btn-bater-ponto" style="width:100%;padding:18px;background:'+proximoTurno.cor+';color:#fff;border:none;border-radius:14px;font-size:17px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px">' +
+      '<span style="font-size:24px">'+proximoTurno.icone+'</span> Registrar '+proximoTurno.label+'</button>' +
+      '<div id="portal-gps-status" style="text-align:center;font-size:11px;color:#8d95b0;margin-top:8px">📍 Aguardando GPS...</div>' :
+      '<div style="background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);border-radius:12px;padding:16px;text-align:center;color:#10b981;font-weight:700">✅ Todas as marcações do dia concluídas!</div>'
+    ) +
+
+    // Botão de justificativa
+    '<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">' +
+    '<button onclick="abrirJustificativaPortal()" style="flex:1;padding:10px;background:rgba(245,158,11,.1);color:#f59e0b;border:1px solid rgba(245,158,11,.3);border-radius:10px;font-size:12px;cursor:pointer">' +
+    '📝 Enviar justificativa'+(justPendFunc>0?' ('+justPendFunc+' pendente)':'')+'</button>' +
+    '</div></div>' +
+
+    // Informações do contrato
+    (infoHtml ? '<div style="margin:0 16px 12px;background:#1a1f2e;border:1px solid #2d3348;border-radius:12px;padding:14px">' +
+      '<div style="font-size:12px;font-weight:700;color:#eef0f8;margin-bottom:8px">📋 Seus dados</div>' +
+      infoHtml+'</div>' : '') +
+
+    espelhoHtml +
+
+    '<div style="text-align:center;color:#555f7a;font-size:10px;margin:8px 16px 0">Ponto Digital • '+( DB.config&&DB.config.empresa||'FigForce')+'</div>';
+
+  document.body.appendChild(wrap);
+
+  // Relógio em tempo real
+  setInterval(function(){
+    var rc=document.getElementById('portal-relogio');
+    if(rc) rc.textContent=new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  },30000);
+
+  // GPS + botão
+  if(proximoTurno){
+    capturarGPSPortal(func.id);
+    document.getElementById('btn-bater-ponto').onclick=function(){
+      registrarPontoPortal(func, proximoTurno);
+    };
+  }
+}
+
+function capturarGPSPortal(funcId){
+  var statusEl=el('portal-gps-status');
+  var btnEl=el('btn-bater-ponto');
+  if(!navigator.geolocation){
+    if(statusEl) statusEl.innerHTML='⚠️ GPS não disponível';
+    if(btnEl) btnEl.disabled=false;
+    return;
+  }
+  navigator.geolocation.getCurrentPosition(function(pos){
+    _gpsPortal={lat:pos.coords.latitude,lng:pos.coords.longitude,acc:Math.round(pos.coords.accuracy)};
+    var pd=(DB.config&&DB.config.pontoDigital)||{};
+    var raio=Number(pd.raio||100);
+    var obraProx=null;
+    if(raio>0){
+      (DB.obras||[]).filter(function(o){return o.gpsLat&&o.gpsLng;}).forEach(function(o){
+        var d=distanciaGPS(_gpsPortal.lat,_gpsPortal.lng,Number(o.gpsLat),Number(o.gpsLng));
+        if(d<=raio) obraProx=o;
+      });
+    }
+    if(statusEl) statusEl.innerHTML='✅ GPS: ±'+_gpsPortal.acc+'m'+(obraProx?' — 📍 '+obraProx.nome:'');
+    if(btnEl) btnEl.disabled=false;
+  },function(){
+    _gpsPortal=null;
+    if(statusEl) statusEl.innerHTML='⚠️ GPS não obtido — ponto sem localização';
+    if(btnEl) btnEl.disabled=false;
+  },{enableHighAccuracy:true,timeout:15000,maximumAge:0});
+}
+
+function distanciaGPS(lat1,lng1,lat2,lng2){
+  var R=6371000,dLat=(lat2-lat1)*Math.PI/180,dLng=(lng2-lng1)*Math.PI/180;
+  var a=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)*Math.sin(dLng/2);
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+
+function registrarPontoPortal(func, turno){
+  var hora=new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  // Verifica tolerância
+  var pd=(DB.config&&DB.config.pontoDigital)||{};
+  var h=pd.horarios||{};
+  var tol=Number(h.tolerancia||10);
+  var horaPrevista=h[turno.k==='saidaAlmoco'?'saidaAlmoco':turno.k==='voltaAlmoco'?'voltaAlmoco':turno.k]||turno.hora;
+  var diffMin=calcDiffMin(hora,horaPrevista);
+  var atrasado=diffMin>tol;
+
+  var reg={id:id(),func:func.id,data:hoje(),tipo:'Presente',turno:turno.k,
+    hora:hora,lat:_gpsPortal?_gpsPortal.lat:null,lng:_gpsPortal?_gpsPortal.lng:null,
+    gpsAcc:_gpsPortal?_gpsPortal.acc:null,origem:'portal-digital'};
+  DB.pontos.push(reg);
+  save();
+  setTimeout(function(){if(typeof sincronizarCompleto==='function')sincronizarCompleto(true);},500);
+
+  // Tela de confirmação
+  var wrap=document.querySelector('body > div');
+  if(!wrap){wrap=document.createElement('div');document.body.appendChild(wrap);}
+  var textoAtr = atrasado ? '<div style="margin:8px 0;padding:8px;background:rgba(245,158,11,.1);border-radius:8px;color:#f59e0b;font-size:12px">⏰ Chegada com '+diffMin+'min de atraso (tolerância: '+tol+'min)</div>' : '';
+  wrap.innerHTML=
+    '<div style="max-width:400px;margin:0 auto;padding:40px 16px;text-align:center">' +
+    '<div style="font-size:64px;margin-bottom:12px">'+turno.icone+'</div>' +
+    '<div style="font-size:22px;font-weight:800;color:'+turno.cor+'">'+turno.label+' registrada!</div>' +
+    '<div style="color:#8d95b0;font-size:15px;margin-top:8px">'+hora+' • '+new Date().toLocaleDateString('pt-BR')+'</div>' +
+    textoAtr +
+    (_gpsPortal?'<div style="color:#555f7a;font-size:11px;margin-top:4px">📍 '+_gpsPortal.lat.toFixed(5)+', '+_gpsPortal.lng.toFixed(5)+'</div>':'') +
+    '<div style="margin:20px 0;padding:14px;background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);border-radius:12px;color:#10b981;font-weight:700">✔ Ponto salvo com sucesso!</div>' +
+    '<button onclick="renderPortalPrincipal()" style="width:100%;padding:12px;background:#1a1f2e;color:#8d95b0;border:1px solid #2d3348;border-radius:10px;font-size:13px;cursor:pointer">← Voltar</button></div>';
+}
+
+function calcDiffMin(h1,h2){
+  var p1=h1.split(':').map(Number),p2=h2.split(':').map(Number);
+  return Math.max(0,(p1[0]*60+p1[1])-(p2[0]*60+p2[1]));
+}
+
+function abrirJustificativaPortal(){
+  var func=DB.funcionarios.find(function(f){return f.id===_portalUser.funcId;})||{};
+  var hoje2=hoje();
+  var overlay=document.createElement('div');
+  overlay.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.85);z-index:9999;display:flex;align-items:flex-end;justify-content:center;padding:12px;overflow-y:auto';
+  var TURNOS_OPT='<option value="entrada">Entrada</option><option value="saidaAlmoco">Saída almoço</option><option value="voltaAlmoco">Volta almoço</option><option value="saida">Saída final</option>';
+  overlay.innerHTML='<div style="background:#1a1f2e;border:1px solid #2d3348;border-radius:16px 16px 0 0;padding:20px;width:100%;max-width:420px;max-height:88vh;overflow-y:auto">' +
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">' +
+    '<h3 style="color:#eef0f8;margin:0;font-size:15px">📝 Justificativa</h3>' +
+    '<button id="btn-fechar-justif" style="background:rgba(141,149,176,.15);color:#8d95b0;border:1px solid #2d3348;border-radius:8px;padding:4px 10px;cursor:pointer">✕</button></div>' +
+    '<div style="display:flex;flex-direction:column;gap:12px">' +
+    '<div><label style="color:#8d95b0;font-size:11px;display:block;margin-bottom:5px">DATA</label>' +
+    '<input type="date" id="justif-data" value="'+hoje2+'" style="width:100%;padding:10px;background:#111827;color:#eef0f8;border:1px solid #2d3348;border-radius:8px"></div>' +
+    '<div><label style="color:#8d95b0;font-size:11px;display:block;margin-bottom:5px">MARCAÇÃO</label>' +
+    '<select id="justif-turno" style="width:100%;padding:10px;background:#111827;color:#eef0f8;border:1px solid #2d3348;border-radius:8px">'+TURNOS_OPT+'</select></div>' +
+    '<div><label style="color:#8d95b0;font-size:11px;display:block;margin-bottom:5px">MOTIVO</label>' +
+    '<textarea id="justif-motivo" placeholder="Explique o motivo (ex: problema com internet, esqueci, acidente de percurso...)" ' +
+    'style="width:100%;padding:10px;background:#111827;color:#eef0f8;border:1px solid #2d3348;border-radius:8px;min-height:80px;resize:none;box-sizing:border-box"></textarea></div>' +
+    '<button id="btn-enviar-justif" style="width:100%;padding:12px;background:#10b981;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer">📤 Enviar justificativa</button>' +
+    '</div></div>';
+  document.body.appendChild(overlay);
+  document.getElementById('btn-fechar-justif').onclick=function(){overlay.remove();};
+  document.getElementById('btn-enviar-justif').onclick=function(){
+    var data=el('justif-data').value;
+    var turno=el('justif-turno').value;
+    var motivo=el('justif-motivo').value.trim();
+    if(!motivo){alert('Descreva o motivo.');return;}
+    if(!DB.justificativas) DB.justificativas=[];
+    DB.justificativas.push({id:id(),func:func.id,data:data,turno:turno,motivo:motivo,status:'pendente',criadoEm:new Date().toISOString()});
+    save();
+    setTimeout(function(){if(typeof sincronizarCompleto==='function')sincronizarCompleto(true);},500);
+    overlay.remove();
+    alert('✔ Justificativa enviada!\nO responsável será notificado.');
+  };
+}
+
+function logoutPortal(){_portalUser=null;_gpsPortal=null;renderPortalLogin();}
+
+// Detecta modo portal ao inicializar
+document.addEventListener('DOMContentLoaded', function(){
+  if(window.location.search.includes('ponto=1')){
+    verificarModoPortal();
+  }
+});
+
 
 </script>
 
