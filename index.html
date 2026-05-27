@@ -3469,13 +3469,65 @@ function renderDiario(){
   set('lista-diario',regs.length?regs.map(d=>`<div class="card" style="margin-bottom:8px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:6px">
       <div><div style="font-size:13px;font-weight:600">${fmtData(d.data)} — ${nomeOb(d.obra)}</div><div style="font-size:11px;color:var(--tx2);margin-top:2px">Etapa: ${d.etapa||'—'} · Funcionários: ${d.funcs||0} · Clima: ${d.clima||'—'}</div></div>
-      <button class="btn xs br-" onclick="deletar('diario','${d.id}');renderDiario()">🗑</button>
+      <div style="display:flex;gap:5px;flex-wrap:wrap">
+        <button class="btn xs" style="background:#25D366;color:#fff" onclick="enviarDiarioWhatsApp('${d.id}')">💬 WhatsApp</button>
+        <button class="btn xs br-" onclick="deletar('diario','${d.id}');renderDiario()">🗑</button>
+      </div>
     </div>
     ${d.ativ?`<div style="font-size:12px;margin-bottom:6px"><strong>Atividades:</strong> ${d.ativ}</div>`:''}
     ${d.ocorr?`<div style="font-size:12px;padding:6px;background:rgba(232,75,75,.07);border-radius:var(--r);border:1px solid rgba(232,75,75,.18)"><strong style="color:var(--rd)">⚠️ Ocorrências:</strong> ${d.ocorr}</div>`:''}
     ${d.fotos&&d.fotos.length?`<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;padding-top:8px;border-top:1px solid var(--br)"><div style="width:100%;font-size:10px;color:var(--tx2);margin-bottom:2px">📸 Fotos (${d.fotos.length})</div>${d.fotos.map((f,i)=>`<img src="${f}" style="width:70px;height:70px;object-fit:cover;border-radius:6px;border:1px solid var(--br2);cursor:pointer" onclick="window.open(this.src,'_blank')" title="Foto ${i+1}"/>`).join('')}</div>`:''}
   </div>`).join(''):'<div class="empty">Nenhum registro de diário</div>');
 }
+function verFoto(src){window.open(src,'_blank');}
+
+function enviarDiarioWhatsApp(did){
+  var d=DB.diario.find(function(x){return x.id===did;}); if(!d) return;
+  var obra=nomeOb(d.obra)||'—';
+  var empresa=(DB.config&&DB.config.empresa)||'FigForge';
+  var msg='📋 *DIÁRIO DE OBRA*\n━━━━━━━━━━━━━━━━━━━\n';
+  msg+='🏗️ *Obra:* '+obra+'\n';
+  msg+='📅 *Data:* '+fmtData(d.data)+'\n';
+  if(d.etapa) msg+='🔨 *Etapa:* '+d.etapa+'\n';
+  if(d.funcs) msg+='👷 *Funcionários:* '+d.funcs+'\n';
+  if(d.clima) msg+='⛅ *Clima:* '+d.clima+'\n';
+  msg+='━━━━━━━━━━━━━━━━━━━\n';
+  if(d.ativ) msg+='\n✅ *ATIVIDADES REALIZADAS:*\n'+d.ativ+'\n';
+  if(d.ocorr) msg+='\n⚠️ *OCORRÊNCIAS:*\n'+d.ocorr+'\n';
+  if(d.fotos&&d.fotos.length) msg+='\n📸 *Fotos:* '+d.fotos.length+' foto(s) em anexo\n';
+  msg+='\n━━━━━━━━━━━━━━━━━━━\n_Enviado via FigForge — '+empresa+'_';
+  if(d.fotos&&d.fotos.length){ _modalFotosDiario(d,msg); }
+  else{ window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank'); }
+}
+
+function _modalFotosDiario(d,msg){
+  var ov=document.createElement('div');
+  ov.id='modal-diario-wpp';
+  ov.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.88);z-index:9999;display:flex;align-items:flex-end;justify-content:center;padding:12px;overflow-y:auto;-webkit-overflow-scrolling:touch';
+  var fotosHtml=(d.fotos||[]).map(function(f,i){
+    return '<div style="position:relative">'+
+      '<img src="'+f+'" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;border:1px solid #2d3348;cursor:pointer" onclick="verFoto(this.src)" title="Toque para abrir"/>'+
+      '<div style="position:absolute;bottom:3px;right:3px;background:rgba(0,0,0,.6);color:#fff;font-size:9px;padding:1px 5px;border-radius:4px">Foto '+(i+1)+'</div>'+
+      '<a href="'+f+'" download="foto-obra-'+(i+1)+'.jpg" style="position:absolute;top:3px;right:3px;background:rgba(37,211,102,.85);color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:12px;text-decoration:none" title="Baixar foto">⬇</a>'+
+      '</div>';
+  }).join('');
+  ov.innerHTML='<div style="background:#1a1f2e;border:1px solid #25D366;border-radius:16px 16px 0 0;padding:20px;width:100%;max-width:500px;max-height:88vh;overflow-y:auto">'+
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">'+
+    '<h3 style="color:#25D366;margin:0;font-size:15px">💬 Enviar Diário por WhatsApp</h3>'+
+    '<button id="btn-fechar-dwpp" style="background:rgba(141,149,176,.15);color:#8d95b0;border:1px solid #2d3348;border-radius:8px;padding:4px 10px;cursor:pointer">✕</button></div>'+
+    '<div style="background:rgba(37,211,102,.08);border:1px solid rgba(37,211,102,.25);border-radius:8px;padding:12px;margin-bottom:12px">'+
+    '<div style="font-size:11px;font-weight:700;color:#25D366;margin-bottom:6px">PASSO 1 — Abrir WhatsApp com a mensagem</div>'+
+    '<div style="font-size:11px;color:#8d95b0;margin-bottom:8px">A mensagem já está pronta. Selecione o contato e envie.</div>'+
+    '<button id="btn-abrir-dwpp" style="width:100%;padding:11px;background:#25D366;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">💬 Abrir WhatsApp</button></div>'+
+    '<div style="background:rgba(91,126,255,.06);border:1px solid rgba(91,126,255,.2);border-radius:8px;padding:12px">'+
+    '<div style="font-size:11px;font-weight:700;color:var(--ac);margin-bottom:6px">PASSO 2 — Salvar e anexar as fotos ('+( d.fotos.length)+')</div>'+
+    '<div style="font-size:11px;color:#8d95b0;margin-bottom:8px">Toque ⬇ para baixar cada foto. Depois anexe no WhatsApp.</div>'+
+    '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">'+fotosHtml+'</div></div></div>';
+  document.body.appendChild(ov);
+  document.getElementById('btn-fechar-dwpp').onclick=function(){ov.remove();};
+  document.getElementById('btn-abrir-dwpp').onclick=function(){window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');};
+}
+
 function salvarDiario(){
   var dadosBase={
     id:id(),obra:val('dr-obra'),data:val('dr-data'),
@@ -5264,23 +5316,18 @@ function ativarLicenca(){
 
 function _entrarNoApp(email){
   try{ registrarUsuarioDoLink(); }catch(e){}
-
   // Esconde tela de ativação
-  var lic = el('screen-license');
-  if(lic) lic.style.display='none';
-
-  // Tenta mostrar login diretamente
+  var licScreen = el('screen-license');
+  if(licScreen) licScreen.style.display='none';
+  // Mostra tela de login
   try{
     mostrarLogin();
-    var u=el('login-user');
-    if(u) u.value=email||'';
-    var p=el('login-pass');
-    if(p){ p.value=''; p.focus(); }
-    return;
-  }catch(e){ console.warn('[_entrarNoApp]',e); }
-
-  // Fallback: recarrega se DOM falhou
-  location.reload();
+    var u=el('login-user'); if(u) u.value=email||'';
+    var p=el('login-pass'); if(p){ p.value=''; p.focus(); }
+  }catch(e){
+    console.warn('[_entrarNoApp]',e);
+    location.reload();
+  }
 }
 
 
