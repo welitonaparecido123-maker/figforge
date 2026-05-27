@@ -5164,14 +5164,15 @@ function ativarLicenca(){
   btn.textContent='⏳ Verificando...';
   if(status) status.textContent='Consultando servidor...';
 
-  // Adiciona botão de cancelar/tentar novamente após 4s
+  // Botão de cancelar aparece após 2s (mobile pode ser lento)
   var retryTimer = setTimeout(function(){
+    if(!btn.disabled) return; // já terminou
     var cancelBtn = document.createElement('button');
     cancelBtn.id = 'btn-cancelar-ativacao';
-    cancelBtn.className = 'auth-btn';
-    cancelBtn.style.cssText = 'margin-top:8px;background:transparent;border:1px solid var(--br);color:var(--tx2);font-size:12px';
-    cancelBtn.textContent = '↩ Cancelar e tentar novamente';
+    cancelBtn.style.cssText = 'display:block;width:100%;margin-top:10px;padding:12px;background:transparent;border:1px solid rgba(255,255,255,.15);border-radius:8px;color:rgba(255,255,255,.5);font-size:13px;cursor:pointer;font-family:inherit';
+    cancelBtn.textContent = '↩ Demorou? Toque aqui para tentar novamente';
     cancelBtn.onclick = function(){
+      if(typeof xhr !== 'undefined') try{ xhr.abort(); }catch(e2){}
       btn.disabled=false; btn.textContent='✔ Ativar agora';
       if(status) status.textContent='';
       cancelBtn.remove();
@@ -5179,7 +5180,7 @@ function ativarLicenca(){
     if(btn.parentNode && !document.getElementById('btn-cancelar-ativacao')){
       btn.parentNode.insertBefore(cancelBtn, btn.nextSibling);
     }
-  }, 4000);
+  }, 2000);
 
   function onSucesso(json){
     clearTimeout(retryTimer);
@@ -5188,11 +5189,17 @@ function ativarLicenca(){
     btn.disabled=false; btn.textContent='✔ Ativar agora';
     if(status) status.textContent='';
     if(json&&json.ok){
-      _salvarLicenca({email,ativa:true,nome:json.nome||'',
+      _salvarLicenca({email:email,ativa:true,nome:json.nome||'',
         plano:json.plano||'Basico',ativadoEm:new Date().toISOString()});
       localStorage.removeItem('_lic_email_tentativa');
       el('screen-license').style.display='none';
-      restaurarBackupEMostrarLogin(email);
+      // Vai direto para login — sem setTimeout, sem backup check
+      registrarUsuarioDoLink();
+      mostrarLogin();
+      setTimeout(function(){
+        if(el('login-user')) el('login-user').value = email;
+        if(el('login-pass')) el('login-pass').focus();
+      }, 100);
     } else {
       err.textContent=(json&&json.msg)||'E-mail não encontrado. Verifique ou adquira uma licença.';
       err.style.display='block';
@@ -5221,35 +5228,38 @@ function ativarLicenca(){
 
   var url = URL_SERVIDOR+'?action=validar&email='+encodeURIComponent(email);
 
-  // Tenta fetch primeiro (mais confiável no mobile), JSONP como fallback
+  // Tenta XHR primeiro (confiável no mobile), depois JSONP como fallback
   _validarComFetch(url, onSucesso, function(){
-    // fetch falhou, tenta JSONP
-    chamarServidorJSONP(url, onSucesso, onErro, 10000);
+    // XHR falhou → tenta JSONP com 8s
+    chamarServidorJSONP(url, onSucesso, onErro, 8000);
   });
 }
 
 function _validarComFetch(url, onSucesso, onErro){
-  if(typeof fetch === 'undefined'){ onErro(); return; }
-  var controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
-  var timer = controller ? setTimeout(function(){ controller.abort(); }, 8000) : null;
-  fetch(url + '&_fmt=json', controller ? {signal:controller.signal} : {})
-    .then(function(r){ return r.text(); })
-    .then(function(txt){
-      clearTimeout(timer);
-      // Extrai JSON do resultado (pode vir como JSONP ou JSON puro)
-      var json = null;
-      try{ json = JSON.parse(txt); }catch(e){
-        // Tenta extrair de JSONP: callback({...})
-        var m = txt.match(/\{[\s\S]*\}/);
-        if(m) try{ json = JSON.parse(m[0]); }catch(e2){}
-      }
-      if(json) onSucesso(json);
-      else onErro();
-    })
-    .catch(function(){
-      clearTimeout(timer);
-      onErro();
-    });
+  // Usa XMLHttpRequest com timeout nativo do browser
+  // (mais confiável no mobile que setTimeout/fetch)
+  var xhr = new XMLHttpRequest();
+  xhr.timeout = 8000; // timeout nativo — não depende de setTimeout
+
+  xhr.onload = function(){
+    var txt = xhr.responseText || '';
+    var json = null;
+    try{ json = JSON.parse(txt); }catch(e){
+      var m = txt.match(/\{[\s\S]*\}/);
+      if(m) try{ json = JSON.parse(m[0]); }catch(e2){}
+    }
+    if(json) onSucesso(json);
+    else onErro();
+  };
+
+  xhr.onerror   = function(){ onErro(); };
+  xhr.ontimeout = function(){ onErro(); };
+  xhr.onabort   = function(){ onErro(); };
+
+  try{
+    xhr.open('GET', url, true);
+    xhr.send();
+  }catch(e){ onErro(); }
 }
 
 // JSONP — funciona de arquivo local sem restricao de CORS
@@ -6303,48 +6313,11 @@ function autoEmailUsuario(){
 
 // ── RESTAURA BACKUP ANTES DE MOSTRAR LOGIN ──────────────────────────────────
 function restaurarBackupEMostrarLogin(email){
-  var temDadosLocais = (DB.obras&&DB.obras.length>0) ||
-                       (DB.users&&DB.users.length>0) ||
-                       (DB.clientes&&DB.clientes.length>0);
-
-  if(temDadosLocais){
-    // Já tem dados locais — vai direto para o login sem buscar backup
-    registrarUsuarioDoLink();
-    mostrarLoginApos(email);
-    return;
-  }
-
-  // Sem dados locais — tenta buscar backup (timeout de 3s, não trava)
-  var loginBox = el('screen-login');
-  if(loginBox) loginBox.style.display='flex';
-  var painel = el('painel-login');
-  if(painel){
-    painel.innerHTML = '<div style="text-align:center;padding:20px 0">' +
-      '<div style="font-size:32px;margin-bottom:12px">⏳</div>' +
-      '<div style="font-size:14px;font-weight:600;margin-bottom:6px">Verificando backup...</div>' +
-      '<div style="font-size:12px;color:var(--tx2)">Aguarde alguns segundos</div>' +
-      '</div>';
-  }
-
-  // Timeout de segurança: mesmo se verificarBackupNuvem travar, avança em 4s
-  var avancoSeguro = setTimeout(function(){
-    registrarUsuarioDoLink();
-    _rebuildarPainelLogin(painel, email);
-  }, 4500);
-
-  verificarBackupNuvem(email, function(backup, dataBackup){
-    clearTimeout(avancoSeguro);
-    if(backup){
-      try{
-        var dados = JSON.parse(backup);
-        Object.assign(DB, dados);
-        save();
-        console.log('[Backup] Restaurado automaticamente');
-      }catch(e){ console.log('[Backup] Erro ao restaurar:', e); }
-    }
-    registrarUsuarioDoLink();
-    _rebuildarPainelLogin(painel, email);
-  });
+  // Vai direto para o login — sem setTimeout, sem espera por backup
+  // Backup pode ser verificado em segundo plano após o login
+  el('screen-license').style.display='none';
+  registrarUsuarioDoLink();
+  mostrarLoginApos(email);
 }
 
 function _rebuildarPainelLogin(painel, email){
@@ -6364,31 +6337,17 @@ function _rebuildarPainelLogin(painel, email){
 
 function mostrarLoginApos(email){
   mostrarLogin();
-  setTimeout(function(){
-    var preUser = sessionStorage.getItem('_pre_user')||'';
-    var prePass = sessionStorage.getItem('_pre_pass')||'';
-    var u = el('login-user');
-    var p = el('login-pass');
-
-    if(preUser && u){
-      u.value = preUser;
-      sessionStorage.removeItem('_pre_user');
-    } else if(u){
-      u.value = '';
-    }
-
-    if(prePass && p){
-      p.value = prePass;
-      sessionStorage.removeItem('_pre_pass');
-      // Foca no botão de entrar
-      var btn = document.querySelector('.auth-btn');
-      if(btn) setTimeout(function(){ btn.focus(); }, 100);
-    } else if(p){
-      p.value = '';
-      if(u && !u.value) u.focus();
-      else if(p) p.focus();
-    }
-  }, 300);
+  // Sem setTimeout — preenche imediatamente
+  var preUser = sessionStorage.getItem('_pre_user')||'';
+  var prePass = sessionStorage.getItem('_pre_pass')||'';
+  var u = el('login-user');
+  var p = el('login-pass');
+  if(u){ u.value = preUser||email||''; sessionStorage.removeItem('_pre_user'); }
+  if(p){ p.value = prePass||''; sessionStorage.removeItem('_pre_pass'); }
+  if(u && !u.value && email) u.value = email;
+  // Foca no campo correto
+  if(u && !u.value) u.focus();
+  else if(p && !p.value) p.focus();
 }
 
 function enviarAcessoWhatsApp(uid){
