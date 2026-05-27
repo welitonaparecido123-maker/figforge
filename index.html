@@ -4913,10 +4913,10 @@ function ativarLicenca(){
 
   // Modo teste
   if(isModoTeste()){
-    localStorage.setItem(SK_LIC,JSON.stringify({
+    _salvarLicenca({
       email,ativa:true,nome:'Teste',plano:'pro',
       ativadoEm:new Date().toISOString()
-    }));
+    });
     el('screen-license').style.display='none';
     registrarUsuarioDoLink();
     mostrarLoginApos(email);
@@ -4948,11 +4948,11 @@ function ativarLicenca(){
       btn.disabled=false;btn.textContent='Ativar agora';
       if(status) status.textContent='';
       if(json&&json.ok){
-        localStorage.setItem(SK_LIC,JSON.stringify({
+        _salvarLicenca({
           email,ativa:true,nome:json.nome||'',
           plano:json.plano||'Basico',
           ativadoEm:new Date().toISOString()
-        }));
+        });
         el('screen-license').style.display='none';
         // Antes de mostrar o login, verifica backup na nuvem
         restaurarBackupEMostrarLogin(email);
@@ -5002,7 +5002,7 @@ function chamarServidorJSONP(url, onSucesso, onErro){
 
 
 function verificarLicenca(){
-  try{const obj=JSON.parse(localStorage.getItem(SK_LIC)||'{}');return obj.ativa===true;}
+  try{const obj=_lerLicenca();return obj.ativa===true;}
   catch(e){return false;}
 }
 
@@ -5037,7 +5037,7 @@ function fazerLogin(){
 
   if(!found){
     try{
-      const lic=JSON.parse(localStorage.getItem(SK_LIC)||'{}');
+      const lic=_lerLicenca();
       // Login com e-mail da licença usa a senha do admin (não hardcoded)
       if(lic.email&&lic.email===usuario){
         var senhaLic=(DB.config&&DB.config.adminSenha)||'admin123';
@@ -5116,32 +5116,37 @@ function esqueciSenha(){
   alert('Senha padrao de acesso: admin123\n\nPara suporte entre em contato:\nWhatsApp: (67) 9654-7866');
 }
 
-function revalidarOnline(){
+function revalidarOnline(forcado){
   try{
-    var licStr=localStorage.getItem(SK_LIC);
-    if(!licStr) return;
-    var lic=JSON.parse(licStr);
+    var lic = _lerLicenca();
     if(!lic.email) return;
-    var ultimaVal=lic.ultimaValidacao?new Date(lic.ultimaValidacao):null;
-    var agora=new Date();
-    if(ultimaVal&&(agora-ultimaVal)<3*24*60*60*1000) return;
-    var url=URL_SERVIDOR+'?action=validar&email='+encodeURIComponent(lic.email);
-    chamarServidorJSONP(url,function(json){
+    var agora = new Date();
+    var ultimaVal = lic.ultimaValidacao ? new Date(lic.ultimaValidacao) : null;
+    // Revalida se: forçado, adulterado, ou passou mais de 1h desde a última verificação
+    var precisaRevalidar = forcado || lic._adulterado || !ultimaVal || (agora - ultimaVal) > 60*60*1000;
+    if(!precisaRevalidar) return;
+    var url = URL_SERVIDOR+'?action=validar&email='+encodeURIComponent(lic.email);
+    chamarServidorJSONP(url, function(json){
       if(!json||!json.ok){
+        // Licença inválida no servidor → remove e força nova ativação
         localStorage.removeItem(SK_LIC);
-        sessionStorage.removeItem(SK_SESS);
+        sessionStorage.removeItem(SK_SESS_GLOBAL);
         el('app-shell').style.display='none';
         el('screen-login').style.display='none';
         el('screen-license').style.display='flex';
         var le=el('lic-err');
-        if(le){le.textContent=(json&&json.msg)||'Licenca expirada.';le.style.display='block';}
+        if(le){le.textContent=(json&&json.msg)||'Licença expirada ou inválida.';le.style.display='block';}
       } else {
-        lic.ultimaValidacao=agora.toISOString();
-        lic.nome=json.nome||lic.nome;
-        lic.plano=json.plano||lic.plano;
-        localStorage.setItem(SK_LIC,JSON.stringify(lic));
+        // Servidor retorna o plano REAL — sobrescreve qualquer adulteração
+        lic.ultimaValidacao = agora.toISOString();
+        lic.nome  = json.nome  || lic.nome;
+        lic.plano = json.plano || lic.plano; // plano vem do servidor, não do localStorage
+        lic._adulterado = false;
+        _salvarLicenca(lic); // grava com novo hash
+        // Atualiza UI de plano se mudou
+        if(typeof aplicarBloqueiosPlano === 'function') aplicarBloqueiosPlano();
       }
-    },function(){/* sem conexao, ignora */});
+    }, function(){ /* sem conexão — mantém cache */ });
   }catch(e){}
 }
 
@@ -5157,11 +5162,11 @@ function initAuth(){
   // Quando o servidor ainda não foi configurado, libera tudo para validação
   if(isModoTeste()){
     // Salva uma licença de teste local
-    localStorage.setItem(SK_LIC, JSON.stringify({
+    _salvarLicenca({
       email:'teste@local.dev', ativa:true,
-      nome:'Modo Teste', plano:'pro', // plano Pro para testar todos os módulos
+      nome:'Modo Teste', plano:'pro',
       ativadoEm: new Date().toISOString()
-    }));
+    });
     // Salva sessão de teste
     sessionStorage.setItem(SK_SESS, JSON.stringify({
       nome:'Administrador (Teste)', nivel:'adm',
@@ -5200,7 +5205,7 @@ function initAuth(){
   const sess=verificarSessao();
   if(!sess){
     el('screen-license').style.display='none';
-    try{const lic=JSON.parse(localStorage.getItem(SK_LIC)||'{}');if(lic.email)setV('login-user',lic.email);}catch(e){}
+    try{const lic=_lerLicenca();if(lic.email)setV('login-user',lic.email);}catch(e){}
     mostrarLogin();
     el('app-shell').style.display='none';
     return;
@@ -5217,6 +5222,8 @@ function initAuth(){
   renderPanel('dashboard');
   if(typeof initExtras==='function')initExtras();
   setTimeout(verificarAtualizacao, 4000);
+  // Revalida o plano com o servidor a cada startup (corrige qualquer adulteração)
+  setTimeout(function(){ revalidarOnline(true); }, 3000);
 }
 
 load();
@@ -5241,10 +5248,53 @@ function mostrarDescNivel(){
 
 
 // Retorna o plano ativo (lê da licença salva localmente)
+// ── CHECKSUM ANTI-TAMPER ─────────────────────────────────────────────────────
+// Se alguém editar o plano no localStorage, o hash não vai bater → cai para starter
+var _LH_SALT = (function(){
+  var p=['fg','f_','pl','an','o_','v2','_s','ec'];
+  return p.join('')+'!'+navigator.userAgent.length;
+})();
+
+function _licHash(email, plano, ts){
+  var raw = (email||'').toLowerCase()+'::'+String(plano).toLowerCase()+'::'+String(ts||'')+'::'+_LH_SALT;
+  var h = 5381;
+  for(var i=0;i<raw.length;i++){ h=((h<<5)+h)^raw.charCodeAt(i); h=h>>>0; }
+  // Segundo passo — embaralha com índice
+  var h2 = 0x811c9dc5;
+  for(var j=raw.length-1;j>=0;j--){ h2^=raw.charCodeAt(j); h2=(h2*0x01000193)>>>0; }
+  return (h.toString(36)+h2.toString(36)).toUpperCase();
+}
+
+function _salvarLicenca(data){
+  // Sempre grava com hash — qualquer alteração manual quebra a verificação
+  var obj = Object.assign({}, data);
+  obj._h = _licHash(obj.email, obj.plano, obj.ativadoEm||'');
+  _salvarLicenca(obj);
+  return obj;
+}
+
+function _lerLicenca(){
+  try{
+    var raw = localStorage.getItem(SK_LIC);
+    if(!raw) return {};
+    var obj = JSON.parse(raw);
+    // Valida hash — se falhar, trata como starter e agenda revalidação
+    var hashEsperado = _licHash(obj.email, obj.plano, obj.ativadoEm||'');
+    if(obj._h && obj._h !== hashEsperado){
+      // Alguém mexeu no plano manualmente
+      console.warn('[Licença] Hash inválido — possível adulteração. Resetando para starter.');
+      obj.plano = 'Basico'; // força starter até revalidar com servidor
+      obj._adulterado = true;
+    }
+    return obj;
+  }catch(e){ return {}; }
+}
+
 function getPlanoAtivo(){
   try{
-    const lic=JSON.parse(localStorage.getItem(SK_LIC)||'{}');
-    const p=(lic.plano||'starter').toLowerCase();
+    var lic = _lerLicenca();
+    if(lic._adulterado) return 'starter'; // adulterado → starter
+    var p = (lic.plano||'starter').toLowerCase();
     if(p.includes('person')||p.includes('custom')||p.includes('enterprise')||p.includes('empresa')) return 'personalizado';
     if(p.includes('pro')||p.includes('profis')||p.includes('97')) return 'pro';
     return 'starter';
@@ -5255,7 +5305,6 @@ function isPro(){ return getPlanoAtivo()==='pro'||getPlanoAtivo()==='personaliza
 function isPersonalizado(){ return getPlanoAtivo()==='personalizado'; }
 function temPontoDigital(){
   if(isPersonalizado()) return true;
-  // Pro pode ter se o admin habilitou via config
   if(isPro() && DB.config && DB.config.pontoDigitalAtivo) return true;
   return false;
 }
@@ -5591,7 +5640,7 @@ function trocarSenhaCfg(){
 // ── COMPARTILHAR ACESSO ───────────────────────────────────────────────────────
 function gerarLinkAcesso(){
   try{
-    var lic=JSON.parse(localStorage.getItem(SK_LIC)||'{}');
+    var lic=_lerLicenca();
     var email=lic.email||'';
     if(!email) return;
     var baseUrl=window.location.origin+window.location.pathname;
@@ -5851,7 +5900,7 @@ function compactarParaCloud(){
 // Salva backup no servidor via POST
 function salvarBackupNuvem(silencioso){
   try{
-    var lic=JSON.parse(localStorage.getItem(SK_LIC)||'{}');
+    var lic=_lerLicenca();
     if(!lic.email||!lic.ativa) return;
     var backup = compactarParaCloud();
     if(!backup) return;
@@ -5939,7 +5988,7 @@ function compartilharWhatsApp(){
   var inp = el('link-acesso');
   var link = inp ? inp.value : '';
   if(!link){ alert('Gere o link primeiro.'); return; }
-  var lic = JSON.parse(localStorage.getItem(SK_LIC)||'{}');
+  var lic = _lerLicenca();
   var msg = 'Ola! Aqui esta o link de acesso ao FigForge da empresa:\n\n' + link +
     '\n\n1. Abra o link\n2. Clique em Ativar agora\n3. Quando perguntar sobre restaurar dados, clique SIM\n4. Faca login com seu e-mail e senha cadastrados\n\nSuporte: WhatsApp (67) 9654-7866';
   var url = 'https://wa.me/?text=' + encodeURIComponent(msg);
@@ -6056,7 +6105,7 @@ function enviarAcessoWhatsApp(uid){
   if(!u){ alert('Usuário não encontrado.'); return; }
 
   var lic = {};
-  try{ lic = JSON.parse(localStorage.getItem(SK_LIC)||'{}'); }catch(e){}
+  try{ lic = _lerLicenca(); }catch(e){}
   var emailEmpresa = lic.email||'';
 
   if(!emailEmpresa){
@@ -6183,7 +6232,7 @@ function uploadFotosDiario(fotosBase64, callback){
 // ── PUXAR DADOS DA EQUIPE ─────────────────────────────────────────────────────
 function puxarDadosEquipe(){
   var lic = {};
-  try{ lic = JSON.parse(localStorage.getItem(SK_LIC)||'{}'); }catch(e){}
+  try{ lic = _lerLicenca(); }catch(e){}
   if(!lic.email){ alert('Licença não encontrada.'); return; }
 
   var btn = el('btn-puxar-dados');
@@ -6258,7 +6307,7 @@ function mostrarStatusSync(estado, msg){
 function sincronizarCompleto(silencioso){
   if(syncEmAndamento) return;
   var lic = {};
-  try{ lic = JSON.parse(localStorage.getItem(SK_LIC)||'{}'); }catch(e){}
+  try{ lic = _lerLicenca(); }catch(e){}
   if(!lic.email||!lic.ativa) return;
 
   syncEmAndamento = true;
@@ -6691,7 +6740,7 @@ function resetarBackupNuvem(){
   if(!confirm('Tem certeza? Esta ação não pode ser desfeita.\n\nO backup atual será SUBSTITUÍDO pelos dados deste dispositivo.')) return;
 
   var lic = {};
-  try{ lic = JSON.parse(localStorage.getItem(SK_LIC)||'{}'); }catch(e){}
+  try{ lic = _lerLicenca(); }catch(e){}
   if(!lic.email){ alert('Licença não encontrada.'); return; }
 
   // Limpa _deletedIds (vai recomeçar)
