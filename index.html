@@ -1914,7 +1914,7 @@ button[style*="background: #4F6EF7"], .btn-primary {
     <span style="font-size:13px;color:var(--tx2)">Gerencie suas obras por status</span>
     <button class="btn bp" onclick="abrirMo('mo-obra')">+ Nova obra</button>
   </div>
-  <div class="kb" id="kanban-obras"></div>
+  <div id="kanban-obras"></div>
 </div>
 
 <!-- ========== ORÇAMENTOS ========== -->
@@ -2612,6 +2612,9 @@ document.querySelectorAll('.sbi').forEach(s=>{
 function navegar(p){
   // Fecha drawer mobile ao navegar
   if(window.innerWidth <= 600) fecharMenuMobile();
+  // Fecha menu "Mais" se aberto
+  var maisMenu = document.getElementById('mobile-mais-menu');
+  if(maisMenu) maisMenu.remove();
   // Verifica plano antes de navegar
   if(!moduloDisponivel(p)){
     mostrarUpgradeBanner(p);
@@ -2626,6 +2629,67 @@ function navegar(p){
   const btn=el('btn-acao');
   if(ACTS[p]){btn.textContent=ACTS[p];btn.style.display='inline-flex';}else btn.style.display='none';
   renderPanel(p);
+  // Atualiza tab ativa na barra mobile
+  atualizarTabMobile(p);
+}
+
+// ─── NAVEGAÇÃO MOBILE ─────────────────────────────────────────
+var MOBILE_TABS_PRINCIPAIS = ['dashboard','obras','financeiro','funcionarios'];
+
+function atualizarTabMobile(p){
+  MOBILE_TABS_PRINCIPAIS.forEach(function(t){
+    var tab = el('mtab-'+t);
+    if(tab) tab.classList.toggle('active', t===p);
+  });
+  var mais = el('mtab-mais');
+  if(mais) mais.classList.toggle('active', MOBILE_TABS_PRINCIPAIS.indexOf(p)===-1);
+}
+
+function navegarMobile(p){
+  navegar(p);
+}
+
+function abrirPainel(pnlId){
+  // compatibilidade: aceita 'pnl-dashboard' ou 'dashboard'
+  var p = String(pnlId).replace(/^pnl-/,'');
+  navegar(p);
+}
+
+function abrirMenuMobile(){
+  var existing = document.getElementById('mobile-mais-menu');
+  if(existing){ existing.remove(); return; }
+  var menu = document.createElement('div');
+  menu.id = 'mobile-mais-menu';
+  menu.style.cssText = 'position:fixed;bottom:65px;left:0;right:0;background:#1a1f2e;border-top:2px solid #10b981;z-index:9997;padding:10px 8px;display:flex;flex-wrap:wrap;justify-content:space-around;gap:4px;box-shadow:0 -4px 20px rgba(0,0,0,.5)';
+  var extras = [
+    {p:'orcamentos',icon:'🧾',label:'Orçamentos'},
+    {p:'clientes',icon:'👥',label:'Clientes'},
+    {p:'estoque',icon:'📦',label:'Estoque'},
+    {p:'diario',icon:'📸',label:'Diário'},
+    {p:'relatorios',icon:'📋',label:'Relatórios'},
+    {p:'config',icon:'⚙️',label:'Config'}
+  ];
+  extras.forEach(function(item){
+    var btn = document.createElement('div');
+    btn.style.cssText = 'color:#8d95b0;font-size:10px;text-align:center;cursor:pointer;padding:8px 12px;border-radius:8px;background:rgba(45,51,72,.5);min-width:28%';
+    btn.innerHTML = '<div style="font-size:22px;margin-bottom:2px">'+item.icon+'</div>'+item.label;
+    btn.onclick = function(){
+      menu.remove();
+      navegar(item.p);
+    };
+    menu.appendChild(btn);
+  });
+  document.body.appendChild(menu);
+  setTimeout(function(){
+    document.addEventListener('click', function fecharMais(e){
+      var m = document.getElementById('mobile-mais-menu');
+      var btnMais = el('mtab-mais');
+      if(m && !m.contains(e.target) && e.target!==btnMais && !btnMais?.contains(e.target)){
+        m.remove();
+        document.removeEventListener('click', fecharMais);
+      }
+    });
+  },100);
 }
 
 el('btn-sb').addEventListener('click',function(){
@@ -2794,28 +2858,80 @@ function renderDash(){
 
 // ================================================================ OBRAS
 function renderObras(){
+  // Totalizador geral
+  var totalContratado=0, totalRecebido=0;
+  DB.obras.forEach(function(o){
+    totalContratado += Number(o.valor||0);
+    var rec = DB.lancamentos.filter(function(l){return l.obra===o.id&&l.tipo==='receita';}).reduce(function(s,l){return s+Number(l.val||0);},0);
+    totalRecebido += rec;
+  });
+  var totalPendente = Math.max(0, totalContratado - totalRecebido);
+
+  var resumoHtml = DB.obras.length > 0 ? (
+    '<div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap">' +
+    '<div style="flex:1;min-width:120px;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);border-radius:var(--r);padding:10px;text-align:center">' +
+    '<div style="font-size:10px;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px">Contratado</div>' +
+    '<div style="font-size:16px;font-weight:700;color:var(--gn)">'+fmt(totalContratado)+'</div></div>' +
+    '<div style="flex:1;min-width:120px;background:rgba(91,126,255,.1);border:1px solid rgba(91,126,255,.3);border-radius:var(--r);padding:10px;text-align:center">' +
+    '<div style="font-size:10px;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px">Recebido</div>' +
+    '<div style="font-size:16px;font-weight:700;color:var(--ac)">'+fmt(totalRecebido)+'</div></div>' +
+    '<div style="flex:1;min-width:120px;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:var(--r);padding:10px;text-align:center">' +
+    '<div style="font-size:10px;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px">A receber</div>' +
+    '<div style="font-size:16px;font-weight:700;color:var(--am)">'+fmt(totalPendente)+'</div></div>' +
+    '</div>'
+  ) : '';
+
   const statusList=[{k:'Em andamento',cls:'t-and'},{k:'Orçamento',cls:'t-orc'},{k:'Parada',cls:'t-par'},{k:'Concluída',cls:'t-fin'}];
-  set('kanban-obras',statusList.map(s=>{
-    const obras=DB.obras.filter(o=>o.status===s.k);
-    return `<div class="kb-col">
-      <div class="kb-h"><span>${s.k}</span><span class="bdg bgb">${obras.length}</span></div>
-      ${obras.map(o=>`<div class="kb-c">
-        <div class="kb-ct">${o.nome}</div>
-        <div class="kb-cs">${nomeCl(o.cliente)} · ${o.area||'—'} m²</div>
-        <div class="prog" style="margin-top:6px"><div class="pf" style="width:${o.progresso||0}%"></div></div>
-        <div style="font-size:9px;color:var(--tx2);margin-top:2px">${o.progresso||0}% · ${fmtData(o.prazo)}</div>
-        <div style="display:flex;gap:4px;margin-top:6px;flex-wrap:wrap">
-          <button class="btn xs bp" onclick="editarObra('${o.id}')">✏️</button>
-          <button class="btn xs" onclick="alterarProgresso('${o.id}')">% prog.</button>
-          <select class="btn xs" onchange="alterarStatus('${o.id}',this.value)" style="padding:2px 4px">
-            ${statusList.map(ss=>`<option ${ss.k===o.status?'selected':''}>${ss.k}</option>`).join('')}
-          </select>
-          <button class="btn xs br-" onclick="deletar('obras','${o.id}');renderObras()">🗑</button>
-        </div>
-      </div>`).join('')}
-      <button class="btn sm" style="width:100%;margin-top:6px" onclick="abrirMo('mo-obra')">+ Nova obra</button>
-    </div>`;
-  }).join(''));
+  var kanbanHtml = statusList.map(function(s){
+    var obras = DB.obras.filter(function(o){return o.status===s.k;});
+    var cards = obras.map(function(o){
+      var valorContratado = Number(o.valor||0);
+      var recebido = DB.lancamentos.filter(function(l){return l.obra===o.id&&l.tipo==='receita';}).reduce(function(s,l){return s+Number(l.val||0);},0);
+      var aReceber = Math.max(0, valorContratado - recebido);
+      var pctRecebido = valorContratado > 0 ? Math.min(100, Math.round(recebido/valorContratado*100)) : 0;
+
+      var financRow = valorContratado > 0 ? (
+        '<div style="margin-top:8px;padding:7px;background:var(--bg3);border-radius:6px;font-size:10px">' +
+        '<div style="display:flex;justify-content:space-between;margin-bottom:3px">' +
+        '<span style="color:var(--tx3)">Contratado</span>' +
+        '<span style="color:var(--tx);font-weight:600">'+fmt(valorContratado)+'</span></div>' +
+        '<div style="display:flex;justify-content:space-between;margin-bottom:3px">' +
+        '<span style="color:var(--tx3)">Recebido</span>' +
+        '<span style="color:var(--gn);font-weight:600">'+fmt(recebido)+'</span></div>' +
+        (aReceber > 0.01 ?
+          '<div style="display:flex;justify-content:space-between;padding-top:3px;border-top:1px solid var(--br)">' +
+          '<span style="color:var(--am);font-weight:700">A receber</span>' +
+          '<span style="color:var(--am);font-weight:700">'+fmt(aReceber)+'</span></div>' : '') +
+        '<div style="margin-top:5px;height:4px;background:var(--bg);border-radius:2px;overflow:hidden">' +
+        '<div style="height:4px;border-radius:2px;width:'+pctRecebido+'%;background:'+( pctRecebido>=100?'var(--gn)':'var(--ac)')+'"></div></div>' +
+        '<div style="text-align:right;font-size:9px;color:var(--tx3);margin-top:2px">'+pctRecebido+'% recebido</div>' +
+        '</div>'
+      ) : '';
+
+      return '<div class="kb-c">' +
+        '<div class="kb-ct">'+o.nome+'</div>' +
+        '<div class="kb-cs">'+nomeCl(o.cliente)+' · '+(o.area||'—')+' m²</div>' +
+        '<div class="prog" style="margin-top:6px"><div class="pf" style="width:'+(o.progresso||0)+'%"></div></div>' +
+        '<div style="font-size:9px;color:var(--tx2);margin-top:2px">'+(o.progresso||0)+'% obra · '+fmtData(o.prazo)+'</div>' +
+        financRow +
+        '<div style="display:flex;gap:4px;margin-top:6px;flex-wrap:wrap">' +
+        '<button class="btn xs bp" onclick="editarObra(\''+o.id+'\')">✏️</button>' +
+        '<button class="btn xs" onclick="alterarProgresso(\''+o.id+'\')">% prog.</button>' +
+        '<select class="btn xs" onchange="alterarStatus(\''+o.id+'\',this.value)" style="padding:2px 4px">' +
+        statusList.map(function(ss){return '<option'+(ss.k===o.status?' selected':'')+'>'+ss.k+'</option>';}).join('') +
+        '</select>' +
+        '<button class="btn xs br-" onclick="deletar(\'obras\',\''+o.id+'\');renderObras()">🗑</button>' +
+        '</div></div>';
+    }).join('');
+
+    return '<div class="kb-col">' +
+      '<div class="kb-h"><span>'+s.k+'</span><span class="bdg bgb">'+obras.length+'</span></div>' +
+      cards +
+      '<button class="btn sm" style="width:100%;margin-top:6px" onclick="abrirMo(\'mo-obra\')">+ Nova obra</button>' +
+      '</div>';
+  }).join('');
+
+  set('kanban-obras', resumoHtml + '<div class="kb">'+kanbanHtml+'</div>');
 }
 
 function alterarStatus(id,status){DB.obras.find(o=>o.id===id).status=status;save();}
@@ -6324,54 +6440,52 @@ function aplicarIconesPWA(icon192, icon512, nomeEmpresa){
 function enviarOrcWhatsApp(id){
   var o = DB.orcamentos.find(function(x){ return x.id===id; });
   if(!o){ alert('Orçamento não encontrado.'); return; }
-  // Procura o cliente — pode estar em o.cliente ou o.cli
   var cliId = o.cliente || o.cli || '';
   var cli   = DB.clientes.find(function(c){ return c.id===cliId; });
   var tel   = (cli && cli.tel) ? cli.tel : '';
-
   if(!tel){
     tel = prompt('Telefone do cliente não cadastrado.\nDigite o número (com DDD):','');
     if(!tel) return;
   }
-
-  // Limpa o telefone — mantém só números
   var num = tel.replace(/\D/g,'');
-  if(num.length < 10){
-    alert('Número inválido. Use o formato: (67) 99999-9999');
-    return;
-  }
-  // Adiciona 55 (Brasil) se não tiver
+  if(num.length < 10){ alert('Número inválido. Use o formato: (67) 99999-9999'); return; }
   if(!num.startsWith('55')) num = '55' + num;
 
   var cfg = DB.config||{};
   var empresa = cfg.empresa || 'FigForge';
-  // Calcula o total considerando todos os formatos possíveis
-  var total = Number(o.total || 0);
-  if(!total && o.itens){
-    total = o.itens.reduce(function(s,i){
-      return s + (Number(i.total)||(Number(i.qtd||0)*Number(i.vu||0)));
-    }, 0);
-  }
-  var titulo = o.titulo || o.descricao || 'Orçamento';
-  var msg = 'Olá ' + (cli && cli.nome ? cli.nome : '') + '! 👋\n\n' +
-    '*' + empresa + '* enviou seu orçamento:\n\n' +
-    '📋 *' + titulo + '*\n' +
-    '💰 *Total: R$ ' + total.toLocaleString('pt-BR',{minimumFractionDigits:2}) + '*\n\n' +
-    'Em anexo o PDF completo. Qualquer dúvida estamos à disposição! 😊';
+  var total = Number(o.total||0);
+  var nomeOrc = o.titulo || o.descricao || ('Orçamento Nº '+o.num);
+  var msg = 'Olá'+(cli&&cli.nome?' '+cli.nome:'')+' 👋\n\n' +
+    'Segue seu orçamento da *'+empresa+'*:\n\n' +
+    '📋 *'+nomeOrc+'*\n' +
+    '💰 *Total: R$ '+total.toLocaleString('pt-BR',{minimumFractionDigits:2})+'*\n' +
+    '📅 Data: '+fmtData(o.data)+'\n\n' +
+    '⬇️ O PDF foi gerado e salvo no seu dispositivo.\n' +
+    'Por favor, anexe-o nesta conversa.\n\n' +
+    'Qualquer dúvida estamos à disposição! 😊';
 
-  // Abre WhatsApp com a mensagem
-  var url = 'https://wa.me/' + num + '?text=' + encodeURIComponent(msg);
-  window.open(url, '_blank');
-
-  // Também gera o PDF para o cliente poder baixar
+  // 1. Gera e baixa o PDF
   exportarOrcPDFById(id);
+  // 2. Abre WhatsApp após pequena pausa
+  setTimeout(function(){
+    window.open('https://wa.me/'+num+'?text='+encodeURIComponent(msg), '_blank');
+    // Dica ao usuário
+    setTimeout(function(){
+      alert('📋 Instruções:\n\n1. O PDF do orçamento foi baixado no seu dispositivo.\n2. O WhatsApp foi aberto com a mensagem pronta.\n3. No WhatsApp, clique no 📎 (clipe) e anexe o PDF baixado.\n\nArquivo: orcamento_'+o.num+'.pdf');
+    }, 800);
+  }, 600);
 }
 
 // ── Envia o orçamento atual (em edição) pelo WhatsApp ────────────────────────
 function enviarOrcWhatsAppForm(){
   var cliId = val('of-cli');
   var cli   = DB.clientes.find(function(c){ return c.id===cliId; });
-  if(!cli){ alert('Selecione um cliente antes.'); return; }
+  if(!cli){ alert('Selecione um cliente antes de enviar.'); return; }
+
+  // Verifica se tem itens
+  var temItens = el('orc-itens').querySelectorAll('tr[data-row]').length > 0;
+  if(!temItens){ alert('Adicione pelo menos um item ao orçamento antes de enviar.'); return; }
+
   var tel = cli.tel || '';
   if(!tel){
     tel = prompt('Cliente sem telefone cadastrado.\nDigite o número (com DDD):','');
@@ -6385,9 +6499,7 @@ function enviarOrcWhatsAppForm(){
   var subtotal = 0;
   el('orc-itens').querySelectorAll('tr[data-row]').forEach(function(row){
     var inputs = row.querySelectorAll('input[type=number]');
-    var qtd = Number(inputs[0]?.value)||0;
-    var vu  = Number(inputs[1]?.value)||0;
-    subtotal += qtd * vu;
+    subtotal += (Number(inputs[0]?.value)||0) * (Number(inputs[1]?.value)||0);
   });
   var bdi  = Number(val('of-bdi'))||0;
   var desc = Number(val('of-desc'))||0;
@@ -6395,15 +6507,24 @@ function enviarOrcWhatsAppForm(){
 
   var cfg = DB.config||{};
   var empresa = cfg.empresa || 'FigForge';
-  var msg = 'Olá ' + cli.nome + '! 👋\n\n' +
-    '*' + empresa + '* enviou seu orçamento:\n\n' +
-    '💰 *Total: R$ ' + total.toLocaleString('pt-BR',{minimumFractionDigits:2}) + '*\n\n' +
-    'Em anexo o PDF completo. Qualquer dúvida estamos à disposição! 😊';
+  var msg = 'Olá '+cli.nome+' 👋\n\n' +
+    'Segue seu orçamento da *'+empresa+'*:\n\n' +
+    '💰 *Total: R$ '+total.toLocaleString('pt-BR',{minimumFractionDigits:2})+'*\n\n' +
+    '⬇️ O PDF foi gerado e salvo no seu dispositivo.\n' +
+    'Por favor, anexe-o nesta conversa.\n\n' +
+    'Qualquer dúvida estamos à disposição! 😊';
 
-  // Abre WhatsApp
-  window.open('https://wa.me/'+num+'?text='+encodeURIComponent(msg), '_blank');
-  // Gera o PDF para o usuário baixar
-  setTimeout(exportarOrcPDF, 500);
+  // 1. Salva o orçamento se ainda não foi salvo
+  salvarOrc();
+  // 2. Gera e baixa o PDF
+  setTimeout(exportarOrcPDF, 300);
+  // 3. Abre WhatsApp
+  setTimeout(function(){
+    window.open('https://wa.me/'+num+'?text='+encodeURIComponent(msg), '_blank');
+    setTimeout(function(){
+      alert('📋 Instruções para envio:\n\n1. O PDF do orçamento foi baixado no seu dispositivo.\n2. O WhatsApp foi aberto com a mensagem pronta.\n3. No WhatsApp, clique no 📎 (clipe) e selecione o PDF para anexar.\n\nDica: procure o arquivo "orcamento_*.pdf" na pasta Downloads.');
+    }, 800);
+  }, 900);
 }
 
 // ── RESETAR BACKUP NA NUVEM (último recurso para resolver sync) ───────────────
@@ -6953,10 +7074,11 @@ function confirmarAdiantamento(idFuncionario, nomeFuncionario) {
 </div></div>
 
 <div class="mobile-tabbar" id="mobile-tabbar">
-  <div class="mobile-tab active" onclick="abrirPainel('pnl-dashboard')"><div>📊</div>Dashboard</div>
-  <div class="mobile-tab" onclick="abrirPainel('pnl-obras')"><div>🏗️</div>Obras</div>
-  <div class="mobile-tab" onclick="abrirPainel('pnl-orcamentos')"><div>🧾</div>Orçamentos</div>
-  <div class="mobile-tab" onclick="abrirPainel('pnl-financeiro')"><div>💰</div>Financeiro</div>
+  <div class="mobile-tab active" id="mtab-dashboard" onclick="navegarMobile('dashboard')"><div>📊</div>Dashboard</div>
+  <div class="mobile-tab" id="mtab-obras" onclick="navegarMobile('obras')"><div>🏗️</div>Obras</div>
+  <div class="mobile-tab" id="mtab-financeiro" onclick="navegarMobile('financeiro')"><div>💰</div>Financeiro</div>
+  <div class="mobile-tab" id="mtab-funcionarios" onclick="navegarMobile('funcionarios')"><div>👷</div>Equipe</div>
+  <div class="mobile-tab" id="mtab-mais" onclick="abrirMenuMobile()"><div>☰</div>Mais</div>
 </div>
 </body>
 </html>
