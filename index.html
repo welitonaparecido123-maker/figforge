@@ -2342,6 +2342,11 @@ button[style*="background: #4F6EF7"], .btn-primary {
       <div class="fr fr2"><div><label>E-mail</label><input id="cfg-email" type="email" placeholder="contato@empresa.com.br"/></div><div><label>BDI padrão (%)</label><input id="cfg-bdi" type="number" value="25" min="0"/></div></div>
       <div class="fr"><div><label>Endereço</label><input id="cfg-end" type="text" placeholder="Rua, número, bairro, cidade, UF"/></div></div>
       <button class="btn bg" onclick="salvarConfig()">💾 Salvar configurações</button>
+      <!-- Status do plano -->
+      <div id="cfg-plano-status" style="margin-top:10px;padding:8px 10px;background:var(--bg3);border-radius:var(--r);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px">
+        <div style="font-size:11px;color:var(--tx2)">Plano ativo: <strong id="cfg-plano-nome" style="color:var(--gn)">carregando...</strong></div>
+        <button class="btn sm bp" onclick="sincronizarPlano()">🔄 Sincronizar plano</button>
+      </div>
     </div>
 
     <!-- PONTO DIGITAL GPS -->
@@ -4019,8 +4024,48 @@ function renderConfig(){
   const nomeAtual=cfg.empresa||'Construtora';
   const av=nomeAtual.split(' ').slice(0,2).map(w=>w[0]||'').join('').toUpperCase();
   el('sb-av').textContent=av||'OB';
-  // Renderiza seção Ponto Digital
+  // Mostra plano ativo
+  var planoNomeEl = el('cfg-plano-nome');
+  if(planoNomeEl){
+    var planos = {starter:'⭐ Starter', pro:'🚀 Profissional', personalizado:'🏢 Personalizado'};
+    planoNomeEl.textContent = planos[getPlanoAtivo()]||getPlanoAtivo();
+  }
   setTimeout(renderConfigPontoDigital, 100);
+}
+
+function sincronizarPlano(){
+  var planoNomeEl = el('cfg-plano-nome');
+  if(planoNomeEl) planoNomeEl.textContent = '🔄 sincronizando...';
+  // Força revalidação imediata
+  try{
+    var lic = _lerLicenca();
+    if(!lic.email){ alert('Nenhuma licença ativa encontrada.'); return; }
+    var url = URL_SERVIDOR+'?action=validar&email='+encodeURIComponent(lic.email);
+    chamarServidorJSONP(url, function(json){
+      if(json&&json.ok){
+        var ps = String(json.plano||'').toLowerCase();
+        if(ps.includes('person')||ps.includes('custom')||ps.includes('enterprise')){
+          lic.plano = 'Personalizado';
+        } else {
+          lic.plano = json.plano||lic.plano;
+        }
+        lic._adulterado=false;
+        lic.ultimaValidacao=new Date().toISOString();
+        _salvarLicenca(lic);
+        aplicarBloqueiosPlano();
+        renderConfig();
+        renderConfigPontoDigital();
+        var planos={starter:'⭐ Starter',pro:'🚀 Profissional',personalizado:'🏢 Personalizado'};
+        alert('✔ Plano sincronizado!\n\nServidor retornou: '+json.plano+'\nPlano reconhecido: '+( planos[getPlanoAtivo()]||getPlanoAtivo()));
+      } else {
+        alert('⚠️ Servidor retornou erro:\n'+(json&&json.msg)||'Falha na verificação.');
+        if(planoNomeEl){ var planos={starter:'⭐ Starter',pro:'🚀 Profissional',personalizado:'🏢 Personalizado'}; planoNomeEl.textContent=planos[getPlanoAtivo()]||getPlanoAtivo(); }
+      }
+    }, function(){
+      alert('⚠️ Sem conexão com o servidor.\nO plano local será mantido: '+getPlanoAtivo());
+      if(planoNomeEl){ var planos={starter:'⭐ Starter',pro:'🚀 Profissional',personalizado:'🏢 Personalizado'}; planoNomeEl.textContent=planos[getPlanoAtivo()]||getPlanoAtivo(); }
+    });
+  }catch(e){ alert('Erro: '+e.message); }
 }
 function salvarConfig(){
   // Preserva campos que são salvos separadamente
@@ -5122,13 +5167,11 @@ function revalidarOnline(forcado){
     if(!lic.email) return;
     var agora = new Date();
     var ultimaVal = lic.ultimaValidacao ? new Date(lic.ultimaValidacao) : null;
-    // Revalida se: forçado, adulterado, ou passou mais de 1h desde a última verificação
     var precisaRevalidar = forcado || lic._adulterado || !ultimaVal || (agora - ultimaVal) > 60*60*1000;
     if(!precisaRevalidar) return;
     var url = URL_SERVIDOR+'?action=validar&email='+encodeURIComponent(lic.email);
     chamarServidorJSONP(url, function(json){
       if(!json||!json.ok){
-        // Licença inválida no servidor → remove e força nova ativação
         localStorage.removeItem(SK_LIC);
         sessionStorage.removeItem(SK_SESS_GLOBAL);
         el('app-shell').style.display='none';
@@ -5137,17 +5180,28 @@ function revalidarOnline(forcado){
         var le=el('lic-err');
         if(le){le.textContent=(json&&json.msg)||'Licença expirada ou inválida.';le.style.display='block';}
       } else {
-        // Servidor retorna o plano REAL — sobrescreve qualquer adulteração
+        var planoAnterior = lic.plano;
         lic.ultimaValidacao = agora.toISOString();
         lic.nome  = json.nome  || lic.nome;
-        lic.plano = json.plano || lic.plano; // plano vem do servidor, não do localStorage
+        // Aceita qualquer variação do plano Personalizado vinda do servidor
+        var planoServidor = String(json.plano||lic.plano||'');
+        var ps = planoServidor.toLowerCase();
+        if(ps.includes('person')||ps.includes('custom')||ps.includes('enterprise')){
+          lic.plano = 'Personalizado';
+        } else {
+          lic.plano = planoServidor || lic.plano;
+        }
         lic._adulterado = false;
-        _salvarLicenca(lic); // grava com novo hash
-        // Atualiza UI de plano se mudou
+        _salvarLicenca(lic);
+        // Redesenha UI se o plano mudou ou se é forçado
         if(typeof aplicarBloqueiosPlano === 'function') aplicarBloqueiosPlano();
+        // Atualiza o painel de Config se estiver aberto
+        if(typeof renderConfigPontoDigital === 'function') renderConfigPontoDigital();
+        // Log para diagnóstico (visível no Console do navegador)
+        console.log('[Licença] Plano validado:', lic.plano, '| Servidor retornou:', json.plano);
       }
     }, function(){ /* sem conexão — mantém cache */ });
-  }catch(e){}
+  }catch(e){ console.error('[Licença] Erro na revalidação:', e); }
 }
 
 
