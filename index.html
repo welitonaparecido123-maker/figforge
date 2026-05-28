@@ -2712,6 +2712,11 @@ button[style*="background: #4F6EF7"], .btn-primary {
 
   <div style="display:flex;justify-content:flex-end;gap:7px;margin-top:10px">
     <button class="btn" onclick="fecharMo('mo-user')">Cancelar</button>
+    <div id="us-obras-wrap" style="display:none;margin-bottom:8px">
+      <label>Obras que este almoxarife pode ver/movimentar</label>
+      <div id="us-obras-list" style="display:flex;flex-direction:column;gap:5px;max-height:140px;overflow-y:auto;padding:8px;background:var(--bg3);border-radius:var(--r)"></div>
+      <div style="font-size:10px;color:var(--tx3);margin-top:3px">Se nenhuma marcada, vê todas as obras.</div>
+    </div>
     <button class="btn bp" onclick="salvarUser()">💾 Salvar usuário</button>
   </div>
 </div></div>
@@ -3163,6 +3168,7 @@ function renderObras(){
         statusList.map(function(ss){return '<option'+(ss.k===o.status?' selected':'')+'>'+ss.k+'</option>';}).join('') +
         '</select>' +
         (isAdmin?'<button class="btn xs br-" onclick="deletar(\'obras\',\''+o.id+'\');renderObras()">🗑</button>':'') +
+        '<button class="btn xs" title="QR Code ponto" onclick="gerarQRCodeObra(\''+o.id+'\')">📲</button>' +
         '</div></div>';
     }).join('');
 
@@ -3423,6 +3429,9 @@ function toggleFlTipo(){
 function salvarLanc(){
   const dados={id:id(),tipo:val('fl-tipo'),cat:val('fl-cat'),obra:val('fl-obra'),data:val('fl-data'),desc:val('fl-desc'),val:Number(val('fl-val'))||0,forn:val('fl-forn'),nf:val('fl-nf')};
   if(!dados.desc||!dados.val){alert('Preencha a descrição e o valor.');return;}
+  var tipoLabel=dados.tipo==='receita'?'Receita':'Despesa';
+  var msg='Confirmar lançamento?\n\n'+tipoLabel+': '+dados.desc+'\nValor: '+fmt(dados.val)+(dados.obra?'\nObra: '+nomeOb(dados.obra):'');
+  if(!confirm(msg)) return;
   DB.lancamentos.push(dados);save();
   setTimeout(function(){ sincronizarCompleto(true); }, 1000);renderLanc();limparLanc();
 }
@@ -4225,6 +4234,14 @@ function editarUser(uid){
         (u.acoesCustom||[]).forEach(function(k){var c=el('chk-ac-'+k);if(c)c.checked=true;});
       },100);
     }
+    // Restaura obras permitidas se almoxarifado
+    if(u.nivel==='alm' && u.obrasPermitidas && u.obrasPermitidas.length){
+      setTimeout(function(){
+        document.querySelectorAll('.alm-obra-chk').forEach(function(chk){
+          chk.checked = u.obrasPermitidas.indexOf(chk.value)>=0;
+        });
+      },100);
+    }
   },80);
 }
 
@@ -4239,9 +4256,13 @@ function salvarUser(){
   var dup=(DB.users||[]).find(function(u){return u.email===dados.email&&u.id!==editId.user;});
   if(dup){alert('Já existe um usuário com este e-mail.');return;}
 
+  // Coleta obras para almoxarifado
+  if(dados.nivel==='alm'){
+    var chks = document.querySelectorAll('.alm-obra-chk:checked');
+    dados.obrasPermitidas = Array.from(chks).map(function(c){return c.value;});
+  }
   // Coleta permissões customizadas
   if(dados.nivel==='custom'){
-    dados.modulosCustom = TODOS_MODULOS.map(function(m){return m.k;}).filter(function(k){var c=el('chk-mod-'+k);return c&&c.checked;});
     dados.acoesCustom   = TODAS_ACOES.map(function(a){return a.k;}).filter(function(k){var c=el('chk-ac-'+k);return c&&c.checked;});
     if(dados.modulosCustom.length===0){alert('Selecione pelo menos um módulo para o usuário acessar.');return;}
   }
@@ -4270,14 +4291,20 @@ function onChangeNivel(){
   var descEl = el('nivel-desc');
   if(descEl) descEl.textContent = NIVEL_DESC[nivel]||'';
   var customArea = el('us-custom-perms');
-  if(!customArea) return;
-  if(nivel==='custom'){
-    customArea.style.display='block';
-    _renderCheckboxPerms();
-  } else {
-    customArea.style.display='none';
-    // Preview das permissões do perfil base
-    aplicarPerfilBase(nivel, true);
+  if(customArea) customArea.style.display = nivel==='custom' ? 'block' : 'none';
+  if(nivel==='custom') _renderCheckboxPerms();
+
+  // Mostra seletor de obras para almoxarifado
+  var obrasWrap = el('us-obras-wrap');
+  var obrasList = el('us-obras-list');
+  if(obrasWrap){
+    obrasWrap.style.display = nivel==='alm' ? 'block' : 'none';
+    if(nivel==='alm' && obrasList){
+      obrasList.innerHTML = DB.obras.map(function(o){
+        return '<label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer">' +
+          '<input type="checkbox" class="alm-obra-chk" value="'+o.id+'" style="width:14px;height:14px"> '+o.nome+'</label>';
+      }).join('');
+    }
   }
 }
 
@@ -5008,7 +5035,20 @@ function excluirMov(mid){
 }
 
 // ─── renderEstoque COM STATUS CRITICO ────────────────────────
+function _getObrasAlmoxarifado(){
+  // Retorna lista de obraIds que o usuário atual pode ver
+  // null = vê todas
+  try{
+    var sess=JSON.parse(sessionStorage.getItem(SK_SESS_GLOBAL)||'{}');
+    if(sess.nivel==='alm' && sess.obrasPermitidas && sess.obrasPermitidas.length>0){
+      return sess.obrasPermitidas;
+    }
+  }catch(e){}
+  return null;
+}
+
 function renderEstoque(){
+  var obrasPermit = _getObrasAlmoxarifado(); // null = vê todas
   var q=val('estq-busca').toLowerCase();
   var lista=DB.materiais.filter(function(m){return !q||m.nome.toLowerCase().indexOf(q)>=0;});
   set('tbl-estq',lista.length?lista.map(function(m){
@@ -5018,7 +5058,17 @@ function renderEstoque(){
     return '<tr><td><strong>'+m.nome+'</strong></td><td>'+m.un+'</td><td style="font-weight:600;color:'+(zerado?'var(--rd)':critico?'var(--am)':'var(--tx)')+'">'+fmtN(qtd)+'</td><td>'+fmtN(minQ)+'</td><td>'+(m.loc||'-')+'</td><td>'+fmt(m.vl)+'</td><td>'+badge+'</td><td><div style="display:flex;gap:4px"><button class="btn xs bp" onclick="editarMat(\''+m.id+'\')">Editar</button><button class="btn xs br-" onclick="deletar(\'materiais\',\''+m.id+'\');renderEstoque()">Excluir</button></div></td></tr>';
   }).join(''):'<tr><td colspan="8" class="empty">Nenhum material</td></tr>');
   var tipo=val('estq-mov-tipo');
-  var movs=DB.movEstq.filter(function(m){return !tipo||m.tipo===tipo;});
+  var movs=DB.movEstq.filter(function(m){
+    var okTipo=!tipo||m.tipo===tipo;
+    var okObra=!obrasPermit||!m.obra||obrasPermit.indexOf(m.obra)>=0;
+    return okTipo&&okObra;
+  });
+  if(obrasPermit&&obrasPermit.length){
+    var labelObras=obrasPermit.map(function(oid){return nomeOb(oid);}).join(', ');
+    var aviso=el('estq-aviso-obras');
+    if(!aviso){aviso=document.createElement('div');aviso.id='estq-aviso-obras';aviso.style.cssText='font-size:11px;color:var(--am);padding:4px 8px;background:rgba(245,158,11,.08);border-radius:var(--r);margin-bottom:8px';document.getElementById('estq-movs')&&document.getElementById('estq-movs').prepend(aviso);}
+    aviso.textContent='🔒 Visualizando apenas: '+labelObras;
+  }
   movs.sort(function(a,b){return b.data<a.data?-1:1;});
   var isAdm=ehAdmin();
   set('tbl-estq-movs',movs.length?movs.map(function(m){
@@ -5409,6 +5459,9 @@ function mostrarLogin(){
   var en=el('login-empresa-nome'); if(en) en.textContent=nomeEmp;
   var lb=el('login-logo-box'); if(lb) lb.innerHTML=cfg.logo?'<img src="'+cfg.logo+'" style="width:100%;height:100%;object-fit:contain;border-radius:14px"/>':av;
   var lb2=el('lic-logo-box'); if(lb2) lb2.innerHTML=cfg.logo?'<img src="'+cfg.logo+'" style="width:100%;height:100%;object-fit:contain;border-radius:14px"/>':av;
+  // Pré-preenche com ?user= param se existir
+  var preUser = localStorage.getItem('_pre_login_user')||'';
+  if(preUser){ localStorage.removeItem('_pre_login_user'); var u=el('login-user'); if(u) u.value=preUser; var p=el('login-pass'); if(p) p.focus(); }
 }
 
 function verificarSessao(){
@@ -5447,7 +5500,8 @@ function fazerLogin(){
       var senhaOk = (u.senha&&u.senha===senha)||(u.pin&&String(u.pin)===String(senha));
       if(senhaOk){
         found={nome:u.nome, nivel:u.nivel||'adm', email:u.email, role:u.role, funcId:u.funcId,
-               modulosCustom:u.modulosCustom||null, acoesCustom:u.acoesCustom||null};
+               modulosCustom:u.modulosCustom||null, acoesCustom:u.acoesCustom||null,
+               obrasPermitidas:u.obrasPermitidas||null};
       }
     }
   }
@@ -5619,6 +5673,14 @@ function initAuth(){
   }
   // ── FIM MODO TESTE ───────────────────────────────────────────────────────
 
+  // ── Portal via QR Code da Obra (?qr=obraId) ──────────────────────────────
+  var _qrParam = (new URLSearchParams(window.location.search)).get('qr');
+  if(_qrParam){
+    var _obraQR = DB.obras.find(function(o){return o.id===_qrParam;});
+    if(_obraQR){ renderPortalQR(_obraQR); return; }
+  }
+  // ─────────────────────────────────────────────────────────────────────────
+
   if(!verificarLicenca()){
     el('screen-license').style.display='flex';
     el('screen-login').style.display='none';
@@ -5629,6 +5691,20 @@ function initAuth(){
     if(emailSalvo && el('lic-email') && !el('lic-email').value) el('lic-email').value = emailSalvo;
     return;
   }
+
+  // ── Modo canteiro QR Code (?qr=OBRA_ID) ──────────────────────────────────
+  var urlQrParam = new URLSearchParams(window.location.search).get('qr');
+  if(urlQrParam){
+    el('screen-license').style.display='none';
+    el('screen-login').style.display='none';
+    el('app-shell').style.display='none';
+    renderPortalCanteiro(urlQrParam);
+    return;
+  }
+
+  // ── Pré-preencher login com ?user=EMAIL ───────────────────────────────────
+  var urlUserParam = new URLSearchParams(window.location.search).get('user');
+  if(urlUserParam) localStorage.setItem('_pre_login_user', decodeURIComponent(urlUserParam));
   const sess=verificarSessao();
   if(!sess){
     el('screen-license').style.display='none';
@@ -8049,21 +8125,83 @@ function renderContasPonto(){
   if(!container) return;
   var contas = (DB.users||[]).filter(function(u){return u.role==='ponto';});
   if(!contas.length){
-    container.innerHTML = '<div style="color:var(--tx3);font-size:12px;padding:8px 0">Nenhuma conta criada. Clique em "+ Criar conta" para adicionar.</div>';
+    container.innerHTML = '<div style="color:var(--tx3);font-size:12px;padding:8px 0">Nenhuma conta criada.</div>';
     return;
   }
+  var urlBase = window.location.href.split('?')[0];
   container.innerHTML = contas.map(function(u){
     var func = DB.funcionarios.find(function(f){return f.id===u.funcId;});
-    return '<div style="display:flex;align-items:center;gap:8px;padding:8px;background:var(--bg3);border-radius:var(--r)">' +
+    var obra = func&&func.obra ? DB.obras.find(function(o){return o.id===func.obra;}) : null;
+    return '<div style="background:var(--bg3);border-radius:var(--r);padding:10px;margin-bottom:6px">' +
+      '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">' +
       '<div style="flex:1">' +
-      '<div style="font-weight:600;font-size:13px">'+( func?func.nome:u.nome)+'</div>' +
-      '<div style="font-size:11px;color:var(--tx3)">Login: '+u.email+' | PIN: '+(u.pin?'••••':'não definido')+'</div>' +
+      '<div style="font-weight:600;font-size:13px">'+(func?func.nome:u.nome)+'</div>' +
+      '<div style="font-size:11px;color:var(--tx3)">Login: '+u.email+' | PIN: '+( u.pin?'••••':'não definido')+'</div>' +
+      (obra?'<div style="font-size:10px;color:var(--ac);margin-top:1px">📍 Obra: '+obra.nome+'</div>':'') +
       '</div>' +
-      '<span style="font-size:10px;padding:2px 7px;border-radius:10px;background:rgba(16,185,129,.15);color:var(--gn)">'+( u.ativo?'Ativo':'Inativo')+'</span>' +
-      '<button class="btn xs bp" onclick="editarContaPonto(\''+u.id+'\')">✏️</button>' +
+      '<span style="font-size:10px;padding:2px 7px;border-radius:10px;background:rgba(16,185,129,.15);color:var(--gn)">'+(u.ativo?'Ativo':'Inativo')+'</span>' +
+      '</div>' +
+      '<div style="display:flex;gap:5px;margin-top:8px;flex-wrap:wrap">' +
+      '<button class="btn xs" style="background:#25D366;color:#fff" onclick="enviarAcessoPontoWhatsApp(\''+u.id+'\')">💬 Enviar acesso</button>' +
+      '<button class="btn xs bp" onclick="editarContaPonto(\''+u.id+'\')">✏️ Editar</button>' +
       '<button class="btn xs br-" onclick="deletarContaPonto(\''+u.id+'\')">🗑</button>' +
-      '</div>';
+      '</div></div>';
   }).join('');
+}
+
+function enviarAcessoPontoWhatsApp(uid){
+  var u = (DB.users||[]).find(function(x){return x.id===uid;}); if(!u) return;
+  var func = DB.funcionarios.find(function(f){return f.id===u.funcId;})||{nome:u.nome};
+  var empresa = (DB.config&&DB.config.empresa)||'FigForge';
+  var urlBase = window.location.href.split('?')[0];
+  // Link com e-mail pré-preenchido — funcionário só precisa digitar o PIN
+  var linkAcesso = urlBase+'?user='+encodeURIComponent(u.email);
+  var tel = func.tel ? func.tel.replace(/\D/g,'') : '';
+  var msg = '👷 *Ponto Digital — '+empresa+'*\n\n' +
+    'Olá, *'+func.nome+'*!\n\n' +
+    '📱 Acesse pelo link abaixo — seu e-mail já vai estar preenchido, basta digitar seu PIN:\n\n' +
+    '🔗 *'+linkAcesso+'*\n\n' +
+    '🔑 *PIN:* '+u.pin+'\n\n' +
+    '📌 Guarde esse PIN — você precisará dele toda vez que bater o ponto.\n\n' +
+    '_Dúvidas? Fale com o responsável da obra._';
+  var wppUrl = tel ? 'https://wa.me/55'+tel+'?text='+encodeURIComponent(msg) : 'https://wa.me/?text='+encodeURIComponent(msg);
+  window.open(wppUrl,'_blank');
+}
+
+function gerarQRCodeObra(obraId){
+  var obra=DB.obras.find(function(o){return o.id===obraId;}); if(!obra) return;
+  var urlBase=window.location.href.split('?')[0];
+  var urlQR=urlBase+'?qr='+obraId;
+  var ov=document.createElement('div');
+  ov.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.88);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
+  var nomeSafe = obra.nome.replace(/'/g,"&#39;");
+  ov.innerHTML='<div style="background:#1a1f2e;border:1px solid #2d3348;border-radius:16px;padding:24px;width:100%;max-width:340px;text-align:center">'+
+    '<div style="font-size:13px;font-weight:700;color:#eef0f8;margin-bottom:4px">📲 QR Code — Ponto Rápido</div>'+
+    '<div style="font-size:11px;color:#8d95b0;margin-bottom:16px">'+obra.nome+'</div>'+
+    '<div style="background:#fff;border-radius:12px;padding:12px;display:inline-block;margin-bottom:12px">'+
+    '<img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data='+encodeURIComponent(urlQR)+'" style="width:200px;height:200px;display:block"/></div>'+
+    '<div style="font-size:11px;color:#8d95b0;margin-bottom:14px">Funcionário escaneia → seleciona nome → digita PIN</div>'+
+    '<div style="display:flex;gap:8px;justify-content:center">'+
+    '<button id="btn-impr-qr" style="padding:9px 16px;background:#10b981;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">🖨️ Imprimir</button>'+
+    '<button id="btn-fechar-qr" style="padding:9px 16px;background:rgba(141,149,176,.15);color:#8d95b0;border:1px solid #2d3348;border-radius:8px;font-size:12px;cursor:pointer">Fechar</button>'+
+    '</div></div>';
+  document.body.appendChild(ov);
+  document.getElementById('btn-fechar-qr').onclick=function(){ov.remove();};
+  document.getElementById('btn-impr-qr').onclick=function(){imprimirQRObra(urlQR,obra.nome);};
+  ov.onclick=function(e){if(e.target===ov)ov.remove();};
+}
+
+
+function imprimirQRObra(url, nomeObra){
+  var empresa = (DB.config&&DB.config.empresa)||'FigForge';
+  var w = window.open('','_blank');
+  w.document.write('<html><body style="font-family:sans-serif;text-align:center;padding:30px">'+
+    '<h2>'+empresa+'</h2><h3>📍 Ponto Digital — '+nomeObra+'</h3>'+
+    '<img src="https://api.qrserver.com/v1/create-qr-code/?size=250x250&data='+encodeURIComponent(url)+'" style="margin:20px"/>'+
+    '<p style="font-size:14px">Escaneie o QR Code e bata seu ponto</p>'+
+    '<p style="font-size:12px;color:#666">Você precisará do seu PIN pessoal</p>'+
+    '<script>window.onload=function(){window.print();}<\/script></body></html>');
+  w.document.close();
 }
 
 function abrirCriarContaPonto(){
@@ -8439,13 +8577,21 @@ function capturarGPSPortal(funcId){
     _gpsPortal={lat:pos.coords.latitude,lng:pos.coords.longitude,acc:Math.round(pos.coords.accuracy)};
     var pd=(DB.config&&DB.config.pontoDigital)||{};
     var raio=Number(pd.raio||100);
+    // Prioriza a obra vinculada ao funcionário (QR code ou cadastro)
     var obraProx=null;
+    var obraVinculada=_getObraDoFuncionario(funcId);
     if(raio>0){
-      (DB.obras||[]).filter(function(o){return o.gpsLat&&o.gpsLng;}).forEach(function(o){
-        var d=distanciaGPS(_gpsPortal.lat,_gpsPortal.lng,Number(o.gpsLat),Number(o.gpsLng));
-        if(d<=raio) obraProx=o;
-      });
-    }
+      if(obraVinculada&&obraVinculada.gpsLat&&obraVinculada.gpsLng){
+        var d=distanciaGPS(_gpsPortal.lat,_gpsPortal.lng,Number(obraVinculada.gpsLat),Number(obraVinculada.gpsLng));
+        if(d<=raio) obraProx=obraVinculada;
+      } else {
+        // Fallback: qualquer obra dentro do raio
+        (DB.obras||[]).filter(function(o){return o.gpsLat&&o.gpsLng;}).forEach(function(o){
+          var d=distanciaGPS(_gpsPortal.lat,_gpsPortal.lng,Number(o.gpsLat),Number(o.gpsLng));
+          if(d<=raio) obraProx=o;
+        });
+      }
+    } else { obraProx=obraVinculada; }
     if(statusEl) statusEl.innerHTML='✅ GPS: ±'+_gpsPortal.acc+'m'+(obraProx?' — 📍 '+obraProx.nome:'');
     if(btnEl) btnEl.disabled=false;
   },function(){
@@ -8542,6 +8688,162 @@ function logoutPortal(){
   document.body.innerHTML='';
   document.body.style.cssText='';
   location.reload();
+}
+
+// ── Portal Canteiro — QR Code PIN-only ──────────────────────────────────
+function renderPortalCanteiro(obraId){
+  var obra=DB.obras.find(function(o){return o.id===obraId;});
+  var empresa=(DB.config&&DB.config.empresa)||'FigForge';
+  var nomeObra=obra?obra.nome:'Obra';
+  var pd=(DB.config&&DB.config.pontoDigital)||{};
+  var h=pd.horarios||{};
+  var TURNOS=[
+    {k:'entrada',     label:'Entrada',      hora:h.entrada||'07:00',     icone:'🟢', cor:'#10b981'},
+    {k:'saidaAlmoco', label:'Saida almoco',  hora:h.saidaAlmoco||'12:00', icone:'🟡', cor:'#f59e0b'},
+    {k:'voltaAlmoco', label:'Volta almoco',  hora:h.voltaAlmoco||'13:00', icone:'🔵', cor:'#3b82f6'},
+    {k:'saida',       label:'Saida final',   hora:h.saida||'17:00',       icone:'🔴', cor:'#ef4444'}
+  ];
+  function toMin(t){ var p=(t||'00:00').split(':').map(Number); return p[0]*60+(p[1]||0); }
+  function turnoAtual(){
+    var min=new Date().getHours()*60+new Date().getMinutes();
+    if(min<toMin(h.entrada||'07:00')+30)       return TURNOS[0];
+    if(min<toMin(h.saidaAlmoco||'12:00')+60)   return TURNOS[1];
+    if(min<toMin(h.voltaAlmoco||'13:00')+60)   return TURNOS[2];
+    return TURNOS[3];
+  }
+  var turno=turnoAtual();
+  var horaAtual=new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+
+  function tela(html){ document.body.innerHTML=''; document.body.style.cssText='margin:0;padding:0;background:#0f1117;min-height:100vh;font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center'; var w=document.createElement('div'); w.style.cssText='width:100%;max-width:360px;padding:24px 16px;text-align:center'; w.innerHTML=html; document.body.appendChild(w); return w; }
+
+  tela(
+    '<div style="font-size:11px;font-weight:700;letter-spacing:2px;color:#8d95b0;text-transform:uppercase;margin-bottom:4px">'+empresa+'</div>'+
+    '<div style="font-size:18px;font-weight:800;color:#eef0f8;margin-bottom:2px">'+nomeObra+'</div>'+
+    '<div style="font-size:12px;color:#555f7a;margin-bottom:22px">'+horaAtual+'</div>'+
+    '<div style="border:2px solid '+turno.cor+';border-radius:14px;padding:16px;margin-bottom:20px">'+
+    '<div style="font-size:40px;margin-bottom:6px">'+turno.icone+'</div>'+
+    '<div style="font-size:14px;font-weight:800;color:#eef0f8">'+turno.label+'</div>'+
+    '<div style="font-size:11px;color:#8d95b0;margin-top:3px">Previsto: '+turno.hora+'</div></div>'+
+    '<div style="background:#1a1f2e;border:1px solid #2d3348;border-radius:12px;padding:16px">'+
+    '<div style="font-size:12px;color:#8d95b0;margin-bottom:10px">Digite seu PIN</div>'+
+    '<input id="can-pin" type="password" inputmode="numeric" maxlength="6" placeholder="••••" style="width:100%;padding:14px;background:#111827;color:#eef0f8;border:2px solid #2d3348;border-radius:8px;font-size:28px;text-align:center;letter-spacing:8px;box-sizing:border-box"/>'+
+    '<div id="can-err" style="color:#ef4444;font-size:12px;margin-top:6px;display:none"></div>'+
+    '<button id="can-btn" style="width:100%;margin-top:12px;padding:13px;background:'+turno.cor+';color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:800;cursor:pointer">'+turno.icone+' Registrar '+turno.label+'</button>'+
+    '</div>'
+  );
+
+  function registrar(){
+    var pin=document.getElementById('can-pin').value;
+    var errEl=document.getElementById('can-err');
+    errEl.style.display='none';
+    if(!pin||pin.length<4){ errEl.textContent='PIN invalido.'; errEl.style.display='block'; return; }
+    var conta=(DB.users||[]).find(function(u){ return u.role==='ponto'&&String(u.pin)===String(pin)&&u.ativo!==false; });
+    if(!conta){ errEl.textContent='PIN nao encontrado.'; errEl.style.display='block'; document.getElementById('can-pin').value=''; return; }
+    var func=DB.funcionarios.find(function(f){ return f.id===conta.funcId; })||{nome:conta.nome,id:conta.funcId};
+    var hora=new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+    DB.pontos.push({id:id(),func:func.id||conta.funcId,data:hoje(),tipo:'Presente',turno:turno.k,hora:hora,obra:obraId,lat:null,lng:null,origem:'qr-canteiro'});
+    save();
+    try{ if(typeof sincronizarCompleto==='function') sincronizarCompleto(true); }catch(e){}
+    var confirma=tela(
+      '<div style="font-size:64px;margin-bottom:12px">'+turno.icone+'</div>'+
+      '<div style="font-size:20px;font-weight:800;color:'+turno.cor+'">'+turno.label+' registrada!</div>'+
+      '<div style="font-size:15px;color:#eef0f8;margin-top:6px">'+func.nome+'</div>'+
+      '<div style="font-size:12px;color:#8d95b0;margin-top:3px">'+hora+' · '+nomeObra+'</div>'+
+      '<div style="margin:16px auto;padding:12px;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);border-radius:10px;color:#10b981;font-weight:700;max-width:260px">Ponto salvo!</div>'+
+      '<button id="can-prox" style="padding:10px 24px;background:#1a1f2e;color:#8d95b0;border:1px solid #2d3348;border-radius:8px;font-size:13px;cursor:pointer">Proximo funcionario</button>'
+    );
+    document.getElementById('can-prox').onclick=function(){ renderPortalCanteiro(obraId); };
+  }
+
+  document.getElementById('can-pin').addEventListener('keydown',function(e){ if(e.key==='Enter') registrar(); });
+  document.getElementById('can-btn').onclick=registrar;
+}
+
+
+function renderPortalQR(obra){
+  document.body.innerHTML='';
+  document.body.style.cssText='margin:0;padding:0;background:#0f1117;min-height:100vh;font-family:system-ui,-apple-system,sans-serif';
+  var empresa=(DB.config&&DB.config.empresa)||'FigForge';
+  var cfg=DB.config||{};
+  var funcsObra=DB.funcionarios.filter(function(f){
+    return (DB.users||[]).some(function(u){return u.role==="ponto"&&u.funcId===f.id&&u.ativo!==false;});
+  });
+  var logoHtml=cfg.logo?'<img src="'+cfg.logo+'" style="height:48px;border-radius:8px;margin-bottom:10px"><br>':'<div style="font-size:40px;margin-bottom:10px">📍</div>';
+  var wrap=document.createElement('div');
+  wrap.style.cssText='max-width:380px;margin:0 auto;padding:24px 16px;min-height:100vh;display:flex;flex-direction:column';
+  wrap.innerHTML=
+    '<div style="text-align:center;padding:20px 0 14px">'+logoHtml+
+    '<div style="font-size:18px;font-weight:800;color:#eef0f8">'+empresa+'</div>'+
+    '<div style="font-size:12px;color:#8d95b0;margin-top:3px">'+obra.nome+'</div></div>'+
+    '<div style="background:#1a1f2e;border:1px solid #2d3348;border-radius:14px;padding:18px">'+
+    '<div style="font-size:13px;font-weight:700;color:#eef0f8;margin-bottom:14px;text-align:center">Selecione seu nome e digite o PIN</div>'+
+    '<div style="display:flex;flex-direction:column;gap:10px">'+
+    '<select id="qr-func-sel" style="width:100%;padding:12px;background:#111827;color:#eef0f8;border:1px solid #2d3348;border-radius:10px;font-size:14px">'+
+    '<option value="">Selecione seu nome...</option>'+
+    funcsObra.map(function(f){return '<option value="'+f.id+'">'+f.nome+'</option>';}).join('')+
+    '</select>'+
+    '<input type="password" id="qr-pin-input" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="••••" '+
+    'style="width:100%;padding:14px;background:#111827;color:#eef0f8;border:1px solid #2d3348;border-radius:10px;font-size:26px;text-align:center;letter-spacing:8px;box-sizing:border-box"/>'+
+    '<button id="btn-qr-ponto" style="width:100%;padding:14px;background:#10b981;color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer">▶ Registrar ponto</button>'+
+    '<div id="qr-erro" style="color:#ef4444;font-size:12px;text-align:center;display:none"></div>'+
+    '</div></div>'+
+    '<div style="text-align:center;color:#555f7a;font-size:10px;margin-top:20px">'+new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long'})+'</div>';
+  document.body.appendChild(wrap);
+  document.getElementById('btn-qr-ponto').onclick=function(){
+    var funcId=el('qr-func-sel').value, pin=el('qr-pin-input').value, erroEl=el('qr-erro');
+    if(!funcId){erroEl.style.display='block';erroEl.textContent='Selecione seu nome.';return;}
+    if(!pin){erroEl.style.display='block';erroEl.textContent='Digite o PIN.';return;}
+    var conta=(DB.users||[]).find(function(u){return u.funcId===funcId&&u.role==='ponto';});
+    if(!conta||String(conta.pin)!==String(pin)){erroEl.style.display='block';erroEl.textContent='PIN incorreto.';el('qr-pin-input').value='';return;}
+    erroEl.style.display='none';
+    var func=DB.funcionarios.find(function(f){return f.id===funcId;})||{nome:'',id:funcId};
+    _portalUser={funcId:funcId,nome:func.nome,email:conta.email,role:'ponto',obraId:obra.id};
+    renderPortalPrincipal();
+  };
+  var pinEl=el('qr-pin-input');
+  if(pinEl) pinEl.addEventListener('keydown',function(e){if(e.key==='Enter')document.getElementById('btn-qr-ponto').click();});
+}
+
+function gerarQRCodeObra(obraId){
+  var obra=DB.obras.find(function(o){return o.id===obraId;}); if(!obra) return;
+  var urlBase=window.location.href.split('?')[0];
+  var urlQR=urlBase+'?qr='+obraId;
+  var ov=document.createElement('div');
+  ov.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.88);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
+  ov.innerHTML='<div style="background:#1a1f2e;border:1px solid #2d3348;border-radius:16px;padding:24px;width:100%;max-width:340px;text-align:center">'+
+    '<div style="font-size:13px;font-weight:700;color:#eef0f8;margin-bottom:4px">📲 QR Code — Ponto Rápido</div>'+
+    '<div style="font-size:11px;color:#8d95b0;margin-bottom:16px">'+obra.nome+'</div>'+
+    '<div style="background:#fff;border-radius:12px;padding:12px;display:inline-block;margin-bottom:12px">'+
+    '<img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data='+encodeURIComponent(urlQR)+'" style="width:200px;height:200px;display:block"/></div>'+
+    '<div style="font-size:11px;color:#8d95b0;margin-bottom:14px">Funcionário escaneia → seleciona nome → digita PIN → ponto batido</div>'+
+    '<div style="display:flex;gap:8px;justify-content:center">'+
+    '<button id="btn-impr-qr2" style="padding:9px 16px;background:#10b981;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">🖨️ Imprimir</button>'+
+    '<button id="btn-fechar-qr2" style="padding:9px 16px;background:rgba(141,149,176,.15);color:#8d95b0;border:1px solid #2d3348;border-radius:8px;font-size:12px;cursor:pointer">Fechar</button>'+
+    '</div></div>';
+  document.body.appendChild(ov);
+  var bi2=document.getElementById('btn-impr-qr2'); if(bi2) bi2.onclick=function(){imprimirQRObra(urlQR,obra.nome);};
+  var bf2=document.getElementById('btn-fechar-qr2'); if(bf2) bf2.onclick=function(){ov.remove();};
+  ov.onclick=function(e){if(e.target===ov)ov.remove();};
+}
+
+function imprimirQRObra(url,nomeObra){
+  var empresa=(DB.config&&DB.config.empresa)||'FigForge';
+  var w=window.open('','_blank');
+  w.document.write('<html><body style="font-family:sans-serif;text-align:center;padding:30px">'+
+    '<h2>'+empresa+'</h2><h3>📍 Ponto Digital — '+nomeObra+'</h3>'+
+    '<img src="https://api.qrserver.com/v1/create-qr-code/?size=250x250&data='+encodeURIComponent(url)+'" style="margin:20px"/>'+
+    '<p style="font-size:14px">Escaneie e bata seu ponto</p>'+
+    '<p style="font-size:12px;color:#666">Você precisará do seu PIN pessoal</p>'+
+    '<script>window.onload=function(){window.print();}<\/script></body></html>');
+  w.document.close();
+}
+
+function _getObraDoFuncionario(funcId){
+  var func=DB.funcionarios.find(function(f){return f.id===funcId;});
+  if(!func) return null;
+  var obraId=(_portalUser&&_portalUser.obraId)||func.obra;
+  if(!obraId) return null;
+  return DB.obras.find(function(o){return o.id===obraId;})||null;
 }
 
 // Detecta modo portal ao inicializar
