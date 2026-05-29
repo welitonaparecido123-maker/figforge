@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>FigForge — Proposta Comercial</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --night:#080c12;--coal:#111820;--steel:#1c2530;--slate:#2a3545;
+  --fog:#8a9ab0;--mist:#c5cdd8;--snow:#f0f4f8;--white:#ffffff;
+  --gold:#c8922a;--gold-lt:#e8b84b;--green:#0e9b61;--blue:#2563eb;
+}
+html{scroll-behavior:smooth}
+body{font-family:'DM Sans',sans-serif;background:var(--white);color:var(--night);overflow-x:hidden}
+.r{opacity:0;transform:translateY(24px);transition:opacity .65s ease,transform .65s ease}
+.r.in{opacity:1;transform:none}
+.r1{transition-delay:.1s}.r2{transition-delay:.2s}.r3{transition-delay:.3s}.r4{transition-delay:.4s}
+
+/* HERO */
+.hero{min-height:100vh;background:var(--night);display:grid;grid-template-rows:auto 1fr auto;position:relative;overflow:hidden}
+.hero-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(200,146,42,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(200,146,42,.04) 1px,transparent 1px);background-size:80px 80px}
+.hero-glow{position:absolute;width:700px;height:700px;background:radial-gradient(circle,rgba(200,146,42,.07) 0%,transparent 70%);top:-200px;right:-200px;pointer-events:none}
+.hero-nav{padding:28px 56px;display:flex;justify-content:space-between;align-items:center;position:relative;z-index:2;border-bottom:1px solid rgba(255,255,255,.05)}
+.logo{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:var(--white);letter-spacing:1px}
+.logo span{color:var(--gold)}
+.hero-badge{font-size:10px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--gold);border:1px solid rgba(200,146,42,.4);padding:6px 14px;border-radius:2px}
+.hero-body{display:grid;grid-template-columns:1fr 1fr;align-items:center;padding:0 56px;position:relative;z-index:2;gap:60px}
+.hero-tag{font-size:11px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:var(--gold);margin-bottom:22px;display:flex;align-items:center;gap:10px}
+.hero-tag::before{content:'';width:32px;height:1px;background:var(--gold)}
+.hero-h1{font-family:'Playfair Display',serif;font-size:clamp(48px,6vw,80px);line-height:1.0;color:var(--white);font-weight:900;margin-bottom:26px}
+.hero-h1 em{color:var(--gold);font-style:normal;display:block}
+.hero-sub{font-size:16px;color:var(--fog);line-height:1.75;max-width:460px;margin-bottom:36px;font-weight:300}
+.hero-cta{display:inline-flex;align-items:center;gap:12px;background:var(--gold);color:var(--night);padding:14px 32px;font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;border-radius:2px;text-decoration:none;cursor:pointer;border:none;transition:all .2s}
+.hero-cta:hover{background:var(--gold-lt);transform:translateY(-2px)}
+.hero-cta.outline{background:transparent;color:var(--gold);border:1.5px solid rgba(200,146,42,.4)}
+.hero-cta.outline:hover{background:rgba(200,146,42,.08)}
+.hero-btns{display:flex;gap:12px;flex-wrap:wrap}
+.hero-metrics{display:flex;gap:32px;margin-top:40px;flex-wrap:wrap}
+.hero-metric{border-left:2px solid rgba(200,146,42,.4);padding-left:14px}
+.hero-metric-n{font-family:'Playfair Display',serif;font-size:28px;font-weight:700;color:var(--white);line-height:1}
+.hero-metric-l{font-size:11px;color:var(--fog);margin-top:3px}
+.hero-screen{background:var(--coal);border-radius:12px;overflow:hidden;border:1px solid rgba(255,255,255,.08);box-shadow:0 40px 80px rgba(0,0,0,.5);position:relative}
+.hs-bar{background:var(--steel);padding:10px 14px;display:flex;align-items:center;gap:8px;border-bottom:1px solid rgba(255,255,255,.06)}
+.hs-dot{width:8px;height:8px;border-radius:50%}
+.hs-body{padding:16px}
+.hs-title{font-size:11px;font-weight:600;color:var(--mist);margin-bottom:12px;letter-spacing:.3px}
+.stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.stat{background:var(--steel);border-radius:6px;padding:10px;text-align:center}
+.stat-v{font-size:16px;font-weight:700;font-family:'Playfair Display',serif}
+.stat-l{font-size:9px;color:var(--fog);margin-top:2px}
+.mini-chart{height:40px;background:var(--steel);border-radius:6px;margin-bottom:10px;overflow:hidden;display:flex;align-items:flex-end;padding:4px;gap:3px}
+.bar-c{flex:1;border-radius:2px;background:rgba(200,146,42,.4)}
+.punch-row{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.punch-item{background:var(--steel);border-radius:6px;padding:8px;text-align:center;font-size:10px}
+.punch-item.ok{border:1px solid rgba(14,155,97,.4);background:rgba(14,155,97,.08)}
+.punch-time{font-size:12px;font-weight:700;color:#10b981;margin-top:2px}
+.tool-row{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.tool-tag{font-size:9px;padding:3px 8px;border-radius:10px;font-weight:600}
+.hero-foot{padding:24px 56px;border-top:1px solid rgba(255,255,255,.05);position:relative;z-index:2;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px}
+.hero-foot-item{font-size:11px;color:var(--fog);display:flex;align-items:center;gap:6px}
+
+/* SEÇÕES */
+.sec{padding:90px 0}
+.wrap{max-width:1140px;margin:0 auto;padding:0 48px}
+.sec-eyebrow{font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--gold);margin-bottom:14px;display:flex;align-items:center;gap:10px}
+.sec-eyebrow::after{content:'';flex:1;height:1px;background:linear-gradient(to right,rgba(200,146,42,.4),transparent)}
+.sec-h2{font-family:'Playfair Display',serif;font-size:clamp(32px,4.5vw,52px);line-height:1.1;margin-bottom:16px}
+.sec-h2 em{color:var(--gold);font-style:normal}
+.sec-lead{font-size:16px;color:var(--fog);line-height:1.75;max-width:580px;font-weight:300}
+
+/* DEMO CARD */
+.demo-card{background:linear-gradient(135deg,rgba(200,146,42,.12),rgba(200,146,42,.04));border:2px solid rgba(200,146,42,.4);border-radius:12px;padding:32px;margin-top:40px;display:flex;align-items:center;gap:32px;flex-wrap:wrap}
+.demo-card-icon{font-size:56px;flex-shrink:0}
+.demo-btn{background:var(--gold);color:var(--night);padding:13px 28px;font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;border-radius:2px;text-decoration:none;transition:all .2s;display:inline-block;white-space:nowrap}
+.demo-btn:hover{background:var(--gold-lt)}
+
+/* PROBLEMA */
+.problema{background:var(--snow)}
+.dores-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;margin-top:52px}
+.dor{background:var(--night);padding:36px 28px;position:relative;overflow:hidden;transition:transform .25s}
+.dor:hover{transform:translateY(-4px)}
+.dor-num{font-family:'Playfair Display',serif;font-size:72px;font-weight:900;color:rgba(200,146,42,.08);line-height:1;position:absolute;top:12px;right:16px}
+.dor-icon{font-size:26px;margin-bottom:14px;display:block}
+.dor-h{font-size:13px;font-weight:700;color:var(--white);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.dor-p{font-size:12px;color:var(--fog);line-height:1.65}
+.dor-bar{position:absolute;top:0;left:0;right:0;height:2px;background:var(--gold)}
+
+/* MÓDULOS */
+.solucao{background:var(--white)}
+.modulos-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:52px}
+.modulo{border:1px solid rgba(0,0,0,.08);border-radius:4px;padding:28px 24px;transition:all .25s;background:var(--white)}
+.modulo:hover{box-shadow:0 12px 40px rgba(0,0,0,.1);transform:translateY(-3px);border-color:rgba(200,146,42,.3)}
+.modulo.destaque{border-color:rgba(200,146,42,.4);background:rgba(200,146,42,.03)}
+.mod-icon{width:48px;height:48px;border-radius:6px;background:var(--night);display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:16px}
+.mod-h{font-size:14px;font-weight:700;color:var(--night);margin-bottom:8px}
+.mod-p{font-size:12px;color:var(--fog);line-height:1.65;margin-bottom:12px}
+.mod-tags{display:flex;gap:5px;flex-wrap:wrap}
+.mod-tag{font-size:10px;font-weight:600;padding:2px 8px;border-radius:2px;background:rgba(200,146,42,.1);color:var(--gold);letter-spacing:.3px}
+.mod-badge-new{font-size:9px;font-weight:700;padding:2px 7px;border-radius:10px;background:rgba(14,155,97,.15);color:var(--green);letter-spacing:.5px;text-transform:uppercase}
+
+/* PONTO DIGITAL */
+.ponto{background:var(--night);position:relative;overflow:hidden}
+.ponto-glow{position:absolute;width:500px;height:500px;background:radial-gradient(circle,rgba(200,146,42,.06),transparent 70%);bottom:-200px;left:-100px;pointer-events:none}
+.ponto-layout{display:grid;grid-template-columns:1fr 1fr;gap:72px;align-items:center;margin-top:52px}
+.ponto-phone-wrap{display:flex;justify-content:center;position:relative}
+.ponto-phone{width:272px;background:#0a0e15;border-radius:40px;padding:12px;box-shadow:0 50px 100px rgba(0,0,0,.6),inset 0 0 0 1px rgba(255,255,255,.08)}
+.phone-screen{background:#0f1117;border-radius:32px;overflow:hidden}
+.phone-notch{width:76px;height:22px;background:#0a0e15;border-radius:0 0 14px 14px;margin:0 auto}
+.phone-body{padding:12px}
+.ph-clock{font-size:30px;font-weight:900;color:#eef0f8;text-align:center;margin-bottom:6px;letter-spacing:-1px;font-family:'Playfair Display',serif}
+.ph-date{font-size:9px;color:#555f7a;text-align:center;margin-bottom:10px}
+.punch-4{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:10px}
+.p4{background:#1a1f2e;border:1px solid #2d3348;border-radius:8px;padding:7px;text-align:center}
+.p4.ok{border-color:rgba(16,185,129,.4);background:rgba(16,185,129,.07)}
+.p4-e{font-size:16px}
+.p4-n{font-size:8px;color:#8d95b0;margin-top:2px}
+.p4-t{font-size:10px;font-weight:700;margin-top:2px}
+.ph-btn{width:100%;padding:10px;background:#10b981;color:#fff;border:none;border-radius:10px;font-size:11px;font-weight:800;text-align:center}
+.ph-gps{font-size:8px;color:#555f7a;text-align:center;margin-top:5px}
+.ponto-badge{position:absolute;top:30px;right:-8px;background:var(--gold);color:var(--night);font-size:10px;font-weight:700;padding:5px 12px;border-radius:20px;letter-spacing:.5px;white-space:nowrap}
+.ponto-feats{display:flex;flex-direction:column;gap:16px}
+.pf-item{display:flex;gap:16px;padding:16px 18px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);border-radius:4px;transition:border-color .2s}
+.pf-item:hover{border-color:rgba(200,146,42,.3)}
+.pf-icon{font-size:20px;flex-shrink:0;margin-top:1px}
+.pf-h{font-size:13px;font-weight:700;color:var(--white);margin-bottom:3px}
+.pf-p{font-size:11px;color:var(--fog);line-height:1.55}
+
+/* NICHOS */
+.nichos-sec{background:var(--snow)}
+.nichos-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-top:48px}
+.nicho-card{background:var(--night);border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:22px 16px;text-align:center;transition:all .2s}
+.nicho-card:hover{border-color:rgba(200,146,42,.4);transform:translateY(-3px)}
+.nicho-icon{font-size:36px;margin-bottom:10px}
+.nicho-nome{font-size:12px;font-weight:700;color:var(--white);margin-bottom:6px}
+.nicho-tags{display:flex;flex-direction:column;gap:4px}
+.nicho-tag{font-size:9px;color:var(--fog)}
+
+/* FERRAMENTAS */
+.ferramentas{background:var(--white)}
+.ferr-layout{display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:start;margin-top:52px}
+.ferr-card{background:var(--white);border:1px solid rgba(0,0,0,.08);border-radius:6px;padding:14px 16px;display:flex;align-items:center;gap:14px;transition:transform .2s,box-shadow .2s;margin-bottom:10px}
+.ferr-card:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.08)}
+.ferr-icon{font-size:24px;width:44px;flex-shrink:0;text-align:center}
+.ferr-info h4{font-size:13px;font-weight:700;color:var(--night);margin-bottom:3px}
+.ferr-info p{font-size:11px;color:var(--fog)}
+.ferr-status{margin-left:auto;font-size:10px;font-weight:700;padding:3px 8px;border-radius:10px;white-space:nowrap;flex-shrink:0}
+.st-ok{background:rgba(14,155,97,.1);color:var(--green)}
+.st-uso{background:rgba(239,68,68,.1);color:#ef4444}
+.st-man{background:rgba(245,158,11,.1);color:#f59e0b}
+.ferr-feats{display:flex;flex-direction:column;gap:14px}
+.ff-item{display:flex;gap:12px;padding:14px;background:var(--white);border-radius:6px;border:1px solid rgba(0,0,0,.07)}
+.ff-icon{font-size:20px;flex-shrink:0}
+.ff-h{font-size:13px;font-weight:700;color:var(--night);margin-bottom:3px}
+.ff-p{font-size:11px;color:var(--fog);line-height:1.5}
+
+/* ACESSO */
+.acesso{background:var(--night)}
+.acesso-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-top:48px}
+.ac-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:6px;padding:22px 20px;transition:border-color .2s}
+.ac-card:hover{border-color:rgba(200,146,42,.3)}
+.ac-header{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.ac-icon{font-size:20px}
+.ac-name{font-size:13px;font-weight:700;color:var(--white)}
+.ac-badge{font-size:10px;padding:2px 8px;border-radius:10px;font-weight:600;margin-left:auto}
+.ac-perms{display:flex;flex-wrap:wrap;gap:5px}
+.perm-tag{font-size:10px;padding:2px 8px;border-radius:2px;background:rgba(200,146,42,.1);color:var(--gold)}
+.perm-tag.off{background:rgba(138,154,176,.08);color:rgba(138,154,176,.5)}
+.ac-custom{border:1px solid rgba(200,146,42,.3);background:rgba(200,146,42,.05);grid-column:1/-1}
+
+/* COMPARATIVO */
+.comparativo{background:var(--white)}
+.comp-table{width:100%;border-collapse:collapse;margin-top:48px}
+.comp-table thead tr{background:var(--night)}
+.comp-table th{padding:14px 18px;font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;text-align:left;color:var(--mist)}
+.comp-table th:first-child{color:var(--gold)}
+.comp-table td{padding:13px 18px;font-size:12px;border-bottom:1px solid rgba(0,0,0,.06)}
+.comp-table tr:nth-child(even) td{background:rgba(0,0,0,.02)}
+.comp-table td:first-child{font-weight:600}
+.td-no{color:#dc2626;font-weight:700}.td-ok{color:var(--green);font-weight:700}.td-par{color:#d97706;font-weight:600}
+
+/* ROI */
+.roi{background:var(--coal);position:relative;overflow:hidden}
+.roi::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(200,146,42,.04),transparent 50%)}
+.roi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:2px;margin-top:48px}
+.roi-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);padding:28px 20px;text-align:center}
+.roi-n{font-family:'Playfair Display',serif;font-size:48px;font-weight:900;color:var(--gold);line-height:1;margin-bottom:8px}
+.roi-l{font-size:12px;color:var(--fog);line-height:1.4}
+
+/* PLANOS */
+.planos{background:var(--snow)}
+.planos-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:0;margin-top:48px;border:1px solid rgba(0,0,0,.1);border-radius:4px;overflow:hidden}
+.plano{padding:32px 24px;background:var(--white);border-right:1px solid rgba(0,0,0,.08);position:relative}
+.plano:last-child{border-right:none}
+.plano.dest{background:var(--night);border-right:1px solid rgba(255,255,255,.06);border-left:1px solid rgba(200,146,42,.4);border-top:2px solid var(--gold)}
+.plano-flag{position:absolute;top:0;left:50%;transform:translateX(-50%);background:var(--gold);color:var(--night);font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:4px 14px;border-radius:0 0 6px 6px}
+.plano-nome{font-family:'Playfair Display',serif;font-size:26px;font-weight:700;margin-bottom:5px}
+.plano .plano-nome{color:var(--night)}
+.plano.dest .plano-nome{color:var(--white)}
+.plano-desc{font-size:12px;color:var(--fog);margin-bottom:20px;line-height:1.5}
+.plano-preco{font-size:13px;font-weight:700;color:var(--gold);margin-bottom:16px;padding:8px 0;border-top:1px solid rgba(0,0,0,.07);border-bottom:1px solid rgba(0,0,0,.07)}
+.plano.dest .plano-preco{border-color:rgba(255,255,255,.07)}.plano.dest .plano-desc{color:var(--fog)}
+.plano-items{list-style:none;display:flex;flex-direction:column;gap:8px;margin-bottom:22px}
+.plano-items li{font-size:12px;display:flex;gap:8px;align-items:flex-start;line-height:1.4}
+.plano .plano-items li{color:#4a5a6a}
+.plano.dest .plano-items li{color:#8a9aaa}
+.plano-items li::before{content:'✓';color:var(--green);font-weight:700;flex-shrink:0}
+.plano-items li.sem::before{content:'—';color:#c0c8d0}
+.plano-btn{display:block;width:100%;padding:12px;text-align:center;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;border:2px solid var(--night);color:var(--night);background:transparent;border-radius:2px;cursor:pointer;text-decoration:none;transition:all .2s}
+.plano-btn:hover{background:var(--night);color:var(--white)}
+.plano.dest .plano-btn{background:var(--gold);border-color:var(--gold);color:var(--night)}
+.plano.dest .plano-btn:hover{background:var(--gold-lt)}
+
+/* DEPOIMENTO */
+.depo{background:var(--snow);padding:80px 0}
+.depo-inner{max-width:760px;margin:0 auto;padding:48px 52px;background:var(--night);border-left:3px solid var(--gold);position:relative}
+.depo-q{font-family:'Playfair Display',serif;font-size:120px;color:rgba(200,146,42,.12);position:absolute;top:-30px;left:30px;line-height:1;pointer-events:none}
+.depo-text{font-size:18px;font-weight:300;line-height:1.8;color:var(--mist);position:relative;z-index:1;margin-bottom:22px}
+.depo-author{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--gold)}
+.depo-role{font-size:11px;color:var(--fog);margin-top:2px}
+
+/* CTA */
+.cta{background:var(--night);padding:110px 0;text-align:center;position:relative;overflow:hidden}
+.cta-h{font-family:'Playfair Display',serif;font-size:clamp(44px,7vw,84px);line-height:.95;color:var(--white);margin-bottom:22px;position:relative}
+.cta-h em{color:var(--gold);font-style:normal;display:block}
+.cta-sub{font-size:16px;color:var(--fog);max-width:480px;margin:0 auto 40px;line-height:1.75;font-weight:300;position:relative}
+.cta-btns{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;position:relative}
+.btn-g{background:var(--gold);color:var(--night);padding:16px 38px;font-size:13px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;border-radius:2px;text-decoration:none;border:none;cursor:pointer;display:inline-flex;align-items:center;gap:10px;transition:all .2s}
+.btn-g:hover{background:var(--gold-lt);transform:translateY(-2px)}
+.btn-o{background:transparent;color:var(--mist);padding:16px 38px;font-size:13px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;border-radius:2px;border:1.5px solid rgba(255,255,255,.15);text-decoration:none;transition:all .2s}
+.btn-o:hover{border-color:rgba(255,255,255,.4)}
+.cta-garantias{display:flex;justify-content:center;gap:40px;margin-top:52px;flex-wrap:wrap;position:relative}
+.cta-g{text-align:center}
+.cta-g-n{font-family:'Playfair Display',serif;font-size:26px;color:var(--gold);font-weight:700}
+.cta-g-l{font-size:10px;color:var(--fog);text-transform:uppercase;letter-spacing:1.5px;margin-top:2px}
+
+footer{background:#040608;padding:32px 48px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px}
+.f-logo{font-family:'Playfair Display',serif;font-size:20px;color:var(--gold);font-weight:700;letter-spacing:1px}
+.f-info{font-size:11px;color:rgba(138,154,176,.5);text-align:right}
+
+@media(max-width:920px){
+  .hero-body,.ponto-layout,.ferr-layout{grid-template-columns:1fr}
+  .hero-nav,.hero-foot,.hero-body,.wrap{padding-left:24px;padding-right:24px}
+  .dores-grid,.modulos-grid,.roi-grid,.acesso-grid,.nichos-grid{grid-template-columns:1fr 1fr}.planos-grid{grid-template-columns:1fr}
+  .plano{border-right:none;border-bottom:1px solid rgba(0,0,0,.08)}
+  .depo-inner{padding:32px 24px}
+  footer{padding:24px}
+}
+@media(max-width:600px){
+  .dores-grid,.modulos-grid,.acesso-grid,.nichos-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-grid"></div>
+  <div class="hero-glow"></div>
+  <nav class="hero-nav">
+    <div class="logo">Fig<span>Forge</span></div>
+    <div class="hero-badge">Proposta Comercial · 2026</div>
+  </nav>
+  <div class="hero-body">
+    <div class="r">
+      <div class="hero-tag">Gestão inteligente para construção civil</div>
+      <h1 class="hero-h1">Gestão de obra<br><em>sem papel,<br>sem caos.</em></h1>
+      <p class="hero-sub">Uma plataforma completa que substitui cadernos, planilhas e grupos de WhatsApp — do orçamento ao ponto digital GPS, adaptada para 5 segmentos do setor.</p>
+      <div class="hero-btns">
+        <a href="https://wa.me/5567984326429?text=Quero+conhecer+o+FigForge" class="hero-cta">💬 Solicitar demonstração</a>
+        <a href="#demo" class="hero-cta outline">🔍 Testar agora</a>
+      </div>
+      <div class="hero-metrics">
+        <div class="hero-metric"><div class="hero-metric-n">5</div><div class="hero-metric-l">segmentos de negócio</div></div>
+        <div class="hero-metric"><div class="hero-metric-n">11</div><div class="hero-metric-l">módulos integrados</div></div>
+        <div class="hero-metric"><div class="hero-metric-n">1 dia</div><div class="hero-metric-l">para implantar</div></div>
+        <div class="hero-metric"><div class="hero-metric-n">0</div><div class="hero-metric-l">app para baixar</div></div>
+      </div>
+    </div>
+    <div class="r r2">
+      <div class="hero-screen">
+        <div class="hs-bar">
+          <div class="hs-dot" style="background:#ef4444"></div>
+          <div class="hs-dot" style="background:#f59e0b"></div>
+          <div class="hs-dot" style="background:#10b981"></div>
+          <span style="font-size:10px;color:#555f7a;margin-left:8px">FigForge · Dashboard</span>
+        </div>
+        <div class="hs-body">
+          <div class="hs-title">📊 RESUMO GERAL</div>
+          <div class="stat-row">
+            <div class="stat"><div class="stat-v" style="color:#c8922a">R$ 318k</div><div class="stat-l">Contratado</div></div>
+            <div class="stat"><div class="stat-v" style="color:#10b981">R$ 210k</div><div class="stat-l">Recebido</div></div>
+            <div class="stat"><div class="stat-v" style="color:#f59e0b">R$ 108k</div><div class="stat-l">A receber</div></div>
+          </div>
+          <div class="mini-chart">
+            <div class="bar-c" style="height:30%"></div><div class="bar-c" style="height:55%"></div>
+            <div class="bar-c" style="height:45%"></div><div class="bar-c" style="height:70%"></div>
+            <div class="bar-c" style="height:50%"></div><div class="bar-c" style="height:85%"></div>
+            <div class="bar-c" style="height:65%"></div>
+          </div>
+          <div class="hs-title" style="margin-top:4px">📍 PONTO DIGITAL HOJE</div>
+          <div class="punch-row">
+            <div class="punch-item ok">🟢 João Silva<div class="punch-time">07:02</div></div>
+            <div class="punch-item ok">🟢 Pedro Lima<div class="punch-time">07:08</div></div>
+          </div>
+          <div class="tool-row">
+            <div class="tool-tag" style="background:rgba(16,185,129,.1);color:#10b981">🔧 Furadeira — Disponível</div>
+            <div class="tool-tag" style="background:rgba(239,68,68,.1);color:#ef4444">🔴 Betoneira — Em uso</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="hero-foot">
+    <div class="hero-foot-item">📍 Ponto digital GPS por celular</div>
+    <div class="hero-foot-item">🔧 Controle de ferramentas com foto</div>
+    <div class="hero-foot-item">👥 Perfis de acesso personalizáveis</div>
+    <div class="hero-foot-item">🏷️ 5 segmentos de negócio</div>
+  </div>
+</section>
+
+<!-- DEMO CARD -->
+<section class="sec" style="background:var(--night);padding:60px 0" id="demo">
+  <div class="wrap">
+    <div class="demo-card r">
+      <div class="demo-card-icon">🔍</div>
+      <div style="flex:1">
+        <div style="font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin-bottom:8px">ACESSO GRATUITO · VERSÃO DEMONSTRAÇÃO</div>
+        <div style="font-family:'Playfair Display',serif;font-size:28px;font-weight:700;color:var(--white);margin-bottom:8px">Teste o FigForge agora mesmo</div>
+        <div style="font-size:14px;color:var(--fog);line-height:1.6;max-width:520px">Sistema completo com dados reais de uma construtora fictícia já cadastrados. Explore obras, financeiro, ponto digital, ferramentas e todos os módulos sem precisar criar conta.</div>
+        <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
+          <span style="font-size:11px;color:var(--fog);display:flex;align-items:center;gap:5px">✓ Sem cadastro</span>
+          <span style="font-size:11px;color:var(--fog);display:flex;align-items:center;gap:5px">✓ Todos os módulos liberados</span>
+          <span style="font-size:11px;color:var(--fog);display:flex;align-items:center;gap:5px">✓ Dados pré-carregados</span>
+        </div>
+      </div>
+      <a href="figforge-DEMO.html" target="_blank" class="demo-btn">▶ Abrir Demo</a>
+    </div>
+  </div>
+</section>
+
+<!-- PROBLEMA -->
+<section class="sec problema">
+  <div class="wrap">
+    <div class="r"><div class="sec-eyebrow">A realidade do canteiro</div>
+    <h2 class="sec-h2">O que custa caro<br><em>quando não há controle</em></h2>
+    <p class="sec-lead">Cada caderno de encarregado, planilha improvisada e grupo de WhatsApp esconde riscos que sangram o resultado.</p></div>
+    <div class="dores-grid">
+      <div class="dor r r1"><div class="dor-bar"></div><div class="dor-num">01</div><span class="dor-icon">📓</span><div class="dor-h">Ponto no caderno</div><div class="dor-p">Sem GPS, sem assinatura. Numa ação trabalhista esse registro não vale nada — e uma ação custa de R$ 15.000 a R$ 50.000.</div></div>
+      <div class="dor r r2"><div class="dor-bar"></div><div class="dor-num">02</div><span class="dor-icon">💸</span><div class="dor-h">Folha calculada à mão</div><div class="dor-p">Horas extras, adiantamentos e vales anotados em lugares diferentes. Um erro pequeno por funcionário multiplica o prejuízo.</div></div>
+      <div class="dor r r3"><div class="dor-bar"></div><div class="dor-num">03</div><span class="dor-icon">🔧</span><div class="dor-h">Ferramentas sem rastreio</div><div class="dor-p">Quem levou a furadeira? Em qual obra está a betoneira? Ferramentas somem e o prejuízo fica sem responsável.</div></div>
+      <div class="dor r r1"><div class="dor-bar"></div><div class="dor-num">04</div><span class="dor-icon">📊</span><div class="dor-h">Sem visão financeira</div><div class="dor-p">Quanto essa obra já me deve? Qual o custo real? Ninguém sabe sem abrir diversas planilhas e fazer contas manuais.</div></div>
+      <div class="dor r r2"><div class="dor-bar"></div><div class="dor-num">05</div><span class="dor-icon">🔓</span><div class="dor-h">Dados sensíveis expostos</div><div class="dor-p">O encarregado vê o valor do contrato, dados do cliente e o financeiro. Sem controle de acesso, tudo fica visível.</div></div>
+      <div class="dor r r3"><div class="dor-bar"></div><div class="dor-num">06</div><span class="dor-icon">🧾</span><div class="dor-h">Orçamentos no Word</div><div class="dor-p">Sem BDI automático, sem histórico. Cada orçamento começa do zero e a margem fica sem controle.</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- MÓDULOS -->
+<section class="sec solucao">
+  <div class="wrap">
+    <div class="r"><div class="sec-eyebrow">A solução</div>
+    <h2 class="sec-h2">11 módulos integrados,<br><em>feitos para a sua obra</em></h2>
+    <p class="sec-lead">FigForge foi construído especificamente para empresas do setor de construção e reforma — não é um sistema genérico adaptado.</p></div>
+    <div class="modulos-grid">
+      <div class="modulo r r1"><div class="mod-icon">🏗️</div><div class="mod-h">Gestão de Obras / Projetos</div><div class="mod-p">Kanban visual com status, progresso e financeiro. Veja contratado, recebido e a receber em tempo real por projeto.</div><div class="mod-tags"><span class="mod-tag">Kanban</span><span class="mod-tag">Por projeto</span><span class="mod-tag">A receber</span></div></div>
+      <div class="modulo r r2"><div class="mod-icon">🧾</div><div class="mod-h">Orçamentos Profissionais</div><div class="mod-p">Monte itens, BDI e desconto. Gere PDF com logo e envie direto pelo WhatsApp para o cliente com um clique.</div><div class="mod-tags"><span class="mod-tag">BDI automático</span><span class="mod-tag">PDF</span><span class="mod-tag">WhatsApp</span></div></div>
+      <div class="modulo r r3"><div class="mod-icon">👷</div><div class="mod-h">Funcionários e Folha</div><div class="mod-p">CLT, diária e empreita. Cálculo automático com H. extras, faltas, adiantamentos e vales. Holerite em PDF.</div><div class="mod-tags"><span class="mod-tag">Holerite PDF</span><span class="mod-tag">H. extras</span><span class="mod-tag">Adiantamento</span></div></div>
+      <div class="modulo r r1 destaque"><div class="mod-icon">📍</div><div class="mod-h" style="display:flex;align-items:center;gap:8px">Ponto Digital GPS <span class="mod-badge-new">Exclusivo</span></div><div class="mod-p">Funcionário bate o ponto pelo celular com validação GPS. QR Code no canteiro — só PIN, sem precisar logar.</div><div class="mod-tags"><span class="mod-tag">GPS</span><span class="mod-tag">QR Code</span><span class="mod-tag">4 marcações</span><span class="mod-tag">PIN</span></div></div>
+      <div class="modulo r r2"><div class="mod-icon">💰</div><div class="mod-h">Financeiro Completo</div><div class="mod-p">Lançamentos vinculados a cada obra. DRE simplificado, fluxo de caixa e relatórios exportáveis em CSV.</div><div class="mod-tags"><span class="mod-tag">Por obra</span><span class="mod-tag">DRE</span><span class="mod-tag">CSV</span></div></div>
+      <div class="modulo r r3 destaque"><div class="mod-icon">🔧</div><div class="mod-h" style="display:flex;align-items:center;gap:8px">Ferramentas <span class="mod-badge-new">Novo</span></div><div class="mod-p">Saída com foto, responsável e condição. Retorno com foto. Patrimônio rastreado com histórico completo.</div><div class="mod-tags"><span class="mod-tag">Foto saída/retorno</span><span class="mod-tag">Patrimônio</span><span class="mod-tag">Histórico</span></div></div>
+      <div class="modulo r r1"><div class="mod-icon">📦</div><div class="mod-h">Estoque de Materiais</div><div class="mod-p">Entradas e saídas por obra. Alerta de estoque mínimo, histórico completo e controle por almoxarife.</div><div class="mod-tags"><span class="mod-tag">Por obra</span><span class="mod-tag">Alerta mínimo</span><span class="mod-tag">Almoxarife</span></div></div>
+      <div class="modulo r r2"><div class="mod-icon">📸</div><div class="mod-h">Diário de Obra Digital</div><div class="mod-p">Substitui o RDO em papel. Fotos, ocorrências e atividades diárias com envio direto por WhatsApp para o cliente.</div><div class="mod-tags"><span class="mod-tag">Fotos</span><span class="mod-tag">WhatsApp</span><span class="mod-tag">Histórico</span></div></div>
+      <div class="modulo r r3 destaque"><div class="mod-icon">🔐</div><div class="mod-h" style="display:flex;align-items:center;gap:8px">Controle de Acesso <span class="mod-badge-new">Novo</span></div><div class="mod-p">5 perfis prontos + perfil personalizável por módulo e ação. Cada usuário vê exatamente o que a empresa libera.</div><div class="mod-tags"><span class="mod-tag">5 perfis</span><span class="mod-tag">Personalizado</span><span class="mod-tag">Por módulo</span></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- PONTO DIGITAL GPS -->
+<section class="sec ponto">
+  <div class="ponto-glow"></div>
+  <div class="wrap" style="position:relative;z-index:1">
+    <div class="r"><div class="sec-eyebrow" style="color:var(--gold)">Destaque exclusivo</div>
+    <h2 class="sec-h2" style="color:var(--white)">Ponto Digital GPS —<br><em>o fim do caderno na obra</em></h2>
+    <p class="sec-lead">Funcionário bate o ponto pelo celular com GPS. QR Code no canteiro — escaneia, digita o PIN e registra. Zero papel, zero fraude.</p></div>
+    <div class="ponto-layout">
+      <div class="ponto-phone-wrap r r1">
+        <div class="ponto-phone"><div class="phone-screen">
+          <div class="phone-notch"></div>
+          <div style="padding:12px 14px 10px;text-align:center;background:linear-gradient(135deg,#1a1f2e,#111827);border-bottom:1px solid #2d3348">
+            <div style="font-size:12px;font-weight:800;color:#eef0f8;font-family:'Playfair Display',serif">FigForge</div>
+            <div style="font-size:9px;color:#8d95b0;margin-top:1px">Ponto Digital GPS</div>
+          </div>
+          <div class="phone-body">
+            <div class="ph-date">Segunda-feira, 26 de maio de 2026</div>
+            <div class="ph-clock">07:02</div>
+            <div class="punch-4">
+              <div class="p4 ok"><div class="p4-e">🟢</div><div class="p4-n">Entrada</div><div class="p4-t" style="color:#10b981">07:02</div></div>
+              <div class="p4"><div class="p4-e">🟡</div><div class="p4-n">S. Almoço</div><div class="p4-t" style="color:#555f7a">12:00</div></div>
+              <div class="p4"><div class="p4-e">🔵</div><div class="p4-n">V. Almoço</div><div class="p4-t" style="color:#555f7a">13:00</div></div>
+              <div class="p4"><div class="p4-e">🔴</div><div class="p4-n">Saída</div><div class="p4-t" style="color:#555f7a">17:00</div></div>
+            </div>
+            <div class="ph-btn">🟡 Registrar Saída Almoço</div>
+            <div class="ph-gps">📍 Obra Central — ±14m — GPS confirmado</div>
+          </div>
+        </div></div>
+        <div class="ponto-badge">✔ Ponto registrado!</div>
+      </div>
+      <div class="ponto-feats r r2">
+        <div class="pf-item"><div class="pf-icon">📲</div><div><div class="pf-h">QR Code no canteiro — só PIN</div><div class="pf-p">Cole o QR Code na entrada da obra. Funcionário escaneia, digita o PIN de 4 dígitos e o ponto é registrado. O sistema detecta automaticamente qual turno é.</div></div></div>
+        <div class="pf-item"><div class="pf-icon">🔗</div><div><div class="pf-h">Link com e-mail pré-preenchido</div><div class="pf-p">Envie o link de acesso por WhatsApp com o e-mail do funcionário já preenchido. Ele só digita o PIN e bate o ponto.</div></div></div>
+        <div class="pf-item"><div class="pf-icon">📍</div><div><div class="pf-h">Validação por GPS</div><div class="pf-p">Raio configurável de 50m a 500m. O sistema verifica se o funcionário está na obra antes de aceitar o registro.</div></div></div>
+        <div class="pf-item"><div class="pf-icon">📝</div><div><div class="pf-h">Justificativas digitais</div><div class="pf-p">Funcionário não bateu? Envia justificativa pelo celular. Você aprova ou rejeita com resposta registrada.</div></div></div>
+        <div class="pf-item"><div class="pf-icon">👁️</div><div><div class="pf-h">Visibilidade configurável</div><div class="pf-p">A empresa decide o que o funcionário vê: admissão, férias, 13°, banco de horas e espelho de ponto.</div></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- NICHOS -->
+<section class="sec nichos-sec">
+  <div class="wrap">
+    <div class="r"><div class="sec-eyebrow">Multi-segmento</div>
+    <h2 class="sec-h2">Um sistema,<br><em>5 segmentos de negócio</em></h2>
+    <p class="sec-lead">Selecione seu segmento e o sistema adapta terminologia, etapas, materiais e categorias financeiras automaticamente.</p></div>
+    <div class="nichos-grid r">
+      <div class="nicho-card"><div class="nicho-icon">🏗️</div><div class="nicho-nome">Construção Civil</div><div class="nicho-tags"><div class="nicho-tag">Obras · Fundação → Acabamento</div><div class="nicho-tag">Cimento, Ferro, Tijolo</div></div></div>
+      <div class="nicho-card"><div class="nicho-icon">🪨</div><div class="nicho-nome">Marmoraria</div><div class="nicho-tags"><div class="nicho-tag">Projetos · Medição → Instalação</div><div class="nicho-tag">Mármore, Granito, Quartzito</div></div></div>
+      <div class="nicho-card"><div class="nicho-icon">⚙️</div><div class="nicho-nome">Serralheria</div><div class="nicho-tags"><div class="nicho-tag">Serviços · Medição → Finalizado</div><div class="nicho-tag">Perfil, Chapa, Eletrodo</div></div></div>
+      <div class="nicho-card"><div class="nicho-icon">🏠</div><div class="nicho-nome">Calhas e Coberturas</div><div class="nicho-tags"><div class="nicho-tag">Serviços · Rápida implantação</div><div class="nicho-tag">Calha, Rufo, Telha</div></div></div>
+      <div class="nicho-card"><div class="nicho-icon">🪵</div><div class="nicho-nome">Marcenaria</div><div class="nicho-tags"><div class="nicho-tag">Projetos · Medição → Entrega</div><div class="nicho-tag">MDF, Dobradiça, Ferragem</div></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- FERRAMENTAS -->
+<section class="sec ferramentas">
+  <div class="wrap">
+    <div class="r"><div class="sec-eyebrow">Controle de patrimônio</div>
+    <h2 class="sec-h2">Ferramentas:<br><em>quem levou, como voltou</em></h2>
+    <p class="sec-lead">Foto na saída, foto no retorno. Responsável identificado, condição registrada. Fim das ferramentas que somem.</p></div>
+    <div class="ferr-layout">
+      <div class="r r1">
+        <div class="ferr-card"><div class="ferr-icon">🔨</div><div class="ferr-info"><h4>Furadeira Bosch 750W</h4><p>FER-001 · Elétrica</p></div><div class="ferr-status st-ok">✅ Disponível</div></div>
+        <div class="ferr-card"><div class="ferr-icon">⚙️</div><div class="ferr-info"><h4>Betoneira 400L</h4><p>FER-002 · João Silva · Obra Central</p></div><div class="ferr-status st-uso">🔴 Em uso</div></div>
+        <div class="ferr-card"><div class="ferr-icon">📐</div><div class="ferr-info"><h4>Nível a Laser</h4><p>FER-003 · Medição</p></div><div class="ferr-status st-ok">✅ Disponível</div></div>
+        <div class="ferr-card"><div class="ferr-icon">🪚</div><div class="ferr-info"><h4>Serra Mármore Makita</h4><p>FER-004 · Obra 2</p></div><div class="ferr-status st-uso">🔴 Em uso</div></div>
+        <div class="ferr-card"><div class="ferr-icon">🔩</div><div class="ferr-info"><h4>Compressor 50L</h4><p>FER-005</p></div><div class="ferr-status st-man">🔧 Manutenção</div></div>
+      </div>
+      <div class="ferr-feats r r2">
+        <div class="ff-item"><div class="ff-icon">📷</div><div><div class="ff-h">Foto na saída e no retorno</div><div class="ff-p">Registre o estado da ferramenta quando sai e quando volta. Qualquer avaria fica documentada com data, hora e responsável.</div></div></div>
+        <div class="ff-item"><div class="ff-icon">👤</div><div><div class="ff-h">Responsável identificado</div><div class="ff-p">Cada saída registra quem retirou, para qual obra e qual a condição: Ótima, Boa, Regular ou Com defeito.</div></div></div>
+        <div class="ff-item"><div class="ff-icon">📋</div><div><div class="ff-h">Histórico completo</div><div class="ff-p">Toda movimentação registrada — saída, retorno, manutenção — com rastreio total de cada ferramenta do patrimônio.</div></div></div>
+        <div class="ff-item"><div class="ff-icon">🏷️</div><div><div class="ff-h">Número de patrimônio</div><div class="ff-p">Cada ferramenta tem número de série, categoria e foto de cadastro. Inventário sempre atualizado.</div></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ACESSO -->
+<section class="sec acesso">
+  <div class="wrap">
+    <div class="r"><div class="sec-eyebrow" style="color:var(--gold)">Segurança da informação</div>
+    <h2 class="sec-h2" style="color:var(--white)">Cada pessoa vê<br><em>só o que precisa ver</em></h2>
+    <p class="sec-lead" style="color:var(--fog)">5 perfis prontos para usar + perfil 100% personalizável por módulo e ação.</p></div>
+    <div class="acesso-grid r">
+      <div class="ac-card"><div class="ac-header"><div class="ac-icon">👑</div><div class="ac-name">Administrador</div><div class="ac-badge" style="background:rgba(123,63,228,.15);color:#a78bfa">Total</div></div><div class="ac-perms"><span class="perm-tag">Todas obras</span><span class="perm-tag">Financeiro</span><span class="perm-tag">Funcionários</span><span class="perm-tag">Usuários</span><span class="perm-tag">Config</span></div></div>
+      <div class="ac-card"><div class="ac-header"><div class="ac-icon">💰</div><div class="ac-name">Financeiro</div><div class="ac-badge" style="background:rgba(37,99,235,.15);color:#60a5fa">Restrito</div></div><div class="ac-perms"><span class="perm-tag">Lançamentos</span><span class="perm-tag">Receitas</span><span class="perm-tag">Despesas</span><span class="perm-tag off">Funcionários</span><span class="perm-tag off">Config</span></div></div>
+      <div class="ac-card"><div class="ac-header"><div class="ac-icon">📦</div><div class="ac-name">Almoxarifado</div><div class="ac-badge" style="background:rgba(245,158,11,.12);color:#f59e0b">Por obra</div></div><div class="ac-perms"><span class="perm-tag">Estoque vinculado</span><span class="perm-tag">Ferramentas</span><span class="perm-tag off">Financeiro</span><span class="perm-tag off">Valores</span></div></div>
+      <div class="ac-card"><div class="ac-header"><div class="ac-icon">🏗️</div><div class="ac-name">Gestor de Obra</div><div class="ac-badge" style="background:rgba(14,155,97,.12);color:#0e9b61">Restrito</div></div><div class="ac-perms"><span class="perm-tag">Obras (sem valores)</span><span class="perm-tag">Diário</span><span class="perm-tag">Ponto</span><span class="perm-tag off">Financeiro</span><span class="perm-tag off">Clientes</span></div></div>
+      <div class="ac-card ac-custom"><div class="ac-header"><div class="ac-icon">⚙️</div><div class="ac-name" style="color:var(--gold)">Perfil Personalizado</div><div class="ac-badge" style="background:rgba(200,146,42,.15);color:var(--gold)">Novo</div></div><p style="font-size:12px;color:var(--fog);margin-bottom:10px;line-height:1.6">A empresa define exatamente quais módulos e ações cada usuário pode ter — 11 módulos e 10 ações configuráveis via checkbox.</p><div class="ac-perms"><span class="perm-tag">Escolha os módulos</span><span class="perm-tag">Escolha as ações</span><span class="perm-tag">Copiar de um perfil</span></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- COMPARATIVO -->
+<section class="sec comparativo">
+  <div class="wrap">
+    <div class="r"><div class="sec-eyebrow">Antes × Depois</div>
+    <h2 class="sec-h2">Sua empresa hoje<br><em>vs com FigForge</em></h2></div>
+    <div style="overflow-x:auto">
+    <table class="comp-table r">
+      <thead><tr><th>Processo</th><th>Hoje (sem sistema)</th><th>Com FigForge</th></tr></thead>
+      <tbody>
+        <tr><td>Registro de ponto</td><td><span class="td-no">❌ Caderno manual, sem validade legal</span></td><td><span class="td-ok">✅ GPS + horário + espelho digital</span></td></tr>
+        <tr><td>QR Code no canteiro</td><td><span class="td-no">❌ Não existe</span></td><td><span class="td-ok">✅ Escaneia → PIN → ponto registrado</span></td></tr>
+        <tr><td>Controle de ferramentas</td><td><span class="td-no">❌ Sem registro de quem levou</span></td><td><span class="td-ok">✅ Saída + retorno com foto e condição</span></td></tr>
+        <tr><td>Acesso por nível</td><td><span class="td-no">❌ Todos veem tudo</span></td><td><span class="td-ok">✅ Permissões por módulo e ação</span></td></tr>
+        <tr><td>Sistema multi-segmento</td><td><span class="td-no">❌ Não se adapta ao seu negócio</span></td><td><span class="td-ok">✅ 5 segmentos com terminologia própria</span></td></tr>
+        <tr><td>Cálculo da folha</td><td><span class="td-no">❌ Planilha manual com erros</span></td><td><span class="td-ok">✅ Automático com H. extras e faltas</span></td></tr>
+        <tr><td>Diário de obra</td><td><span class="td-par">⚠️ Papel ou foto no WhatsApp</span></td><td><span class="td-ok">✅ Digital com fotos + envio formatado ao cliente</span></td></tr>
+        <tr><td>Financeiro por obra</td><td><span class="td-no">❌ Ninguém sabe o saldo real</span></td><td><span class="td-ok">✅ Contratado, recebido, a receber em tempo real</span></td></tr>
+        <tr><td>Almoxarife por obra</td><td><span class="td-no">❌ Vê e movimenta tudo</span></td><td><span class="td-ok">✅ Restrito às obras vinculadas ao usuário</span></td></tr>
+      </tbody>
+    </table></div>
+  </div>
+</section>
+
+<!-- ROI -->
+<section class="sec roi">
+  <div class="wrap">
+    <div class="r"><div class="sec-eyebrow" style="color:var(--gold)">Retorno real</div>
+    <h2 class="sec-h2" style="color:var(--white)">Números que<br><em>justificam a decisão</em></h2></div>
+    <div class="roi-grid r">
+      <div class="roi-card"><div class="roi-n">3h</div><div class="roi-l">economizadas por semana no cálculo manual da folha</div></div>
+      <div class="roi-card"><div class="roi-n">100%</div><div class="roi-l">de rastreabilidade de ferramentas e ponto para defesa trabalhista</div></div>
+      <div class="roi-card"><div class="roi-n">R$0</div><div class="roi-l">em planilhas de terceiros — tudo em um único sistema</div></div>
+      <div class="roi-card"><div class="roi-n">1 dia</div><div class="roi-l">para ter o sistema funcionando completamente</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- PLANOS -->
+<section class="sec planos">
+  <div class="wrap">
+    <div class="r"><div class="sec-eyebrow">Investimento</div>
+    <h2 class="sec-h2">Plano ideal<br><em>para cada operação</em></h2>
+    <p class="sec-lead">Para empresas com 20 ou mais funcionários. Preços personalizados conforme o porte da operação.</p></div>
+    <div class="planos-grid r">
+      <div class="plano">
+        <div class="plano-nome">Starter</div>
+        <div class="plano-desc">Para quem está começando a digitalizar a gestão</div>
+        <div class="plano-preco">💬 Preço sob consulta</div>
+        <ul class="plano-items">
+          <li>Gestão de obras / projetos</li>
+          <li>Orçamentos com PDF + WhatsApp</li>
+          <li>Clientes</li>
+          <li>Financeiro básico</li>
+          <li>Backup na nuvem</li>
+          <li class="sem">Funcionários e folha</li>
+          <li class="sem">Ponto Digital GPS</li>
+          <li class="sem">Ferramentas</li>
+          <li class="sem">Multi-segmento</li>
+        </ul>
+        <a href="https://wa.me/5567984326429" class="plano-btn">Solicitar proposta</a>
+      </div>
+      <div class="plano dest">
+        <div class="plano-flag">Mais escolhido</div>
+        <div class="plano-nome" style="margin-top:22px">Profissional</div>
+        <div class="plano-desc">Para empresas que querem gestão completa da operação</div>
+        <div class="plano-preco">💬 Preço sob consulta</div>
+        <ul class="plano-items">
+          <li>Tudo do Starter</li>
+          <li>Funcionários CLT, diária e empreita</li>
+          <li>Folha de pagamento + holerite PDF</li>
+          <li>Estoque de materiais</li>
+          <li>🔧 Controle de ferramentas com foto</li>
+          <li>Diário de obra com WhatsApp</li>
+          <li>Relatórios gerenciais</li>
+          <li>🏷️ 5 segmentos de negócio</li>
+          <li class="sem">Ponto Digital GPS</li>
+        </ul>
+        <a href="https://wa.me/5567984326429" class="plano-btn">Solicitar proposta</a>
+      </div>
+      <div class="plano">
+        <div class="plano-nome">Personalizado</div>
+        <div class="plano-desc">Para quem precisa de controle total de acesso e ponto digital</div>
+        <div class="plano-preco">💬 Preço sob consulta</div>
+        <ul class="plano-items">
+          <li>Tudo do Profissional</li>
+          <li>📍 Ponto Digital GPS — 4 marcações</li>
+          <li>QR Code para o canteiro (só PIN)</li>
+          <li>Justificativas e aprovações</li>
+          <li>⚙️ Permissões personalizadas</li>
+          <li>Almoxarife por obra</li>
+          <li>Personalização com logo</li>
+          <li>Suporte prioritário WhatsApp</li>
+        </ul>
+        <a href="https://wa.me/5567984326429" class="plano-btn">Solicitar proposta</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- DEPOIMENTO -->
+<section class="depo">
+  <div class="wrap">
+    <div class="depo-inner r">
+      <div class="depo-q">"</div>
+      <p class="depo-text">"Antes eu precisava ligar para três pessoas para saber quantos funcionários trabalharam na semana. Hoje abro o sistema e vejo tudo — ponto com GPS, quem está com qual ferramenta, pagamento calculado e quanto cada obra me deve."</p>
+      <div class="depo-author">Gestor de Construtora</div>
+      <div class="depo-role">Empresa com equipe em campo — cliente FigForge</div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta">
+  <div class="wrap">
+    <h2 class="cta-h r">Chega de caderno.<br><em>Comece hoje.</em></h2>
+    <p class="cta-sub r r1">Implantação em 1 dia, suporte via WhatsApp, sem burocracia. Ou teste agora mesmo a versão demo.</p>
+    <div class="cta-btns r r2">
+      <a href="https://wa.me/5567984326429?text=Quero+conhecer+o+FigForge" class="btn-g">💬 Quero conhecer o FigForge</a>
+      <a href="figforge-DEMO.html" target="_blank" class="btn-o">🔍 Testar a demo</a>
+    </div>
+    <div class="cta-garantias r r3">
+      <div class="cta-g"><div class="cta-g-n">30 dias</div><div class="cta-g-l">Garantia de satisfação</div></div>
+      <div class="cta-g"><div class="cta-g-n">1 dia</div><div class="cta-g-l">Para implantar</div></div>
+      <div class="cta-g"><div class="cta-g-n">5</div><div class="cta-g-l">Segmentos suportados</div></div>
+      <div class="cta-g"><div class="cta-g-n">0</div><div class="cta-g-l">Apps para baixar</div></div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="f-logo">FigForge</div>
+  <div class="f-info">
+    <div style="color:rgba(138,154,176,.6);margin-bottom:3px">📱 (67) 9 8432-6429 · WhatsApp</div>
+    <div>Proposta válida por 30 dias · Maio 2026</div>
+  </div>
+</footer>
+
+<script>
+const obs=new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersecting)e.target.classList.add('in');});},{threshold:.1});
+document.querySelectorAll('.r').forEach(el=>obs.observe(el));
+</script>
+</body>
+</html>
