@@ -3195,6 +3195,22 @@ function editarObra(id){
   setTimeout(()=>{setV('ob-nome',o.nome);el('ob-cli').value=o.cliente||'';setV('ob-area',o.area);setV('ob-valor',o.valor);setV('ob-ini',o.ini);setV('ob-prazo',o.prazo);setV('ob-end',o.end);setV('ob-resp',o.resp);setV('ob-obs',o.obs);el('ob-tipo').value=o.tipo||'Residencial';},80);
 }
 function salvarObra(){
+  // Verifica limite de obras por plano (só ao criar, não ao editar)
+  if(!editId.obra){
+    var plano=getPlanoAtivo();
+    var limites={starter:3, pro:5};
+    var limite=limites[plano];
+    if(limite && DB.obras.length>=limite){
+      fecharMo('mo-obra');
+      mostrarBloqueioPlano(
+        plano,
+        'obras ativas',
+        limite,
+        plano==='starter'?'pro':'personalizado'
+      );
+      return;
+    }
+  }
   const dados={nome:val('ob-nome'),cliente:val('ob-cli'),tipo:val('ob-tipo'),area:val('ob-area'),valor:val('ob-valor'),ini:val('ob-ini'),prazo:val('ob-prazo'),end:val('ob-end'),resp:val('ob-resp'),obs:val('ob-obs'),status:'Em andamento',progresso:0};
   if(!dados.nome){alert('Preencha o nome da obra.');return;}
   if(editId.obra){Object.assign(DB.obras.find(x=>x.id===editId.obra),dados);delete editId.obra;}
@@ -4560,6 +4576,22 @@ function calcHorasPonto(){
 
 // ─── salvarFuncionario ────────────────────────────────────────
 function salvarFuncionario(){
+  // Verifica limite de funcionários por plano (só ao criar, não ao editar)
+  if(!editId.func){
+    var plano=getPlanoAtivo();
+    var limites={starter:5, pro:15};
+    var limite=limites[plano];
+    if(limite && DB.funcionarios.length>=limite){
+      fecharMo('mo-func');
+      mostrarBloqueioPlano(
+        plano,
+        'funcionários',
+        limite,
+        plano==='starter'?'pro':'personalizado'
+      );
+      return;
+    }
+  }
   var vinculo=val('fn-vinculo')||'clt';
   var isCLT=vinculo==='clt';
   var horEnt=val('fn-hor-ent')||'07:00';
@@ -5825,6 +5857,29 @@ function moduloDisponivel(modulo){
 }
 
 // Aplica bloqueios na interface conforme o plano
+// ── BLOQUEIO POR LIMITE DE PLANO ─────────────────────────────────────────
+function mostrarBloqueioPlano(planoAtual, recurso, limite, planoNecessario){
+  var nomes={starter:'⭐ Starter',pro:'🚀 Profissional',personalizado:'🏢 Personalizado'};
+  var detalhes={
+    pro:'<div style="font-size:12px;color:#c8922a;font-weight:700;margin-bottom:8px">✨ NO PLANO PROFISSIONAL</div><div style="font-size:12px;color:#8d95b0;line-height:1.8">✓ Até 5 obras ativas<br>✓ Até 15 funcionários<br>✓ Controle de ferramentas com foto<br>✓ Folha de pagamento + holerite PDF</div>',
+    personalizado:'<div style="font-size:12px;color:#c8922a;font-weight:700;margin-bottom:8px">✨ NO PLANO PERSONALIZADO</div><div style="font-size:12px;color:#8d95b0;line-height:1.8">✓ Obras e funcionários ilimitados<br>✓ Ponto Digital GPS com QR Code<br>✓ Permissões personalizadas por usuário<br>✓ Almoxarife vinculado por obra</div>'
+  };
+  var ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(4px)';
+  ov.innerHTML=
+    '<div style="background:#1a1f2e;border:2px solid #c8922a;border-radius:16px;padding:28px 24px;width:100%;max-width:420px;text-align:center">'+
+    '<div style="font-size:52px;margin-bottom:12px">🔒</div>'+
+    '<div style="font-size:22px;font-weight:800;color:#eef0f8;margin-bottom:8px">Limite atingido</div>'+
+    '<div style="font-size:13px;color:#8d95b0;line-height:1.7;margin-bottom:20px">O plano <strong style="color:#eef0f8">'+nomes[planoAtual]+'</strong> permite até <strong style="color:#c8922a">'+limite+' '+recurso+'</strong>. Faça upgrade para continuar.</div>'+
+    '<div style="background:rgba(200,146,42,.07);border:1px solid rgba(200,146,42,.25);border-radius:10px;padding:14px;margin-bottom:20px;text-align:left">'+
+    (detalhes[planoNecessario]||'')+
+    '</div>'+
+    '<a href="https://wa.me/5567984326429?text=Quero+fazer+upgrade+do+FigForge" target="_blank" style="display:block;width:100%;padding:13px;background:#c8922a;color:#080c12;border-radius:10px;font-size:14px;font-weight:800;text-decoration:none;margin-bottom:10px">💬 Fazer upgrade via WhatsApp</a>'+
+    '<button onclick="this.closest(\'div[style*=fixed]\').remove()" style="width:100%;padding:10px;background:transparent;border:1px solid #2d3348;border-radius:10px;color:#555f7a;font-size:13px;cursor:pointer;font-family:inherit">Fechar</button>'+
+    '</div>';
+  document.body.appendChild(ov);
+}
+
 function aplicarBloqueiosPlano(){
   const plano=getPlanoAtivo();
   const cfg=PLANOS_CFG[plano];
