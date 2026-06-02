@@ -5934,17 +5934,28 @@ function iniciarDemoComEmail(){
 }
 
 function iniciarAppDepoisEmail(){
-  // Substitui a chamada original de initApp
-  var db = localStorage.getItem('figforge-demo-v1');
-  var primeiroAcesso = !db || JSON.parse(db||'{}').obras === undefined;
-  if(primeiroAcesso){
-    // Injeta dados demo se necessário
+  if(verificarLimitesDemo()) return;
+
+  // Esconde telas de auth — entra direto no app
+  var telLogin = document.getElementById('screen-login');
+  var telLic   = document.getElementById('screen-license');
+  if(telLogin) telLogin.style.display='none';
+  if(telLic)   telLic.style.display='none';
+
+  // Seta sessão para não pedir login novamente
+  var emailSalvo = lerEmailSalvo() || 'demo@figforge.com';
+  try{
+    var sessData = JSON.stringify({email:emailSalvo,nome:'Demo',logadoEm:new Date().toISOString()});
+    localStorage.setItem('figforge_sess_demo', sessData);
+    sessionStorage.setItem('figforge_sess_demo', sessData);
+  }catch(e){}
+
+  // Entra no app
+  if(typeof _entrarNoApp === 'function'){
+    _entrarNoApp(emailSalvo);
+  } else if(typeof initAuth === 'function'){
+    initAuth();
   }
-  if(verificarLimitesDemo()){
-    return; // expirado
-  }
-  document.getElementById('screen-login') && (document.getElementById('screen-login').style.display='flex');
-  setTimeout(function(){var p=document.getElementById('login-email');if(p){var email=lerEmailSalvo();if(email)p.value=email;}},200);
 }
 
 function lerEmailSalvo(){
