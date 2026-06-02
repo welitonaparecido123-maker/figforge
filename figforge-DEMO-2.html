@@ -1732,6 +1732,34 @@ button[style*="background: #4F6EF7"], .btn-primary {
 body{padding-top:36px!important}
 #app,#screen-login,#screen-license{top:36px!important}
 
+
+/* TELA EMAIL DEMO */
+#screen-email-demo{
+  position:fixed;inset:0;background:var(--bg);z-index:99999;
+  display:flex;align-items:center;justify-content:center;padding:16px;
+}
+.email-demo-box{
+  background:var(--s1);border:1px solid var(--border);border-radius:16px;
+  padding:28px 24px;width:100%;max-width:380px;text-align:center;
+}
+.email-demo-logo{
+  width:60px;height:60px;background:linear-gradient(135deg,#c8922a,#5b3a0a);
+  border-radius:14px;display:flex;align-items:center;justify-content:center;
+  font-size:28px;margin:0 auto 14px;
+}
+.email-demo-inp{
+  width:100%;padding:13px 14px;background:var(--s3);border:2px solid var(--border);
+  border-radius:10px;color:var(--text);font-size:14px;font-family:'DM Sans',sans-serif;
+  outline:none;margin-bottom:12px;transition:border-color .15s;
+}
+.email-demo-inp:focus{border-color:#c8922a}
+.email-demo-btn{
+  width:100%;padding:13px;background:#c8922a;color:#000;border:none;
+  border-radius:10px;font-size:14px;font-weight:800;cursor:pointer;
+  font-family:'DM Sans',sans-serif;transition:filter .15s;
+}
+.email-demo-btn:hover{filter:brightness(1.1)}
+
 </style>
 
 <script>
@@ -1795,6 +1823,16 @@ body{padding-top:36px!important}
       logo:null,pontoDigital:{ativo:false,raio:100,horarios:{entrada:'07:00',saidaAlmoco:'12:00',voltaAlmoco:'13:00',saida:'17:00'}}},
   };
   localStorage.setItem(KEY, JSON.stringify(demo));
+  // Licença demo pré-ativada — plano Personalizado para testar todas as funções
+  if(!localStorage.getItem('figforge_lic_demo')){
+    localStorage.setItem('figforge_lic_demo', JSON.stringify({
+      email:'demo@figforge.com',
+      ativa:true,
+      nome:'Usuário Demo',
+      plano:'personalizado',
+      ativadoEm:'2025-01-01T00:00:00.000Z'
+    }));
+  }
   console.log('[DEMO] Dados de demonstração carregados!');
 })();
 </script>
@@ -1809,6 +1847,22 @@ body{padding-top:36px!important}
 </script>
 </head>
 <body>
+
+<!-- TELA DE EMAIL DEMO -->
+<div id="screen-email-demo">
+  <div class="email-demo-box">
+    <div class="email-demo-logo">🏗️</div>
+    <div style="font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:var(--text);margin-bottom:4px">FigForge Demo</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:20px">Acesso gratuito por 7 dias · Até 3 obras novas</div>
+    <div id="email-demo-err" style="background:rgba(240,68,68,.12);border:1px solid rgba(240,68,68,.27);border-radius:8px;padding:10px;font-size:12px;color:#f04444;margin-bottom:12px;display:none">Informe um e-mail válido.</div>
+    <input class="email-demo-inp" id="email-demo-input" type="email" placeholder="Seu melhor e-mail" autocomplete="email"/>
+    <button class="email-demo-btn" onclick="iniciarDemoComEmail()">▶ Iniciar demonstração gratuita</button>
+    <div style="margin-top:14px;font-size:11px;color:var(--muted);line-height:1.6">
+      Ao continuar você concorda com os termos de uso.<br>
+      <strong style="color:#c8922a">Nenhum cartão de crédito necessário.</strong>
+    </div>
+  </div>
+</div>
 
 <!-- DEMO BANNER -->
 <div id="demo-banner">
@@ -5734,33 +5788,215 @@ function isModoTeste(){
 }
 
 
+
+
+// ── ENVIO DE LEAD PARA PLANILHA ───────────────────────────────────────────
+var URL_LEADS = 'https://script.google.com/macros/s/AKfycbz15mkUBFrNqXX8owewAQSEEt-6cJZPTBFzd7Etx6MunjqSghIX7BXvP-zL-ClJIJp8/exec';
+
+function enviarLead(email, fp, acao){
+  try{
+    fetch(URL_LEADS, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        email: email || '—',
+        fp: fp || '—',
+        acao: acao || 'inicio_demo',
+        regiao: Intl.DateTimeFormat().resolvedOptions().timeZone || '—'
+      })
+    }).catch(function(){});
+  }catch(e){}
+}
+
+// ── SISTEMA ANTI-RESET MULTI-STORAGE ─────────────────────────────────────
+var DEMO_META_KEY = 'figforge-demo-meta';
+
+// Gera fingerprint do dispositivo
+function gerarFingerprint(){
+  var fp = [
+    navigator.language||'',
+    screen.width+'x'+screen.height,
+    new Date().getTimezoneOffset(),
+    navigator.hardwareConcurrency||0,
+    navigator.platform||'',
+    navigator.vendor||''
+  ].join('|');
+  // Hash simples
+  var hash = 0;
+  for(var i=0;i<fp.length;i++){hash=((hash<<5)-hash)+fp.charCodeAt(i);hash|=0;}
+  return Math.abs(hash).toString(36);
+}
+
+// Salva em localStorage + cookie + IndexedDB
+function salvarMetaDemo(meta){
+  // 1. localStorage
+  try{ localStorage.setItem(DEMO_META_KEY, JSON.stringify(meta)); }catch(e){}
+  // 2. Cookie (expira em 60 dias)
+  try{
+    var exp = new Date(); exp.setDate(exp.getDate()+60);
+    document.cookie = DEMO_META_KEY+'='+encodeURIComponent(JSON.stringify(meta))+';expires='+exp.toUTCString()+';path=/';
+  }catch(e){}
+  // 3. IndexedDB
+  try{
+    var req = indexedDB.open('figforge-demo-db',1);
+    req.onupgradeneeded = function(e){ e.target.result.createObjectStore('meta'); };
+    req.onsuccess = function(e){
+      var tx = e.target.result.transaction('meta','readwrite');
+      tx.objectStore('meta').put(JSON.stringify(meta),'demo-meta');
+    };
+  }catch(e){}
+  // 4. sessionStorage (para sessão atual)
+  try{ sessionStorage.setItem(DEMO_META_KEY, JSON.stringify(meta)); }catch(e){}
+}
+
+// Lê de todos os storages e retorna o mais antigo (mais restritivo)
+function lerMetaDemo(callback){
+  var resultados = [];
+
+  // localStorage
+  try{
+    var ls = localStorage.getItem(DEMO_META_KEY);
+    if(ls) resultados.push(JSON.parse(ls));
+  }catch(e){}
+
+  // Cookie
+  try{
+    var cookies = document.cookie.split(';');
+    for(var i=0;i<cookies.length;i++){
+      var parts = cookies[i].trim().split('=');
+      if(parts[0]===DEMO_META_KEY && parts[1]){
+        resultados.push(JSON.parse(decodeURIComponent(parts[1])));
+      }
+    }
+  }catch(e){}
+
+  // sessionStorage
+  try{
+    var ss = sessionStorage.getItem(DEMO_META_KEY);
+    if(ss) resultados.push(JSON.parse(ss));
+  }catch(e){}
+
+  // IndexedDB (assíncrono — faz por último)
+  try{
+    var req = indexedDB.open('figforge-demo-db',1);
+    req.onupgradeneeded = function(e){ e.target.result.createObjectStore('meta'); };
+    req.onsuccess = function(e){
+      var tx = e.target.result.transaction('meta','readonly');
+      var get = tx.objectStore('meta').get('demo-meta');
+      get.onsuccess = function(){
+        if(get.result){
+          try{ resultados.push(JSON.parse(get.result)); }catch(ex){}
+        }
+        // Usa o registro com data mais antiga (mais restritivo)
+        var final = escolherMaisAntigo(resultados);
+        callback(final);
+      };
+      get.onerror = function(){ callback(escolherMaisAntigo(resultados)); };
+    };
+    req.onerror = function(){ callback(escolherMaisAntigo(resultados)); };
+  }catch(e){ callback(escolherMaisAntigo(resultados)); }
+}
+
+function escolherMaisAntigo(lista){
+  if(!lista.length) return null;
+  return lista.reduce(function(mais_antigo, atual){
+    if(!mais_antigo) return atual;
+    return new Date(atual.inicio) < new Date(mais_antigo.inicio) ? atual : mais_antigo;
+  }, null);
+}
+
+// Iniciar demo com e-mail
+function iniciarDemoComEmail(){
+  var email = document.getElementById('email-demo-input').value.trim();
+  var err = document.getElementById('email-demo-err');
+  if(!email || !email.includes('@') || !email.includes('.')){
+    err.style.display='block'; return;
+  }
+  err.style.display='none';
+
+  lerMetaDemo(function(metaExistente){
+    var fp = gerarFingerprint();
+    if(metaExistente){
+      // Já tem registro — apenas adiciona o email (preserva data de início original)
+      metaExistente.email = email;
+      metaExistente.fp = metaExistente.fp || fp;
+      salvarMetaDemo(metaExistente);
+    } else {
+      // Primeira vez — cria novo registro
+      var meta = { inicio: new Date().toISOString(), email: email, fp: fp };
+      salvarMetaDemo(meta);
+    }
+    document.getElementById('screen-email-demo').style.display='none';
+    // Envia lead para planilha
+    enviarLead(email, fp, metaExistente ? 'retorno_demo' : 'inicio_demo');
+    iniciarAppDepoisEmail();
+  });
+}
+
+function iniciarAppDepoisEmail(){
+  // Substitui a chamada original de initApp
+  var db = localStorage.getItem('figforge-demo-v1');
+  var primeiroAcesso = !db || JSON.parse(db||'{}').obras === undefined;
+  if(primeiroAcesso){
+    // Injeta dados demo se necessário
+  }
+  if(verificarLimitesDemo()){
+    return; // expirado
+  }
+  document.getElementById('screen-login') && (document.getElementById('screen-login').style.display='flex');
+  setTimeout(function(){var p=document.getElementById('login-email');if(p){var email=lerEmailSalvo();if(email)p.value=email;}},200);
+}
+
+function lerEmailSalvo(){
+  try{
+    var ls = localStorage.getItem(DEMO_META_KEY);
+    if(ls) return JSON.parse(ls).email||'';
+  }catch(e){}
+  return '';
+}
+
+// Sobrescreve verificarLimitesDemo para usar multi-storage
+var _verificarOriginal = null;
+
+
 // ── DEMO: Validade 7 dias ou 3 obras ─────────────────────────────────────
 function verificarLimitesDemo(){
-  var SK_DEMO = 'figforge-demo-meta';
-  var meta = JSON.parse(localStorage.getItem(SK_DEMO)||'{}');
+  // Versão síncrona — usa localStorage como base rápida
+  // (o IndexedDB já foi sincronizado na entrada)
+  var meta = null;
+  try{
+    var ls = localStorage.getItem(DEMO_META_KEY);
+    if(ls) meta = JSON.parse(ls);
+    // Também checa cookie
+    var cookies = document.cookie.split(';');
+    for(var i=0;i<cookies.length;i++){
+      var parts = cookies[i].trim().split('=');
+      if(parts[0]===DEMO_META_KEY && parts[1]){
+        var cookieMeta = JSON.parse(decodeURIComponent(parts[1]));
+        if(!meta || new Date(cookieMeta.inicio) < new Date(meta.inicio)) meta = cookieMeta;
+      }
+    }
+  }catch(e){}
 
-  // Registra data de início se não existir
-  if(!meta.inicio){
-    meta.inicio = new Date().toISOString();
-    localStorage.setItem(SK_DEMO, JSON.stringify(meta));
-  }
+  if(!meta || !meta.inicio) return false; // Ainda não iniciou
 
   var inicio = new Date(meta.inicio);
   var agora  = new Date();
   var diasPassados = Math.floor((agora - inicio) / (1000*60*60*24));
   var numObras = (JSON.parse(localStorage.getItem('figforge-demo-v1')||'{}').obras||[]).length;
-
-  // Remove obras pré-carregadas do contador (as 3 de demonstração)
   var obrasReais = Math.max(0, numObras - 3);
-
   var expirado = diasPassados >= 7 || obrasReais >= 3;
 
   if(expirado){
+    // Notifica planilha que o trial expirou
+    try{
+      var m = JSON.parse(localStorage.getItem(DEMO_META_KEY)||'{}');
+      enviarLead(m.email||'—', m.fp||'—', 'expirou');
+    }catch(ex){}
     mostrarTelaExpiracao(diasPassados, obrasReais);
     return true;
   }
 
-  // Mostra aviso de uso
   var diasRestantes = Math.max(0, 7 - diasPassados);
   var obrasRestantes = Math.max(0, 3 - obrasReais);
   var avisoEl = document.getElementById('demo-limite-aviso');
