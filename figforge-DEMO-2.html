@@ -5936,25 +5936,41 @@ function iniciarDemoComEmail(){
 function iniciarAppDepoisEmail(){
   if(verificarLimitesDemo()) return;
 
-  // Esconde telas de auth — entra direto no app
-  var telLogin = document.getElementById('screen-login');
-  var telLic   = document.getElementById('screen-license');
-  if(telLogin) telLogin.style.display='none';
-  if(telLic)   telLic.style.display='none';
+  // Carrega DB se ainda não carregado
+  try{ if(typeof loadDB==='function') loadDB(); }catch(e){}
+  try{ if(typeof initDB==='function') initDB(); }catch(e){}
 
-  // Seta sessão para não pedir login novamente
   var emailSalvo = lerEmailSalvo() || 'demo@figforge.com';
-  try{
-    var sessData = JSON.stringify({email:emailSalvo,nome:'Demo',logadoEm:new Date().toISOString()});
-    localStorage.setItem('figforge_sess_demo', sessData);
-    sessionStorage.setItem('figforge_sess_demo', sessData);
-  }catch(e){}
+  var sessObj = {
+    nome:'Administrador Demo',
+    nivel:'adm',
+    email:emailSalvo,
+    loginEm:new Date().toISOString()
+  };
 
-  // Entra no app
-  if(typeof _entrarNoApp === 'function'){
-    _entrarNoApp(emailSalvo);
-  } else if(typeof initAuth === 'function'){
-    initAuth();
+  // Seta sessão — igual ao doLogin bem-sucedido
+  try{ sessionStorage.setItem(SK_SESS, JSON.stringify(sessObj)); }catch(e){}
+
+  // Esconde todas as telas de auth
+  try{ el('screen-license').style.display='none'; }catch(e){}
+  try{ el('screen-login').style.display='none'; }catch(e){}
+
+  // Mostra o app e configura UI
+  try{
+    nivelUsuario = 'adm';
+    el('app-shell').style.display='flex';
+    try{ el('sb-nome').textContent='Demo'; }catch(e){}
+    try{ el('sb-nivel').textContent='Administrador'; }catch(e){}
+    try{ el('sb-av').textContent='AD'; }catch(e){}
+    renderPanel('dashboard');
+    if(typeof initExtras==='function') initExtras();
+    if(typeof aplicarBloqueiosPlano==='function') aplicarBloqueiosPlano();
+    if(typeof aplicarRestricoesPorNivel==='function') aplicarRestricoesPorNivel();
+    if(typeof iniciarBackupAutomatico==='function') iniciarBackupAutomatico();
+    if(typeof iniciarSyncAutomatico==='function') iniciarSyncAutomatico();
+  }catch(e){
+    // Fallback — recarrega a página com sessão já setada
+    location.reload();
   }
 }
 
