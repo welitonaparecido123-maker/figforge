@@ -379,7 +379,7 @@ textarea{resize:vertical;min-height:60px}
     </div>
   </div>
   <div class="sb-foot">
-  <div style="font-size:9px;color:var(--tx3);text-align:center;padding:4px">FigForge v2026.05.25</div>
+  <div style="font-size:9px;color:var(--tx3);text-align:center;padding:4px">FigForge v2026.06.22</div>
     <div class="sb-usr">
       <div class="sb-av" id="sb-av" >AD</div>
       <div style="overflow:hidden"><div style="font-size:11px;font-weight:600;white-space:nowrap" id="sb-nome">Administrador</div><div style="font-size:9px;color:var(--tx2)" id="sb-nivel">Administrador</div></div>
@@ -832,6 +832,7 @@ textarea{resize:vertical;min-height:60px}
         <div style="padding:8px;background:var(--bg3);border-radius:var(--r)"><div style="font-weight:600">💾 Backup de dados</div><div style="color:var(--tx2);font-size:11px;margin:4px 0">Exporta todos os dados do sistema em formato JSON</div><button class="btn sm bp" onclick="backupDados()" style="margin-top:4px">📥 Exportar local</button>
           <button class="btn sm" onclick="salvarBackupNuvem(false)" style="margin-top:4px">☁️ Salvar na nuvem</button>
           <button class="btn sm br-" onclick="resetarBackupNuvem()" style="margin-top:6px">🗑️ Resetar nuvem</button>
+          <button class="btn sm bp" onclick="forcarAtualizacaoApp()" style="margin-top:6px">🔄 Forçar atualização do app</button>
         </div>
         <div style="padding:8px;background:var(--bg3);border-radius:var(--r)"><div style="font-weight:600">📂 Restaurar dados</div><div style="color:var(--tx2);font-size:11px;margin:4px 0">Importa um backup JSON previamente exportado</div><input type="file" id="import-file" accept=".json" style="display:none" onchange="importarDados(this)"/><button class="btn sm" onclick="document.getElementById('import-file').click()" style="margin-top:4px">📤 Importar backup</button></div>
         <div style="padding:8px;background:rgba(232,75,75,.06);border:1px solid rgba(232,75,75,.2);border-radius:var(--r)"><div style="font-weight:600;color:var(--rd)">⚠️ Zona de perigo</div><div style="color:var(--tx2);font-size:11px;margin:4px 0">Apaga permanentemente todos os dados do sistema</div><button class="btn sm br-" onclick="if(confirm('ATENÇÃO! Isso apagará TODOS os dados permanentemente. Tem certeza?')){limparTudo()}" style="margin-top:4px">🗑 Limpar todos os dados</button></div>
@@ -5105,6 +5106,46 @@ function salvarAdiantamentoRapido(){
   // Recalcula pagamento se já tiver mês selecionado
   if(val('pg-mes')) calcPagamento();
   alert('✔ Adiantamento de '+fmt(valor)+' registrado para '+func.nome+'!\nSerá descontado automaticamente no pagamento de '+dataAd.slice(0,7)+'.');
+}
+
+// ── FORÇAR ATUALIZAÇÃO DO APP (limpa cache do Service Worker) ──────────────
+function forcarAtualizacaoApp(){
+  if(!confirm('Isso vai limpar o cache do aplicativo e buscar a versão mais recente.\n\nSeus dados NÃO serão perdidos (ficam salvos separadamente).\n\nO app vai recarregar. Deseja continuar?')) return;
+
+  var tarefas = [];
+
+  // 1. Desregistra todos os service workers
+  if('serviceWorker' in navigator){
+    tarefas.push(
+      navigator.serviceWorker.getRegistrations().then(function(regs){
+        return Promise.all(regs.map(function(r){ return r.unregister(); }));
+      })
+    );
+  }
+
+  // 2. Limpa todos os caches do navegador
+  if('caches' in window){
+    tarefas.push(
+      caches.keys().then(function(names){
+        return Promise.all(names.map(function(n){ return caches.delete(n); }));
+      })
+    );
+  }
+
+  Promise.all(tarefas).then(function(){
+    alert('✔ Cache limpo! O app vai recarregar agora.');
+    // Força reload sem cache
+    window.location.reload(true);
+  }).catch(function(){
+    window.location.reload(true);
+  });
+}
+
+// ── Auto-detecção de versão nova do Service Worker ──────────────────────────
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.addEventListener('controllerchange', function(){
+    console.log('[SW] Nova versão ativada — considere recarregar');
+  });
 }
 </script>
 
