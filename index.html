@@ -6379,7 +6379,7 @@ function enviarCodigoRecuperacao(){
     btn.textContent='Enviar código';
     err.textContent='Sem conexão com o servidor. Verifique sua internet.';
     err.style.display='block';
-  });
+  }, 30000);
 }
 
 function confirmarRecuperacao(){
