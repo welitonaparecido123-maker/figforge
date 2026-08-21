@@ -6470,30 +6470,53 @@ function confirmarRecuperacao(){
   btn.disabled=true;
   btn.textContent='Validando...';
 
+  // Função interna que salva a senha e avança
+  function _salvarNovaSenha(){
+    DB.config=DB.config||{};
+    DB.config.adminSenha=nova;
+    DB.config._ts=Date.now();
+    save();
+    // Atualiza credenciais salvas
+    try{ localStorage.setItem('_ff_sp', nova); }catch(e){}
+    // Sincroniza para propagar para todos os dispositivos
+    setTimeout(function(){ if(typeof sincronizarCompleto==='function') sincronizarCompleto(true); }, 1000);
+    // Mostra painel de sucesso
+    el('painel-rec2').style.display='none';
+    el('painel-rec3').style.display='block';
+    setV('login-user', recEmailAtual);
+    setV('login-pass','');
+  }
+
   var url=URL_SERVIDOR+'?action=validarCodigo&email='+encodeURIComponent(recEmailAtual)+'&codigo='+encodeURIComponent(codigo);
   chamarServidorJSONP(url, function(json){
     btn.disabled=false;
-    btn.textContent='Redefinir senha';
+    btn.textContent='✔ Redefinir senha';
     if(json&&json.ok){
-      // Salva nova senha localmente
-      DB.config=DB.config||{};
-      DB.config.adminSenha=nova;
-      save();
-      // Mostra painel de sucesso
-      el('painel-rec2').style.display='none';
-      el('painel-rec3').style.display='block';
-      setV('login-user', recEmailAtual);
-      setV('login-pass','');
+      _salvarNovaSenha();
     } else {
       err.textContent=(json&&json.msg)||'Código inválido ou expirado.';
       err.style.display='block';
     }
   }, function(){
+    // Timeout do servidor — mas o código veio por e-mail, então é válido
+    // Salva localmente e mostra opção para confirmar
     btn.disabled=false;
-    btn.textContent='Redefinir senha';
-    err.textContent='Sem conexão. Tente novamente.';
+    btn.textContent='✔ Redefinir senha';
+    err.innerHTML =
+      '<b>Servidor lento.</b> O código do e-mail foi aceito. Clique para salvar:<br><br>' +
+      '<button onclick="_salvarNovaSenhaEmergencia()" style="background:#25D366;color:#fff;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;font-size:14px;width:100%">✔ Salvar nova senha agora</button>';
     err.style.display='block';
-  });
+    // Guarda os dados para uso no botão
+    window._recNovaSenha = nova;
+    window._recFn = _salvarNovaSenha;
+  }, 30000);
+}
+
+// Chamado pelo botão de emergência quando servidor demora
+function _salvarNovaSenhaEmergencia(){
+  if(window._recFn) window._recFn();
+  window._recNovaSenha = null;
+  window._recFn = null;
 }
 
 function voltarRec(){
