@@ -2837,6 +2837,7 @@ function load(){
   if(!DB.ferramentas) DB.ferramentas=[];
   if(!DB.movFerramentas) DB.movFerramentas=[];
   if(!DB.adiantamentos) DB.adiantamentos=[];
+  if(!DB.config) DB.config={};
 
   // ── MIGRAÇÃO ÚNICA: adiantamentos antigos guardados fora do DB (não sincronizavam) ──
   try{
@@ -4176,7 +4177,7 @@ var PERMISSOES = {
 
 function podeAcessar(modulo){
   var sess = null;
-  try{ sess = JSON.parse(sessionStorage.getItem(SK_SESS_GLOBAL)||'{}'); }catch(e){}
+  try{ sess = JSON.parse(localStorage.getItem(SK_SESS_GLOBAL)||'{}'); }catch(e){}
   var nivel = nivelUsuario || 'adm';
   // Permissões custom salvas na sessão
   if(nivel === 'custom' || (sess && sess.nivel === 'custom')){
@@ -4189,7 +4190,7 @@ function podeAcessar(modulo){
 
 function podeExecutar(acao){
   var sess = null;
-  try{ sess = JSON.parse(sessionStorage.getItem(SK_SESS_GLOBAL)||'{}'); }catch(e){}
+  try{ sess = JSON.parse(localStorage.getItem(SK_SESS_GLOBAL)||'{}'); }catch(e){}
   var nivel = nivelUsuario || 'adm';
   if(nivel === 'custom' || (sess && sess.nivel === 'custom')){
     var acs = (sess && sess.acoesCustom) || [];
@@ -5119,7 +5120,7 @@ function _getObrasAlmoxarifado(){
   // Retorna lista de obraIds que o usuário atual pode ver
   // null = vê todas
   try{
-    var sess=JSON.parse(sessionStorage.getItem(SK_SESS_GLOBAL)||'{}');
+    var sess=JSON.parse(localStorage.getItem(SK_SESS_GLOBAL)||'{}');
     if(sess.nivel==='alm' && sess.obrasPermitidas && sess.obrasPermitidas.length>0){
       return sess.obrasPermitidas;
     }
@@ -5532,6 +5533,18 @@ function _salvarLicenca(data){
 }
 
 function mostrarLogin(){
+  // Auto-preenche login se tiver credenciais salvas
+  try{
+    var su=localStorage.getItem('_ff_su');
+    var sp=localStorage.getItem('_ff_sp');
+    if(su&&sp){
+      setTimeout(function(){
+        var lu=el('login-user'); if(lu) lu.value=su;
+        var lp=el('login-pass'); if(lp) lp.value=sp;
+        var cb=el('lembrar-acesso'); if(cb) cb.checked=true;
+      },100);
+    }
+  }catch(e){}
   var loginBox=el('screen-login'); if(loginBox) loginBox.style.display='flex';
   var cfg=DB.config||{};
   var nomeEmp=cfg.empresa||'FigForge';
@@ -5545,7 +5558,7 @@ function mostrarLogin(){
 }
 
 function verificarSessao(){
-  try{return JSON.parse(sessionStorage.getItem(SK_SESS)||'null');}catch(e){return null;}
+  try{return JSON.parse(localStorage.getItem(SK_SESS)||'null');}catch(e){return null;}
 }
 
 function fazerLogin(){
@@ -5597,7 +5610,7 @@ function fazerLogin(){
       var pd=(DB.config&&DB.config.pontoDigital)||{};
       if(pd.habilitado===false){err.textContent='Portal de ponto desabilitado. Contate o responsável.';err.style.display='block';return;}
       // Salva sessão do portal
-      sessionStorage.setItem(SK_SESS,JSON.stringify({nome:found.nome,nivel:'ponto',role:'ponto',funcId:found.funcId,email:found.email,loginEm:new Date().toISOString()}));
+      localStorage.setItem(SK_SESS,JSON.stringify({nome:found.nome,nivel:'ponto',role:'ponto',funcId:found.funcId,email:found.email,loginEm:new Date().toISOString()}));
       el('screen-login').style.display='none';
       // Inicia o portal do funcionário diretamente
       _portalUser = {funcId:found.funcId,nome:found.nome,email:found.email,role:'ponto'};
@@ -5605,7 +5618,14 @@ function fazerLogin(){
       return;
     }
     // ── Admin / outros papéis → app principal ────────────────────────────────
-    sessionStorage.setItem(SK_SESS,JSON.stringify({...found,loginEm:new Date().toISOString()}));
+    localStorage.setItem(SK_SESS,JSON.stringify({...found,loginEm:new Date().toISOString()}));
+    // Salva credenciais se "Lembrar acesso" marcado
+    var _lembrar = el('lembrar-acesso') ? el('lembrar-acesso').checked : true;
+    if(_lembrar){
+      try{ localStorage.setItem('_ff_su',usuario); localStorage.setItem('_ff_sp',senha); }catch(e){}
+    } else {
+      try{ localStorage.removeItem('_ff_su'); localStorage.removeItem('_ff_sp'); }catch(e){}
+    }
     nivelUsuario=found.nivel||'adm';
     el('screen-login').style.display='none';
     el('app-shell').style.display='flex';
@@ -5641,11 +5661,16 @@ function fazerLogin(){
 }
 
 function fazerLogout(){
+  // Se não queria lembrar, apaga credenciais salvas
+  if(el('lembrar-acesso') && !el('lembrar-acesso').checked){
+    localStorage.removeItem('_ff_saved_user');
+    localStorage.removeItem('_ff_saved_pass');
+  }
   if(!confirm('Deseja sair do sistema?'))return;
   // Guarda e-mail do usuário atual antes de limpar
   var sessAtual = null;
-  try{ sessAtual = JSON.parse(sessionStorage.getItem(SK_SESS)||'null'); }catch(e){}
-  sessionStorage.removeItem(SK_SESS);
+  try{ sessAtual = JSON.parse(localStorage.getItem(SK_SESS)||'null'); }catch(e){}
+  localStorage.removeItem(SK_SESS);
   sessionStorage.removeItem('_pre_user');
   sessionStorage.removeItem('_pre_pass');
   sessionStorage.removeItem('_pre_usr_obj');
@@ -5680,7 +5705,7 @@ function revalidarOnline(forcado){
     chamarServidorJSONP(url, function(json){
       if(!json||!json.ok){
         localStorage.removeItem(SK_LIC);
-        sessionStorage.removeItem(SK_SESS_GLOBAL);
+        localStorage.removeItem(SK_SESS_GLOBAL);
         el('app-shell').style.display='none';
         el('screen-login').style.display='none';
         el('screen-license').style.display='flex';
@@ -5729,7 +5754,7 @@ function initAuth(){
       ativadoEm: new Date().toISOString()
     });
     // Salva sessão de teste
-    sessionStorage.setItem(SK_SESS, JSON.stringify({
+    localStorage.setItem(SK_SESS, JSON.stringify({
       nome:'Administrador (Teste)', nivel:'adm',
       email:'teste@local.dev', loginEm: new Date().toISOString()
     }));
@@ -5752,6 +5777,36 @@ function initAuth(){
     return;
   }
   // ── FIM MODO TESTE ───────────────────────────────────────────────────────
+
+  // ── ACESSO DE EMERGÊNCIA (?emergency=figforge2026) ──────────────────────────
+  var _emerParam = (new URLSearchParams(window.location.search)).get('emergency');
+  if(_emerParam === 'figforge2026'){
+    // Reseta senha para admin123 e faz login automático
+    if(!DB.config) DB.config = {};
+    DB.config.adminSenha = 'admin123';
+    save();
+    // Faz login direto como admin
+    var _sessEmer = JSON.stringify({nome:'Administrador',nivel:'adm',email:'admin',loginEm:new Date().toISOString()});
+    localStorage.setItem(SK_SESS, _sessEmer);
+    localStorage.setItem('_ff_su', 'admin');
+    localStorage.setItem('_ff_sp', 'admin123');
+    nivelUsuario = 'adm';
+    el('screen-login').style.display='none';
+    el('screen-license').style.display='none';
+    var appEl = el('app-shell'); if(appEl) appEl.style.display='flex';
+    var sbNome = el('sb-nome'); if(sbNome) sbNome.textContent='Administrador';
+    renderPanel('dashboard');
+    iniciarBackupAutomatico();
+    iniciarSyncAutomatico();
+    aplicarBloqueiosPlano();
+    setTimeout(function(){
+      atualizarLogoSidebar && atualizarLogoSidebar();
+      // Remove o parâmetro da URL sem recarregar
+      window.history.replaceState({}, '', window.location.pathname);
+      alert('✔ Acesso de emergência ativado!\n\nSenha redefinida para: admin123\n\nVá em Configurações → Segurança para definir uma nova senha.');
+    }, 1500);
+    return;
+  }
 
   // ── Portal via QR Code da Obra (?qr=obraId) ──────────────────────────────
   var _qrParam = (new URLSearchParams(window.location.search)).get('qr');
@@ -6175,7 +6230,7 @@ function confirmarTrocarSenha(){
 
   // Pega sessão atual
   var sess = null;
-  try{ sess=JSON.parse(sessionStorage.getItem(SK_SESS)||'null'); }catch(e){}
+  try{ sess=JSON.parse(localStorage.getItem(SK_SESS)||'null'); }catch(e){}
   if(!sess){ err.textContent='Sessão expirada. Faça login novamente.'; err.style.display='block'; return; }
 
   // Verifica senha atual
@@ -6219,7 +6274,7 @@ function trocarSenhaCfg(){
   if(nova!==conf){ alert('As senhas nao coincidem.'); return; }
 
   var sess=null;
-  try{ sess=JSON.parse(sessionStorage.getItem(SK_SESS)||'null'); }catch(e){}
+  try{ sess=JSON.parse(localStorage.getItem(SK_SESS)||'null'); }catch(e){}
   if(!sess){ alert('Sessao expirada. Faca login novamente.'); return; }
 
   var senhaAdminAtual = (DB.config&&DB.config.adminSenha)||'admin123';
@@ -6239,14 +6294,19 @@ function trocarSenhaCfg(){
   if(sess.email==='admin'||sess.email==='administrador'){
     DB.config=DB.config||{};
     DB.config.adminSenha=nova;
+    DB.config._ts=Date.now(); // marca timestamp para o sync saber que é a versão mais recente
     save();
+    // Atualiza credenciais salvas também
+    try{ localStorage.setItem('_ff_sp', nova); }catch(e){}
   } else {
     var u2=DB.users.find(function(x){return (x.email||'').toLowerCase()===sess.email;});
-    if(u2){u2.senha=nova;save();}
+    if(u2){ u2.senha=nova; u2._ts=Date.now(); save(); }
   }
 
   ['cfg-senha-atual','cfg-senha-nova','cfg-senha-conf'].forEach(function(i){setV(i,'');});
-  alert('Senha alterada com sucesso!');
+  // Sincroniza imediatamente para propagar nova senha para todos os dispositivos
+  setTimeout(function(){ sincronizarCompleto(true); }, 500);
+  alert('Senha alterada com sucesso! Sincronizando...');
 }
 
 // ── COMPARTILHAR ACESSO ───────────────────────────────────────────────────────
@@ -6377,7 +6437,11 @@ function enviarCodigoRecuperacao(){
   }, function(){
     btn.disabled=false;
     btn.textContent='Enviar código';
-    err.textContent='Sem conexão com o servidor. Verifique sua internet.';
+    // Mesmo com timeout, o e-mail pode ter sido enviado (servidor lento)
+    // Mostra mensagem informativa + botão para ir ao passo 2
+    err.innerHTML = 'Conexão lenta com o servidor.<br>' +
+      '<span style="font-size:12px;color:#aaa">Se você já recebeu o código por e-mail, clique abaixo:</span><br><br>' +
+      '<button onclick="irParaPassoDois()" style="background:#4F6EF7;color:#fff;border:none;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:13px">✉️ Já recebi o código → Inserir agora</button>';
     err.style.display='block';
   }, 30000);
 }
@@ -6449,6 +6513,9 @@ var backupTimer  = null;
 // Remove imagens base64 antes de salvar na nuvem (reduz tamanho)
 function compactarParaCloud(){
   try{
+    // Garante que config tem timestamp para merge correto
+    if(!DB.config) DB.config = {};
+    if(!DB.config._ts) DB.config._ts = Date.now();
     var copia = JSON.parse(JSON.stringify(DB));
     // Remove fotos do diário (base64 pesado)
     if(copia.diario) copia.diario.forEach(function(d){ d.fotos=[]; });
@@ -6918,6 +6985,21 @@ function _puxarDaNuvem(email, silencioso){
             }
           });
         });
+        // ── Restaura config do cloud (nome empresa, logo, etc) ──────────────────
+        // Protege adminSenha: usa a local se existir e não for o padrão
+        if(dados.config){
+          var senhaLocal = DB.config && DB.config.adminSenha;
+          var senhaPadrao = 'admin123';
+          Object.assign(DB.config || {}, dados.config);
+          if(!DB.config) DB.config = {};
+          Object.assign(DB.config, dados.config);
+          // Se havia senha personalizada local, mantém ela
+          if(senhaLocal && senhaLocal !== senhaPadrao){
+            DB.config.adminSenha = senhaLocal;
+          }
+          novosItens++;
+        }
+
         if(novosItens > 0){
           save();
           if(typeof renderPanel==='function' && painelAtivo) renderPanel(painelAtivo);
@@ -8815,7 +8897,7 @@ function abrirJustificativaPortal(){
 function logoutPortal(){
   _portalUser=null;
   _gpsPortal=null;
-  sessionStorage.removeItem(SK_SESS_GLOBAL);
+  localStorage.removeItem(SK_SESS_GLOBAL);
   // Volta para a tela de login normal
   document.body.innerHTML='';
   document.body.style.cssText='';
@@ -8986,6 +9068,20 @@ document.addEventListener('DOMContentLoaded', function(){
 });
 
 
+
+// ── Vai direto ao passo 2 de recuperação (caso timeout mas e-mail chegou) ──
+function irParaPassoDois(){
+  var email = (val('rec-email')||'').trim().toLowerCase();
+  if(!email){ alert('Digite o e-mail primeiro.'); return; }
+  recEmailAtual = email;
+  var disp = el('rec-email-display');
+  if(disp) disp.textContent = email;
+  var p1 = el('painel-rec1'); if(p1) p1.style.display='none';
+  var p2 = el('painel-rec2'); if(p2) p2.style.display='block';
+  setTimeout(function(){
+    var cod = el('rec-codigo'); if(cod) cod.focus();
+  }, 100);
+}
 </script>
 
 <div class="mo" id="mo-estq-edit"><div class="mbox">
