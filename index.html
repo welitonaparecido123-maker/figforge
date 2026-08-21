@@ -6431,8 +6431,22 @@ function enviarCodigoRecuperacao(){
       el('painel-rec2').style.display='block';
       setTimeout(function(){el('rec-codigo').focus();},100);
     } else {
-      err.textContent = (json&&json.msg)||'E-mail não encontrado na licença.';
-      err.style.display='block';
+      // Verifica se tem código de emergência (quando email falhou no servidor)
+      if(json && json.codigoEmergencia){
+        recEmailAtual = email;
+        el('rec-email-display').textContent = email;
+        el('painel-rec1').style.display='none';
+        el('painel-rec2').style.display='block';
+        setTimeout(function(){
+          var codEl = el('rec-codigo');
+          if(codEl){ codEl.value = json.codigoEmergencia; }
+          el('rec-codigo').focus();
+        },100);
+        alert('⚠️ O e-mail não pôde ser enviado automaticamente.\n\nSeu código de acesso é:\n\n' + json.codigoEmergencia + '\n\nJá foi preenchido no campo. Digite sua nova senha e confirme.');
+      } else {
+        err.textContent = (json&&json.msg)||'E-mail não encontrado na licença.';
+        err.style.display='block';
+      }
     }
   }, function(){
     btn.disabled=false;
