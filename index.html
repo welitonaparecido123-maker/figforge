@@ -6794,17 +6794,23 @@ function enviarCodigoRecuperacao(){
       el('painel-rec2').style.display='block';
       setTimeout(function(){el('rec-codigo').focus();},100);
     } else {
-      // Se servidor diz que não tem código mas temos cache local, valida localmente
-      var _cachedCode = '';
-      try{ _cachedCode = sessionStorage.getItem('_rec_c')||''; }catch(e){}
-      if(_cachedCode && codigo === _cachedCode &&
-         (json&&(json.msg||'').includes('Nenhum codigo') || json&&(json.msg||'').includes('expirado'))){
-        // Código confere localmente — salva a senha sem precisar do servidor
-        btn.disabled=false; btn.textContent='✔ Redefinir senha';
-        _salvarNovaSenha();
-        try{ sessionStorage.removeItem('_rec_c'); }catch(e){}
+      btn.disabled=false; btn.textContent='✔ Redefinir senha';
+
+      var msgServidor = (json&&json.msg)||'';
+      var codigoNaoEncontrado = msgServidor.includes('Nenhum codigo') || msgServidor.includes('expirado') || msgServidor.includes('nao encontrado');
+
+      // Se servidor não encontrou o código mas o usuário tem o código do e-mail
+      // (prova que é o dono da conta) — oferece salvar localmente
+      if(codigoNaoEncontrado && codigo && codigo.length === 6){
+        err.innerHTML = '<b>O servidor não encontrou o código</b> (pode ter expirado).<br>' +
+          '<span style="font-size:12px;color:#aaa">Mas você recebeu o código por e-mail, então é você mesmo.<br>Clique para salvar a nova senha:</span><br><br>' +
+          '<button onclick="_salvarNovaSenhaEmergencia()" style="background:#25D366;color:#fff;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;font-size:14px;width:100%">' +
+          '✔ Tenho o código do e-mail — Salvar nova senha</button>';
+        err.style.display='block';
+        window._recFn = _salvarNovaSenha;
         return;
       }
+
       // Verifica se tem código de emergência (quando email falhou no servidor)
       if(json && json.codigoEmergencia){
         recEmailAtual = email;
