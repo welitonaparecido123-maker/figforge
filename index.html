@@ -2189,9 +2189,9 @@ button[style*="background: #4F6EF7"], .btn-primary {
     <div class="card" style="margin-bottom:10px">
       <div class="ct">Novo lançamento</div>
       <div class="fr fr4">
-        <div><label>Tipo</label><select id="fl-tipo" onchange="toggleFlTipo()"><option value="receita">Receita</option><option value="despesa">Despesa</option></select></div>
+        <div><label>Tipo</label><select id="fl-tipo" onchange="toggleFlTipo();atualizarServicosLanc()"><option value="receita">Receita</option><option value="despesa">Despesa</option></select></div>
         <div><label>Categoria</label><select id="fl-cat"><option>Material</option><option>Mão de obra</option><option>Equipamento</option><option>Serviço terceiro</option><option>Imposto</option><option>Aluguel</option><option>Outro</option></select></div>
-        <div><label>Obra vinculada</label><select id="fl-obra"><option value="">Nenhuma / Geral</option></select></div>
+        <div><label>Obra vinculada</label><select id="fl-obra" onchange="atualizarServicosLanc()"><option value="">Nenhuma / Geral</option></select></div>
         <div><label>Data</label><input type="date" id="fl-data"/></div>
       </div>
       <div class="fr fr3">
@@ -2202,6 +2202,15 @@ button[style*="background: #4F6EF7"], .btn-primary {
         <div><label>Fornecedor / Pagador</label><input type="text" id="fl-forn" placeholder="Nome do fornecedor ou cliente"/></div>
         <div><label>Nota fiscal / Nº doc.</label><input type="text" id="fl-nf" placeholder="NF-e, recibo, contrato..."/></div>
       </div>
+      <!-- Painel de referência de serviços (somente leitura, aparece quando receita + obra com serviços) -->
+      <div id="fl-servicos-area" style="display:none;margin-bottom:8px;background:rgba(79,110,247,.06);border:1px solid rgba(79,110,247,.2);border-radius:var(--r);padding:10px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <span style="font-size:12px;font-weight:600;color:var(--tx2)">📋 Serviços contratados nesta obra</span>
+          <span style="font-size:10px;color:var(--tx3)">(referência — lançamento é livre)</span>
+        </div>
+        <div id="fl-servicos-lista"></div>
+      </div>
+
       <div id="lanc-comp-area" style="display:none;margin-bottom:8px">
         <div class="fr">
           <div>
@@ -2262,17 +2271,57 @@ button[style*="background: #4F6EF7"], .btn-primary {
 
 <!-- ========== RELATÓRIOS ========== -->
 <div class="pnl" id="pnl-relatorios">
-  <div class="g2" style="margin-bottom:10px">
-    <div><label>Obra</label><select id="rel-obra"><option value="">Todas as obras</option></select></div>
-    <div><label>Período</label><select id="rel-periodo"><option value="">Todo o período</option></select></div>
+
+  <!-- ── FILTROS ─────────────────────────────────────────────────────── -->
+  <div class="card" style="margin-bottom:12px">
+    <div class="ct">🔍 Filtros do relatório</div>
+    <div class="fr fr3" style="margin-bottom:10px">
+      <div><label>Obra</label><select id="rel-obra" onchange="renderRelatorios()"><option value="">Todas as obras</option></select></div>
+      <div><label>Status da obra</label>
+        <select id="rel-status-obra" onchange="renderRelatorios()">
+          <option value="">Todos os status</option>
+          <option>Em andamento</option>
+          <option>Concluída</option>
+          <option>Parada</option>
+          <option>Orçamento</option>
+        </select>
+      </div>
+      <div><label>Período</label><select id="rel-periodo" onchange="renderRelatorios()"><option value="">Todo o período</option></select></div>
+    </div>
+    <div style="font-size:12px;font-weight:600;color:var(--tx2);margin-bottom:8px">O que mostrar no relatório:</div>
+    <div style="display:flex;flex-wrap:wrap;gap:10px;font-size:13px">
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
+        <input type="checkbox" id="rel-mostrar-valores" checked onchange="renderRelatorios()"/> Valores financeiros
+      </label>
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
+        <input type="checkbox" id="rel-mostrar-areceber" checked onchange="renderRelatorios()"/> A receber
+      </label>
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
+        <input type="checkbox" id="rel-mostrar-despesas" onchange="renderRelatorios()"/> Despesas
+      </label>
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
+        <input type="checkbox" id="rel-mostrar-aditivos" checked onchange="renderRelatorios()"/> Aditivos
+      </label>
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
+        <input type="checkbox" id="rel-mostrar-recebimentos" onchange="renderRelatorios()"/> Detalhe recebimentos
+      </label>
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
+        <input type="checkbox" id="rel-mostrar-progresso" checked onchange="renderRelatorios()"/> % Progresso da obra
+      </label>
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
+        <input type="checkbox" id="rel-mostrar-cliente" checked onchange="renderRelatorios()"/> Nome do cliente
+      </label>
+    </div>
   </div>
+
   <div class="ga" id="rel-stats" style="margin-bottom:12px"></div>
-  <div class="g2">
-    <div class="card"><div class="ct">🏗️ Situação das obras</div><div id="rel-obras"></div></div>
-    <div class="card"><div class="ct">💰 Fluxo financeiro</div><div id="rel-fin"></div></div>
+  <div>
+    <div class="card"><div class="ct">🏗️ Relatório por obra</div><div id="rel-obras"></div></div>
+    <div class="card" style="margin-top:10px"><div class="ct">💰 Resumo financeiro</div><div id="rel-fin"></div></div>
   </div>
   <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
-    <button class="btn bp" onclick="exportarRelPDF()">📄 Exportar relatório PDF</button>
+    <button class="btn bp" onclick="exportarRelPDF()">📄 Exportar PDF</button>
+    <button class="btn" onclick="imprimirRelatorio()" style="background:#25D366;color:#fff">🖨️ Imprimir / Enviar cliente</button>
     <button class="btn bg" onclick="exportarCSV()">📊 Exportar CSV / Excel</button>
     <button class="btn sm" onclick="window.print()">🖨️ Imprimir</button>
   </div>
@@ -2561,7 +2610,22 @@ button[style*="background: #4F6EF7"], .btn-primary {
   <div class="fr"><div><label>Endereço da obra</label><input id="ob-end" type="text" placeholder="Rua, número, bairro, cidade"/></div></div>
   <div class="fr"><div><label>Responsável técnico</label><input id="ob-resp" type="text" placeholder="Eng. / Arq. responsável"/></div></div>
   <div class="fr"><div><label>Observações</label><textarea id="ob-obs" placeholder="Informações adicionais..."></textarea></div></div>
-  <div style="display:flex;justify-content:flex-end;gap:7px"><button class="btn" onclick="fecharMo('mo-obra')">Cancelar</button><button class="btn bp" onclick="salvarObra()">Salvar obra</button></div>
+
+  <!-- SERVIÇOS DA OBRA -->
+  <div style="margin-top:14px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <span style="font-weight:600;font-size:13px;color:var(--tx2)">📋 Serviços / Etapas do contrato</span>
+      <button class="btn sm bp" onclick="adicionarServicoObra()">+ Adicionar serviço</button>
+    </div>
+    <div style="font-size:11px;color:var(--tx3);margin-bottom:8px">Discrimine cada serviço que compõe o valor total. O somatório é calculado automaticamente.</div>
+    <div id="ob-servicos-lista"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px;background:var(--bg3);border-radius:var(--r);margin-top:6px;font-size:13px">
+      <span style="font-weight:600">Total dos serviços:</span>
+      <span id="ob-servicos-total" style="font-weight:700;color:var(--gn)">R$ 0,00</span>
+    </div>
+  </div>
+
+  <div style="display:flex;justify-content:flex-end;gap:7px;margin-top:14px"><button class="btn" onclick="fecharMo('mo-obra')">Cancelar</button><button class="btn bp" onclick="salvarObra()">Salvar obra</button></div>
 </div></div>
 
 <div class="mo" id="mo-cli"><div class="mbox">
@@ -2837,6 +2901,7 @@ function load(){
   if(!DB.ferramentas) DB.ferramentas=[];
   if(!DB.movFerramentas) DB.movFerramentas=[];
   if(!DB.adiantamentos) DB.adiantamentos=[];
+  if(!DB.aditivos) DB.aditivos=[];
   if(!DB.config) DB.config={};
 
   // ── MIGRAÇÃO ÚNICA: adiantamentos antigos guardados fora do DB (não sincronizavam) ──
@@ -3143,7 +3208,8 @@ function renderObras(){
   if(verFinanceiro && DB.obras.length > 0){
     var totalContratado=0, totalRecebido=0;
     DB.obras.forEach(function(o){
-      totalContratado += Number(o.valor||0);
+      var adit_total = (DB.aditivos||[]).filter(function(a){return a.obra===o.id&&a.status!=='cancelado';}).reduce(function(s,a){return s+Number(a.valor||0);},0);
+      totalContratado += Number(o.valor||0) + adit_total;
       var rec = DB.lancamentos.filter(function(l){return l.obra===o.id&&l.tipo==='receita';}).reduce(function(s,l){return s+Number(l.val||0);},0);
       totalRecebido += rec;
     });
@@ -3160,7 +3226,10 @@ function renderObras(){
   var kanbanHtml = statusList.map(function(s){
     var obras = DB.obras.filter(function(o){return o.status===s.k;});
     var cards = obras.map(function(o){
-      var valorContratado = Number(o.valor||0);
+      // Valor contratado = valor original + soma dos aditivos aprovados
+      var aditivos_obra = (DB.aditivos||[]).filter(function(a){ return a.obra===o.id && a.status!=='cancelado'; });
+      var totalAditivos = aditivos_obra.reduce(function(s,a){return s+Number(a.valor||0);},0);
+      var valorContratado = Number(o.valor||0) + totalAditivos;
       var recebido = DB.lancamentos.filter(function(l){return l.obra===o.id&&l.tipo==='receita';}).reduce(function(s,l){return s+Number(l.val||0);},0);
       var aReceber = Math.max(0, valorContratado - recebido);
       var pctRecebido = valorContratado > 0 ? Math.min(100, Math.round(recebido/valorContratado*100)) : 0;
@@ -3183,9 +3252,36 @@ function renderObras(){
         '<div class="prog" style="margin-top:6px"><div class="pf" style="width:'+(o.progresso||0)+'%"></div></div>' +
         '<div style="font-size:9px;color:var(--tx2);margin-top:2px">'+(o.progresso||0)+'% obra · '+fmtData(o.prazo)+'</div>' +
         financRow +
+        // Serviços da obra (colapsável) — usa data-oid/data-idx para evitar escape
+        (o.servicos && o.servicos.length ? (function(){
+          var svHtml = '<details style="margin-top:8px;font-size:11px"><summary style="cursor:pointer;color:var(--tx2);margin-bottom:6px">📋 Serviços ('+o.servicos.length+')</summary>';
+          o.servicos.forEach(function(sv, sIdx){
+            var stCor = sv.status==='pago'?'var(--gn)':sv.status==='executado'?'var(--am)':'var(--tx3)';
+            var stIcon = sv.status==='pago'?'✅':sv.status==='executado'?'🔨':'⏳';
+            var opts = ['pendente','executado','pago'].map(function(st){
+              return '<option value="'+st+'"'+(sv.status===st?' selected':'')+'>'+
+                (st==='pendente'?'⏳':st==='executado'?'🔨':'✅')+'</option>';
+            }).join('');
+            svHtml += '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px dashed var(--br)">' +
+              '<div style="flex:1">' +
+                '<div style="font-size:11px">'+(sv.desc||'Serviço')+'</div>' +
+                '<div style="font-size:10px;color:'+stCor+'">'+stIcon+' '+(sv.status||'pendente')+'</div>' +
+              '</div>' +
+              '<div style="text-align:right">' +
+                '<div style="font-weight:600;font-size:11px">'+fmt(Number(sv.valor||0))+'</div>' +
+                '<select class="srv-kb" data-oid="'+o.id+'" data-idx="'+sIdx+'" style="font-size:9px;padding:1px;margin-top:2px">' +
+                  opts +
+                '</select>' +
+              '</div>' +
+            '</div>';
+          });
+          svHtml += '</details>';
+          return svHtml;
+        })() : '') +
         '<div style="display:flex;gap:4px;margin-top:6px;flex-wrap:wrap">' +
         '<button class="btn xs bp" onclick="editarObra(\''+o.id+'\')">✏️</button>' +
         '<button class="btn xs" onclick="alterarProgresso(\''+o.id+'\')">% prog.</button>' +
+        '<button class="btn xs" style="background:rgba(234,179,8,.15);color:#ca8a04" onclick="abrirAditivos(\''+o.id+'\')">📋 Aditivos</button>' +
         '<select class="btn xs" onchange="alterarStatus(\''+o.id+'\',this.value)" style="padding:2px 4px">' +
         statusList.map(function(ss){return '<option'+(ss.k===o.status?' selected':'')+'>'+ss.k+'</option>';}).join('') +
         '</select>' +
@@ -3202,6 +3298,14 @@ function renderObras(){
   }).join('');
 
   set('kanban-obras', resumoHtml + '<div class="kb">'+kanbanHtml+'</div>');
+  setTimeout(function(){
+    var kb=el('kanban-obras'); if(!kb) return;
+    kb.querySelectorAll('.srv-kb,.srv-k').forEach(function(sel){
+      sel.addEventListener('change',function(){
+        atualizarStatusServico(this.dataset.oid,Number(this.dataset.idx),this.value);
+      });
+    });
+  },50);
 }
 
 function alterarStatus(id,status){DB.obras.find(o=>o.id===id).status=status;save();}
@@ -3214,7 +3318,20 @@ function editarObra(id){
   editId.obra=id;
   el('mo-obra-titulo').textContent='Editar obra';
   abrirMo('mo-obra');
-  setTimeout(()=>{setV('ob-nome',o.nome);el('ob-cli').value=o.cliente||'';setV('ob-area',o.area);setV('ob-valor',o.valor);setV('ob-ini',o.ini);setV('ob-prazo',o.prazo);setV('ob-end',o.end);setV('ob-resp',o.resp);setV('ob-obs',o.obs);el('ob-tipo').value=o.tipo||'Residencial';},80);
+  setTimeout(function(){
+    setV('ob-nome',o.nome);el('ob-cli').value=o.cliente||'';setV('ob-area',o.area);
+    setV('ob-valor',o.valor);setV('ob-ini',o.ini);setV('ob-prazo',o.prazo);
+    setV('ob-end',o.end);setV('ob-resp',o.resp);setV('ob-obs',o.obs);
+    el('ob-tipo').value=o.tipo||'Residencial';
+    // Carrega serviços existentes
+    el('ob-servicos-lista').innerHTML='';
+    if(o.servicos && o.servicos.length){
+      o.servicos.forEach(function(sv){
+        adicionarServicoObra(sv.desc, sv.valor, sv.status);
+      });
+    }
+    recalcTotalServicos();
+  },80);
 }
 function salvarObra(){
   // Verifica limite de obras por plano (só ao criar, não ao editar)
@@ -3233,14 +3350,42 @@ function salvarObra(){
       return;
     }
   }
-  const dados={nome:val('ob-nome'),cliente:val('ob-cli'),tipo:val('ob-tipo'),area:val('ob-area'),valor:val('ob-valor'),ini:val('ob-ini'),prazo:val('ob-prazo'),end:val('ob-end'),resp:val('ob-resp'),obs:val('ob-obs'),status:'Em andamento',progresso:0};
+  // Coleta serviços da lista
+  var servicosObra = [];
+  document.querySelectorAll('#ob-servicos-lista .srv-row').forEach(function(row){
+    var desc  = row.querySelector('.srv-desc').value.trim();
+    var valor = Number(row.querySelector('.srv-valor').value)||0;
+    var status = row.querySelector('.srv-status').value;
+    if(desc || valor>0) servicosObra.push({id:id(), desc:desc, valor:valor, status:status});
+  });
+
+  // Se tem serviços discriminados, calcula o total automaticamente
+  var totalServicos = servicosObra.reduce(function(s,sv){return s+sv.valor;},0);
+  var valorFinal = totalServicos > 0 ? totalServicos : Number(val('ob-valor'))||0;
+
+  const dados={nome:val('ob-nome'),cliente:val('ob-cli'),tipo:val('ob-tipo'),area:val('ob-area'),
+    valor:valorFinal, servicos:servicosObra,
+    ini:val('ob-ini'),prazo:val('ob-prazo'),end:val('ob-end'),resp:val('ob-resp'),obs:val('ob-obs'),
+    status:'Em andamento',progresso:0, _ts:Date.now()};
+
   if(!dados.nome){alert('Preencha o nome da obra.');return;}
-  if(editId.obra){Object.assign(DB.obras.find(x=>x.id===editId.obra),dados);delete editId.obra;}
-  else{dados.id=id();DB.obras.push(dados);}
+  if(editId.obra){
+    var obraEdit = DB.obras.find(function(x){return x.id===editId.obra;});
+    Object.assign(obraEdit, dados);
+    obraEdit._ts = Date.now();
+    delete editId.obra;
+  } else {
+    dados.id=id();
+    DB.obras.push(dados);
+  }
   save();
-  setTimeout(function(){ sincronizarCompleto(true); }, 1000);fecharMo('mo-obra');renderObras();
+  setTimeout(function(){ sincronizarCompleto(true); }, 1000);
+  fecharMo('mo-obra');
+  renderObras();
   el('mo-obra-titulo').textContent='Nova obra';
-  ['ob-nome','ob-area','ob-valor','ob-ini','ob-prazo','ob-end','ob-resp','ob-obs'].forEach(i=>setV(i,''));
+  ['ob-nome','ob-area','ob-valor','ob-ini','ob-prazo','ob-end','ob-resp','ob-obs'].forEach(function(i){setV(i,'');});
+  el('ob-servicos-lista').innerHTML='';
+  recalcTotalServicos();
 }
 
 // ================================================================ CLIENTES
@@ -3466,13 +3611,16 @@ function toggleFlTipo(){
   setInnerSelect('fl-cat',cats.map(c=>`<option>${c}</option>`).join(''));
 }
 function salvarLanc(){
-  const dados={id:id(),tipo:val('fl-tipo'),cat:val('fl-cat'),obra:val('fl-obra'),data:val('fl-data'),desc:val('fl-desc'),val:Number(val('fl-val'))||0,forn:val('fl-forn'),nf:val('fl-nf')};
+  const dados={id:id(),tipo:val('fl-tipo'),cat:val('fl-cat'),obra:val('fl-obra'),data:val('fl-data'),desc:val('fl-desc'),val:Number(val('fl-val'))||0,forn:val('fl-forn'),nf:val('fl-nf'),_ts:Date.now()};
+  // Vincula funcionário se Mão de obra/Adiantamento
+  var funcSel = val('fl-func');
+  if(funcSel){ dados.funcId=funcSel; var funcObj=DB.funcionarios.find(function(f){return f.id===funcSel;}); if(funcObj&&!dados.forn)dados.forn=funcObj.nome; }
   if(!dados.desc||!dados.val){alert('Preencha a descrição e o valor.');return;}
-  var tipoLabel=dados.tipo==='receita'?'Receita':'Despesa';
-  var msg='Confirmar lançamento?\n\n'+tipoLabel+': '+dados.desc+'\nValor: '+fmt(dados.val)+(dados.obra?'\nObra: '+nomeOb(dados.obra):'');
-  if(!confirm(msg)) return;
-  DB.lancamentos.push(dados);save();
-  setTimeout(function(){ sincronizarCompleto(true); }, 1000);renderLanc();limparLanc();
+  DB.lancamentos.push(dados);
+  save();
+  setTimeout(function(){ sincronizarCompleto(true); }, 1000);
+  renderLanc();
+  limparLanc();
 }
 function limparLanc(){['fl-desc','fl-val','fl-forn','fl-nf'].forEach(i=>setV(i,''));setV('fl-data',hoje());}
 function renderLanc(){
@@ -3616,23 +3764,174 @@ function salvarDiario(){
 
 // ================================================================ RELATÓRIOS
 function renderRelatorios(){
-  const obraF=val('rel-obra');
-  const obras=DB.obras.filter(o=>!obraF||o.id===obraF);
-  const lancs=DB.lancamentos.filter(l=>!obraF||l.obra===obraF);
-  const rec=lancs.filter(l=>l.tipo==='receita').reduce((s,l)=>s+Number(l.val||0),0);
-  const desp=lancs.filter(l=>l.tipo==='despesa').reduce((s,l)=>s+Number(l.val||0),0);
-  const andamento=obras.filter(o=>o.status==='Em andamento').length;
-  const concluidas=obras.filter(o=>o.status==='Concluída').length;
-  set('rel-stats',`
-    <div class="st b"><div class="st-ico">🏗️</div><div class="st-val">${andamento}</div><div class="st-lbl">Em andamento</div></div>
-    <div class="st p"><div class="st-ico">✅</div><div class="st-val">${concluidas}</div><div class="st-lbl">Concluídas</div></div>
-    <div class="st g"><div class="st-ico">💰</div><div class="st-val">${fmt(rec)}</div><div class="st-lbl">Total recebido</div></div>
-    <div class="st r"><div class="st-ico">💸</div><div class="st-val">${fmt(desp)}</div><div class="st-lbl">Total despesas</div></div>
-    <div class="st a"><div class="st-ico">💹</div><div class="st-val">${fmt(rec-desp)}</div><div class="st-lbl">${rec-desp>=0?'Lucro':'Prejuízo'}</div></div>
-  `);
-  set('rel-obras',obras.length?obras.map(o=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--br);font-size:12px"><div><div style="font-weight:600">${o.nome}</div><div style="color:var(--tx2);font-size:10px">${nomeCl(o.cliente)}</div></div><div style="text-align:right"><span class="badge-tag ${o.status==='Em andamento'?'t-and':o.status==='Concluída'?'t-fin':'t-par'}">${o.status}</span><div style="font-size:10px;color:var(--tx2);margin-top:2px">${o.progresso||0}%</div></div></div>`).join(''):'<div class="empty">Sem dados</div>');
-  set('rel-fin',`<div style="font-size:12px"><div class="tot-r"><span>Total de receitas</span><span style="color:var(--gn)">${fmt(rec)}</span></div><div class="tot-r"><span>Total de despesas</span><span style="color:var(--rd)">${fmt(desp)}</span></div><div class="tot-r" style="color:${rec-desp>=0?'var(--gn)':'var(--rd)'}">Resultado <span>${fmt(rec-desp)}</span></div></div>`);
-  setInnerSelect('rel-obra','<option value="">Todas as obras</option>'+DB.obras.map(o=>`<option value="${o.id}">${o.nome}</option>`).join(''));
+  var obraF       = val('rel-obra');
+  var statusF     = val('rel-status-obra');
+
+  // Lê checkboxes (com fallback true se não existirem ainda)
+  function chk(id){ var el2=document.getElementById(id); return el2 ? el2.checked : true; }
+  var mostrarValores      = chk('rel-mostrar-valores');
+  var mostrarAReceber     = chk('rel-mostrar-areceber');
+  var mostrarDespesas     = chk('rel-mostrar-despesas');
+  var mostrarAditivos     = chk('rel-mostrar-aditivos');
+  var mostrarRecebimentos = chk('rel-mostrar-recebimentos');
+  var mostrarProgresso    = chk('rel-mostrar-progresso');
+  var mostrarCliente      = chk('rel-mostrar-cliente');
+
+  var obras = DB.obras.filter(function(o){
+    if(obraF && o.id!==obraF) return false;
+    if(statusF && o.status!==statusF) return false;
+    return true;
+  });
+
+  // ── Totalizadores gerais ──────────────────────────────────────────────────
+  var gTotalContratado=0, gTotalRecebido=0, gTotalDespesa=0, gTotalAReceber=0;
+  var andamento=0, concluidas=0;
+
+  obras.forEach(function(o){
+    var adits     = (DB.aditivos||[]).filter(function(a){return a.obra===o.id&&a.status!=='cancelado';});
+    var totalAdit = adits.reduce(function(s,a){return s+Number(a.valor||0);},0);
+    var contratado = Number(o.valor||0) + totalAdit;
+    var lancsObra  = DB.lancamentos.filter(function(l){return l.obra===o.id;});
+    var recebido   = lancsObra.filter(function(l){return l.tipo==='receita';}).reduce(function(s,l){return s+Number(l.val||0);},0);
+    var despesa    = lancsObra.filter(function(l){return l.tipo==='despesa';}).reduce(function(s,l){return s+Number(l.val||0);},0);
+    gTotalContratado += contratado;
+    gTotalRecebido   += recebido;
+    gTotalDespesa    += despesa;
+    gTotalAReceber   += Math.max(0, contratado - recebido);
+    if(o.status==='Em andamento') andamento++;
+    if(o.status==='Concluída') concluidas++;
+  });
+
+  // ── Cards de resumo ──────────────────────────────────────────────────────
+  var statsHtml =
+    '<div class="st b"><div class="st-ico">🏗️</div><div class="st-val">'+andamento+'</div><div class="st-lbl">Em andamento</div></div>' +
+    '<div class="st p"><div class="st-ico">✅</div><div class="st-val">'+concluidas+'</div><div class="st-lbl">Concluídas</div></div>';
+  if(mostrarValores){
+    statsHtml += '<div class="st" style="background:rgba(234,179,8,.1);border:1px solid rgba(234,179,8,.3)"><div class="st-ico">📋</div><div class="st-val" style="color:#ca8a04">'+fmt(gTotalContratado)+'</div><div class="st-lbl">Total contratado</div></div>' +
+      '<div class="st g"><div class="st-ico">💰</div><div class="st-val">'+fmt(gTotalRecebido)+'</div><div class="st-lbl">Total recebido</div></div>';
+  }
+  if(mostrarValores && mostrarAReceber){
+    statsHtml += '<div class="st a"><div class="st-ico">⏳</div><div class="st-val" style="color:var(--am)">'+fmt(gTotalAReceber)+'</div><div class="st-lbl">A receber</div></div>';
+  }
+  if(mostrarValores && mostrarDespesas){
+    statsHtml += '<div class="st r"><div class="st-ico">💸</div><div class="st-val">'+fmt(gTotalDespesa)+'</div><div class="st-lbl">Total despesas</div></div>';
+  }
+  set('rel-stats', statsHtml);
+
+  // ── Detalhamento por obra ─────────────────────────────────────────────────
+  var detHtml = obras.length ? obras.map(function(o){
+    var adits     = (DB.aditivos||[]).filter(function(a){return a.obra===o.id&&a.status!=='cancelado';});
+    var totalAdit = adits.reduce(function(s,a){return s+Number(a.valor||0);},0);
+    var contratado = Number(o.valor||0) + totalAdit;
+    var lancsObra  = DB.lancamentos.filter(function(l){return l.obra===o.id;});
+    var recebido   = lancsObra.filter(function(l){return l.tipo==='receita';}).reduce(function(s,l){return s+Number(l.val||0);},0);
+    var despesa    = lancsObra.filter(function(l){return l.tipo==='despesa';}).reduce(function(s,l){return s+Number(l.val||0);},0);
+    var aReceber   = Math.max(0, contratado - recebido);
+    var resultado  = recebido - despesa;
+    var pct = contratado>0 ? Math.min(100,Math.round(recebido/contratado*100)) : 0;
+    var stCls = o.status==='Em andamento'?'t-and':o.status==='Concluída'?'t-fin':o.status==='Parada'?'t-par':'t-orc';
+
+    // Serviços do contrato original
+    var servicosObra = o.servicos || [];
+    var totalSrvPago = servicosObra.filter(function(s){return s.status==='pago';}).reduce(function(sm,s){return sm+Number(s.valor||0);},0);
+    var totalSrvExec = servicosObra.filter(function(s){return s.status==='executado';}).reduce(function(sm,s){return sm+Number(s.valor||0);},0);
+
+    // Receitas individuais
+    var recList = lancsObra.filter(function(l){return l.tipo==='receita';}).sort(function(a,b){return (b.data||'').localeCompare(a.data||'');});
+    var recHtml = recList.length ? recList.map(function(r){
+      return '<div style="display:flex;justify-content:space-between;font-size:11px;padding:3px 0;border-bottom:1px dashed var(--br)">' +
+        '<span style="color:var(--tx2)">'+fmtData(r.data)+' — '+(r.desc||'Recebimento')+'</span>' +
+        '<span style="color:var(--gn);font-weight:600">'+fmt(r.val)+'</span></div>';
+    }).join('') : '<div style="font-size:11px;color:var(--tx3);padding:4px 0">Nenhum recebimento lançado</div>';
+
+    // Aditivos
+    var aditHtml = adits.length ? adits.map(function(a){
+      return '<div style="display:flex;justify-content:space-between;font-size:11px;padding:3px 0;border-bottom:1px dashed var(--br)">' +
+        '<span style="color:var(--tx2)">'+fmtData(a.data)+' — '+(a.desc||'Aditivo')+'</span>' +
+        '<span style="color:#ca8a04;font-weight:600">+'+fmt(a.valor)+'</span></div>';
+    }).join('') : '';
+
+    // Monta o card respeitando os checkboxes
+    var cardHtml = '<div style="background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);padding:14px;margin-bottom:12px">';
+
+    // Cabeçalho: nome + status
+    cardHtml += '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">' +
+      '<div><div style="font-weight:700;font-size:15px">'+o.nome+'</div>' +
+      (mostrarCliente && o.cliente ? '<div style="font-size:11px;color:var(--tx3);margin-top:2px">'+nomeCl(o.cliente)+(o.area?' · '+o.area+' m²':'')+'</div>' : '') +
+      '</div>' +
+      '<span class="badge-tag '+stCls+'">'+o.status+'</span>' +
+    '</div>';
+
+    // Barra de progresso da obra
+    if(mostrarProgresso){
+      cardHtml += '<div style="height:6px;background:var(--bg);border-radius:3px;margin-bottom:6px;overflow:hidden">' +
+        '<div style="height:6px;border-radius:3px;width:'+pct+'%;background:'+(pct>=100?'var(--gn)':'var(--ac)')+'"></div></div>' +
+        '<div style="font-size:10px;color:var(--tx3);margin-bottom:10px">'+pct+'% recebido · '+( o.progresso||0)+'% obra executada</div>';
+    }
+
+    // Grid de valores financeiros
+    if(mostrarValores){
+      cardHtml += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px">';
+      cardHtml += '<div style="background:var(--bg3);border-radius:6px;padding:7px;text-align:center"><div style="font-size:9px;color:var(--tx3)">Valor original</div><div style="font-weight:700;font-size:12px">'+fmt(Number(o.valor||0))+'</div></div>';
+      if(mostrarAditivos && totalAdit>0)
+        cardHtml += '<div style="background:rgba(234,179,8,.1);border-radius:6px;padding:7px;text-align:center"><div style="font-size:9px;color:var(--tx3)">+ Aditivos</div><div style="font-weight:700;font-size:12px;color:#ca8a04">'+fmt(totalAdit)+'</div></div>';
+      cardHtml += '<div style="background:rgba(16,185,129,.1);border-radius:6px;padding:7px;text-align:center"><div style="font-size:9px;color:var(--tx3)">Total contratado</div><div style="font-weight:700;font-size:12px;color:var(--gn)">'+fmt(contratado)+'</div></div>';
+      cardHtml += '<div style="background:rgba(91,126,255,.1);border-radius:6px;padding:7px;text-align:center"><div style="font-size:9px;color:var(--tx3)">Recebido</div><div style="font-weight:700;font-size:12px;color:var(--ac)">'+fmt(recebido)+'</div></div>';
+      if(mostrarAReceber && aReceber>0.01)
+        cardHtml += '<div style="background:rgba(245,158,11,.1);border-radius:6px;padding:7px;text-align:center"><div style="font-size:9px;color:var(--tx3)">A receber</div><div style="font-weight:700;font-size:12px;color:var(--am)">'+fmt(aReceber)+'</div></div>';
+      if(mostrarDespesas)
+        cardHtml += '<div style="background:rgba(239,68,68,.1);border-radius:6px;padding:7px;text-align:center"><div style="font-size:9px;color:var(--tx3)">Despesas</div><div style="font-weight:700;font-size:12px;color:var(--rd)">'+fmt(despesa)+'</div></div>';
+      cardHtml += '</div>';
+    }
+
+    // Serviços originais do contrato
+    if(mostrarAditivos && servicosObra.length){
+      var srvRelHtml = '<div style="margin-bottom:10px">' +
+        '<div style="font-size:11px;font-weight:600;color:var(--tx2);margin-bottom:6px">📋 Serviços / Etapas do contrato original</div>';
+      servicosObra.forEach(function(sv){
+        var stCor = sv.status==='pago'?'#16a34a':sv.status==='executado'?'#ca8a04':'#888';
+        var stLabel = sv.status==='pago'?'✅ Pago':sv.status==='executado'?'🔨 Executado':'⏳ Pendente';
+        srvRelHtml += '<div style="display:flex;justify-content:space-between;font-size:11px;padding:4px 0;border-bottom:1px dashed var(--br)">' +
+          '<span>'+(sv.desc||'Serviço')+'<span style="font-size:10px;color:'+stCor+';margin-left:6px">'+stLabel+'</span></span>' +
+          '<span style="font-weight:600">'+fmt(Number(sv.valor||0))+'</span></div>';
+      });
+      if(totalSrvPago > 0 || totalSrvExec > 0){
+        srvRelHtml += '<div style="display:flex;gap:12px;padding:4px 0;font-size:10px;color:var(--tx3)">' +
+          '<span>✅ Pago: <b style="color:#16a34a">'+fmt(totalSrvPago)+'</b></span>' +
+          '<span>🔨 Executado: <b style="color:#ca8a04">'+fmt(totalSrvExec)+'</b></span></div>';
+      }
+      srvRelHtml += '</div>';
+      cardHtml += srvRelHtml;
+    }
+
+    // Aditivos listados
+    if(mostrarAditivos && aditHtml){
+      cardHtml += '<div style="margin-bottom:8px"><div style="font-size:10px;font-weight:600;color:#ca8a04;margin-bottom:4px">➕ Aditivos (serviços extras)</div>'+aditHtml+'</div>';
+    }
+
+    // Recebimentos listados
+    if(mostrarRecebimentos && recList.length){
+      cardHtml += '<div><div style="font-size:10px;font-weight:600;color:var(--gn);margin-bottom:4px">💰 Recebimentos</div>' + recHtml + '</div>';
+    }
+
+    cardHtml += '</div>';
+    return cardHtml;
+  }).join('') : '<div class="empty">Nenhuma obra encontrada.</div>';
+
+  set('rel-obras', detHtml);
+
+  // Resumo financeiro total (no segundo card)
+  set('rel-fin',
+    '<div style="font-size:12px">' +
+    '<div class="tot-r"><span>Total contratado (obras + aditivos)</span><span style="color:#ca8a04;font-weight:700">'+fmt(gTotalContratado)+'</span></div>' +
+    '<div class="tot-r"><span>Total recebido</span><span style="color:var(--gn);font-weight:700">'+fmt(gTotalRecebido)+'</span></div>' +
+    '<div class="tot-r"><span style="color:var(--am);font-weight:600">⏳ Total a receber</span><span style="color:var(--am);font-weight:700">'+fmt(gTotalAReceber)+'</span></div>' +
+    '<div class="tot-r" style="border-top:2px solid var(--br);padding-top:6px;margin-top:4px"><span>Total de despesas</span><span style="color:var(--rd)">'+fmt(gTotalDespesa)+'</span></div>' +
+    '<div class="tot-r" style="color:'+(gTotalRecebido-gTotalDespesa>=0?'var(--gn)':'var(--rd)')+'">Resultado líquido <span style="font-weight:700">'+fmt(gTotalRecebido-gTotalDespesa)+'</span></div>' +
+    '</div>'
+  );
+
+  setInnerSelect('rel-obra','<option value="">Todas as obras</option>'+DB.obras.map(function(o){return '<option value="'+o.id+'">'+o.nome+'</option>';}).join(''));
 }
 
 function exportarRelPDF(){
@@ -3867,30 +4166,74 @@ function renderOrcLista(){
   const q=val('orc-busca')?.toLowerCase()||'';
   const lista=DB.orcamentos.filter(o=>!q||nomeCl(o.cli).toLowerCase().includes(q)||String(o.num).includes(q));
   lista.sort((a,b)=>b.num-a.num);
-  set('tbl-orcs',lista.length?lista.map(o=>`<tr><td><strong>#${o.num}</strong></td><td>${fmtData(o.data)}</td><td>${nomeCl(o.cli)}</td><td>${nomeOb(o.obra)}</td><td style="font-weight:600;color:var(--gn)">${fmt(o.total)}</td><td><select onchange="alterarStatusOrc('${o.id}',this.value)" class="btn xs"><option ${o.status==='Pendente'?'selected':''}>Pendente</option><option ${o.status==='Aprovado'?'selected':''}>Aprovado</option><option ${o.status==='Reprovado'?'selected':''}>Reprovado</option></select></td><td><div style="display:flex;gap:4px"><button class="btn xs bp" onclick="exportarOrcPDFById('${o.id}')">📄 PDF</button>
+  set('tbl-orcs',lista.length?lista.map(o=>`<tr><td><strong>#${o.num}</strong></td><td>${fmtData(o.data)}</td><td>${nomeCl(o.cli)}</td><td>${nomeOb(o.obra)}</td><td style="font-weight:600;color:var(--gn)">${fmt(o.total)}</td><td><select onchange="alterarStatusOrc('${o.id}',this.value)" class="btn xs" style="font-size:11px"><option ${o.status==='Pendente'?'selected':''}>Pendente</option><option ${o.status==='Aprovado'?'selected':''}>Aprovado</option><option ${o.status==='Aprovado Parcial'?'selected':''}>Aprovado Parcial</option><option ${o.status==='Reprovado'?'selected':''}>Reprovado</option><option ${o.status==='Executado'?'selected':''}>Executado</option><option ${o.status==='Recebido'?'selected':''}>Recebido</option></select></td><td><div style="display:flex;gap:4px"><button class="btn xs bp" onclick="exportarOrcPDFById('${o.id}')">📄 PDF</button>
           <button class="btn xs bg" onclick="enviarOrcWhatsApp('${o.id}')">💬 WhatsApp</button><button class="btn xs br-" onclick="deletar('orcamentos','${o.id}');renderOrcLista()">🗑</button></div></td></tr>`).join(''):`<tr><td colspan="7" class="empty">Nenhum orçamento salvo</td></tr>`);
 }
-function alterarStatusOrc(id,status){
-  const o=DB.orcamentos.find(x=>x.id===id);if(!o)return;
-  const anterior=o.status;o.status=status;save();
-  if(status==='Aprovado'&&anterior!=='Aprovado'){
-    if(confirm('Orcamento aprovado!\n\nDeseja criar uma OBRA a partir deste orcamento?')){
-      criarObraDoOrcamento(id);
-    }
+function alterarStatusOrc(orcId, status){
+  const o = DB.orcamentos.find(x=>x.id===orcId); if(!o) return;
+  const anterior = o.status;
+  o.status = status;
+  save();
+
+  if(status === 'Aprovado' && anterior !== 'Aprovado'){
+    // Aprovação total — pergunta sobre obra
+    abrirModalAprovacaoOrc(orcId, false);
+  } else if(status === 'Aprovado Parcial' && anterior !== 'Aprovado Parcial'){
+    // Aprovação parcial — abre modal para marcar quais itens
+    abrirModalAprovacaoOrc(orcId, true);
+  } else {
+    renderOrcLista();
   }
-  renderOrcLista();
 }
-function criarObraDoOrcamento(orcId){
-  const o=DB.orcamentos.find(x=>x.id===orcId);if(!o)return;
-  if(o.obra&&DB.obras.find(x=>x.id===o.obra)){alert('Este orcamento ja esta vinculado a uma obra.');return;}
-  const cli=DB.clientes.find(c=>c.id===o.cli);
-  const nova={id:id(),nome:'Obra - '+(cli?cli.nome:'Orc #'+o.num),cliente:o.cli,
-    tipo:'Residencial',area:0,valor:o.total,ini:hoje(),prazo:'',end:'',
-    resp:DB.config.resp||'',obs:'Criada do orcamento #'+o.num,
-    status:'Em andamento',progresso:0,orcamentoId:orcId};
-  DB.obras.push(nova);o.obra=nova.id;save();
-  alert('Obra criada! Valor contratado: '+fmt(o.total));
-  navegar('obras');
+function criarObraDoOrcamento(orcId, linhasAprovadas){
+  const o = DB.orcamentos.find(x=>x.id===orcId); if(!o) return;
+  const existente = o.obra ? DB.obras.find(x=>x.id===o.obra) : null;
+
+  // Determina as linhas a usar (todas ou somente as aprovadas)
+  const linhas = linhasAprovadas || o.linhas || [];
+  const valorTotal = linhas.reduce(function(s,l){return s+Number(l.tot||0);},0);
+
+  // Converte linhas do orçamento em serviços da obra
+  const servicos = linhas.map(function(l){
+    return { id:id(), desc:l.desc||'Serviço', valor:Number(l.tot||0), status:'pendente', _ts:Date.now() };
+  });
+
+  if(existente){
+    // Obra já existe — adiciona como aditivo
+    if(!DB.aditivos) DB.aditivos=[];
+    linhas.forEach(function(l){
+      DB.aditivos.push({
+        id:id(), obra:existente.id,
+        data:hoje(), desc:(o.num?'Orc #'+o.num+' - ':'')+l.desc,
+        valor:Number(l.tot||0), status:'aprovado', obs:'Aditivo via orçamento', _ts:Date.now()
+      });
+    });
+    // Também adiciona como serviços na obra
+    if(!existente.servicos) existente.servicos=[];
+    servicos.forEach(function(sv){ existente.servicos.push(sv); });
+    existente._ts = Date.now();
+    save();
+    setTimeout(function(){ sincronizarCompleto(true); },800);
+    alert('✔ ' + existente.servicos.length + ' serviços adicionados à obra: ' + existente.nome + ' | Valor: ' + fmt(valorTotal));
+    navegar('obras');
+  } else {
+    // Cria nova obra
+    const cli = DB.clientes.find(c=>c.id===o.cli);
+    const nova = {
+      id:id(), nome:'Obra - '+(cli?cli.nome:'Orc #'+o.num),
+      cliente:o.cli, tipo:'Residencial', area:0,
+      valor:valorTotal, servicos:servicos,
+      ini:hoje(), prazo:'', end:'', resp:DB.config.resp||'',
+      obs:'Criada do orçamento #'+o.num, status:'Em andamento', progresso:0,
+      orcamentoId:orcId, _ts:Date.now()
+    };
+    DB.obras.push(nova);
+    o.obra = nova.id;
+    save();
+    setTimeout(function(){ sincronizarCompleto(true); },800);
+    alert('✔ Obra criada com ' + servicos.length + ' serviços! Valor contratado: ' + fmt(valorTotal));
+    navegar('obras');
+  }
 }
 
 function exportarOrcPDF(){
@@ -5801,9 +6144,23 @@ function initAuth(){
     aplicarBloqueiosPlano();
     setTimeout(function(){
       atualizarLogoSidebar && atualizarLogoSidebar();
-      // Remove o parâmetro da URL sem recarregar
       window.history.replaceState({}, '', window.location.pathname);
-      alert('✔ Acesso de emergência ativado!\n\nSenha redefinida para: admin123\n\nVá em Configurações → Segurança para definir uma nova senha.');
+
+      // Navega para configurações automaticamente e pré-preenche a senha atual
+      navegar && navegar('configuracoes');
+      setTimeout(function(){
+        var cfgAtual = el('cfg-senha-atual');
+        if(cfgAtual){
+          cfgAtual.value = 'admin123';
+          cfgAtual.style.border = '2px solid #25D366';
+        }
+        // Rola até a seção de segurança
+        var secSeg = document.querySelector('[data-section="seguranca"]') ||
+                     document.querySelector('#cfg-senha-atual');
+        if(secSeg) secSeg.scrollIntoView({behavior:'smooth', block:'center'});
+      }, 800);
+
+      alert('✔ Acesso de emergência ativado!\n\nSua senha foi redefinida para:\n\n   admin123\n\nO campo "Senha atual" já foi preenchido automaticamente.\n\nDigite sua nova senha no campo "Nova senha" e salve.');
     }, 1500);
     return;
   }
@@ -6215,17 +6572,20 @@ function verComprovante(lancId){
 
 // ── TROCAR SENHA ─────────────────────────────────────────────────────────────
 function abrirTrocarSenha(){
-  ['senha-atual','senha-nova','senha-conf'].forEach(i=>setV(i,''));
-  el('senha-err').style.display='none';
-  abrirMo('mo-trocar-senha');
-  setTimeout(()=>el('senha-atual').focus(),100);
+  // A troca de senha é feita inline nas Configurações — apenas faz scroll até lá
+  navegar('configuracoes');
+  setTimeout(function(){
+    var el2=el('cfg-senha-atual');
+    if(el2){ el2.scrollIntoView({behavior:'smooth',block:'center'}); el2.focus(); }
+  },400);
 }
 
 function confirmarTrocarSenha(){
-  var atual = val('senha-atual');
-  var nova  = val('senha-nova');
-  var conf  = val('senha-conf');
-  var err   = el('senha-err');
+  // Suporta tanto o modal legado quanto o inline de configurações
+  var atual = val('cfg-senha-atual') || val('senha-atual');
+  var nova  = val('cfg-senha-nova')  || val('senha-nova');
+  var conf  = val('cfg-senha-conf')  || val('senha-conf');
+  var err   = el('cfg-senha-err')    || el('senha-err') || {textContent:'',style:{display:'none'}};
   err.style.display='none';
 
   // Pega sessão atual
@@ -6260,7 +6620,8 @@ function confirmarTrocarSenha(){
     if(u2){ u2.senha=nova; save(); }
   }
 
-  fecharMo('mo-trocar-senha');
+  // Limpa campos após salvar
+  ['cfg-senha-atual','cfg-senha-nova','cfg-senha-conf'].forEach(function(i){setV(i,'');});
   alert('✔ Senha alterada com sucesso!');
 }
 
@@ -6426,11 +6787,24 @@ function enviarCodigoRecuperacao(){
     btn.textContent='Enviar código';
     if(json&&json.ok){
       recEmailAtual = email;
+      // Cache local do código para validação offline
+      if(json._c) try{ sessionStorage.setItem('_rec_c', json._c); }catch(e){}
       el('rec-email-display').textContent = email;
       el('painel-rec1').style.display='none';
       el('painel-rec2').style.display='block';
       setTimeout(function(){el('rec-codigo').focus();},100);
     } else {
+      // Se servidor diz que não tem código mas temos cache local, valida localmente
+      var _cachedCode = '';
+      try{ _cachedCode = sessionStorage.getItem('_rec_c')||''; }catch(e){}
+      if(_cachedCode && codigo === _cachedCode &&
+         (json&&(json.msg||'').includes('Nenhum codigo') || json&&(json.msg||'').includes('expirado'))){
+        // Código confere localmente — salva a senha sem precisar do servidor
+        btn.disabled=false; btn.textContent='✔ Redefinir senha';
+        _salvarNovaSenha();
+        try{ sessionStorage.removeItem('_rec_c'); }catch(e){}
+        return;
+      }
       // Verifica se tem código de emergência (quando email falhou no servidor)
       if(json && json.codigoEmergencia){
         recEmailAtual = email;
@@ -6635,7 +7009,7 @@ function ofertarRestauracaoBackup(email){
         // Preserva IDs deletados e remove itens que o usuário havia apagado
         DB._deletedIds = deletados;
         var campos = ['obras','clientes','orcamentos','lancamentos',
-                      'pontos','diario','estoque','funcionarios','users','producoes','pagamentosParciais','adiantamentos','justificativas','ferramentas','movFerramentas'];
+                      'pontos','diario','estoque','funcionarios','users','producoes','pagamentosParciais','adiantamentos','aditivos','justificativas','ferramentas','movFerramentas'];
         campos.forEach(function(campo){
           if(!DB[campo]) return;
           DB[campo] = DB[campo].filter(function(item){
@@ -6881,7 +7255,7 @@ function puxarDadosEquipe(){
       var dados = JSON.parse(backup);
       // Mescla — adiciona registros que não existem localmente
       var campos = ['obras','clientes','orcamentos','lancamentos',
-                    'pontos','diario','estoque','funcionarios','users','producoes','pagamentosParciais','adiantamentos','justificativas','ferramentas','movFerramentas'];
+                    'pontos','diario','estoque','funcionarios','users','producoes','pagamentosParciais','adiantamentos','aditivos','justificativas','ferramentas','movFerramentas'];
       campos.forEach(function(campo){
         if(!dados[campo]) return;
         if(!DB[campo]) DB[campo] = [];
@@ -6986,7 +7360,7 @@ function _puxarDaNuvem(email, silencioso){
         var dados = JSON.parse(backupNuvem);
         var novosItens = 0;
         var campos = ['obras','clientes','orcamentos','lancamentos',
-                      'pontos','diario','estoque','funcionarios','users','producoes','pagamentosParciais','adiantamentos','justificativas','ferramentas','movFerramentas'];
+                      'pontos','diario','estoque','funcionarios','users','producoes','pagamentosParciais','adiantamentos','aditivos','justificativas','ferramentas','movFerramentas'];
 
         // Mescla _deletedIds do cloud + local (outros dispositivos podem ter deletado)
         var delLocal = DB._deletedIds || [];
@@ -8425,7 +8799,7 @@ function gerarQRCodeObra(obraId){
   var urlQR=urlBase+'?qr='+obraId;
   var ov=document.createElement('div');
   ov.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.88);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
-  var nomeSafe = obra.nome.replace(/'/g,"&#39;");
+  var nomeSafe = obra.nome.split("'").join('&#39;').split('"').join('&#34;');
   ov.innerHTML='<div style="background:#1a1f2e;border:1px solid #2d3348;border-radius:16px;padding:24px;width:100%;max-width:340px;text-align:center">'+
     '<div style="font-size:13px;font-weight:700;color:#eef0f8;margin-bottom:4px">📲 QR Code — Ponto Rápido</div>'+
     '<div style="font-size:11px;color:#8d95b0;margin-bottom:16px">'+obra.nome+'</div>'+
@@ -9119,6 +9493,505 @@ function irParaPassoDois(){
     var cod = el('rec-codigo'); if(cod) cod.focus();
   }, 100);
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SISTEMA DE ADITIVOS DE OBRA
+// ═══════════════════════════════════════════════════════════════════════════
+if(!DB.aditivos) DB.aditivos = [];
+
+function abrirAditivos(obraId){
+  if(!DB.aditivos) DB.aditivos = [];
+  var obra = DB.obras.find(function(o){ return o.id===obraId; });
+  if(!obra){ alert('Obra não encontrada.'); return; }
+
+  // Preenche título
+  el('mo-adit-titulo').textContent = '📋 Aditivos — ' + obra.nome;
+  el('mo-aditivos').setAttribute('data-obra', obraId);
+
+  // Campos padrão
+  setV('adit-data', hoje());
+  setV('adit-valor','');
+  setV('adit-desc','');
+  setV('adit-obs','');
+  setV('adit-status','aprovado');
+
+  renderAditivos(obraId);
+  abrirMo('mo-aditivos');
+}
+
+function renderAditivos(obraId){
+  if(!obraId) obraId = el('mo-aditivos').getAttribute('data-obra');
+  if(!obraId) return;
+  var obra = DB.obras.find(function(o){ return o.id===obraId; });
+  if(!obra) return;
+
+  var aditivos = (DB.aditivos||[]).filter(function(a){ return a.obra===obraId; });
+  aditivos.sort(function(a,b){ return (b.data||'').localeCompare(a.data||''); });
+
+  var valorOriginal   = Number(obra.valor||0);
+  var totalAprovado   = aditivos.filter(function(a){return a.status!=='cancelado';}).reduce(function(s,a){return s+Number(a.valor||0);},0);
+  var totalContratado = valorOriginal + totalAprovado;
+  var recebido = (DB.lancamentos||[]).filter(function(l){return l.obra===obraId&&l.tipo==='receita';}).reduce(function(s,l){return s+Number(l.val||0);},0);
+  var aReceber = Math.max(0, totalContratado - recebido);
+
+  // Resumo financeiro
+  el('mo-adit-resumo').innerHTML =
+    '<div style="flex:1;min-width:110px;background:var(--bg3);border-radius:var(--r);padding:8px;text-align:center">' +
+      '<div style="font-size:10px;color:var(--tx3)">Valor original</div>' +
+      '<div style="font-weight:700;color:var(--tx)">' + fmt(valorOriginal) + '</div>' +
+    '</div>' +
+    '<div style="flex:1;min-width:110px;background:rgba(234,179,8,.1);border:1px solid rgba(234,179,8,.3);border-radius:var(--r);padding:8px;text-align:center">' +
+      '<div style="font-size:10px;color:var(--tx3)">+ Aditivos</div>' +
+      '<div style="font-weight:700;color:#ca8a04">' + fmt(totalAprovado) + '</div>' +
+    '</div>' +
+    '<div style="flex:1;min-width:110px;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);border-radius:var(--r);padding:8px;text-align:center">' +
+      '<div style="font-size:10px;color:var(--tx3)">Total contratado</div>' +
+      '<div style="font-weight:700;color:var(--gn)">' + fmt(totalContratado) + '</div>' +
+    '</div>' +
+    '<div style="flex:1;min-width:110px;background:rgba(91,126,255,.1);border:1px solid rgba(91,126,255,.3);border-radius:var(--r);padding:8px;text-align:center">' +
+      '<div style="font-size:10px;color:var(--tx3)">Recebido</div>' +
+      '<div style="font-weight:700;color:var(--ac)">' + fmt(recebido) + '</div>' +
+    '</div>' +
+    '<div style="flex:1;min-width:110px;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:var(--r);padding:8px;text-align:center">' +
+      '<div style="font-size:10px;color:var(--tx3)">A receber</div>' +
+      '<div style="font-weight:700;color:var(--am)">' + fmt(aReceber) + '</div>' +
+    '</div>';
+
+  // Lista de aditivos
+  if(!aditivos.length){
+    el('adit-lista').innerHTML = '<div class="empty" style="padding:20px;text-align:center;color:var(--tx3)">Nenhum aditivo registrado ainda.<br>Use o formulário acima para adicionar serviços extras.</div>';
+    return;
+  }
+
+  var statusCor = { aprovado:'var(--gn)', pendente:'var(--am)', cancelado:'var(--rd)' };
+  var statusLabel = { aprovado:'✅ Aprovado', pendente:'⏳ Pendente', cancelado:'❌ Cancelado' };
+
+  el('adit-lista').innerHTML = aditivos.map(function(a){
+    return '<div style="background:var(--bg3);border-radius:var(--r);padding:12px;margin-bottom:8px;border-left:3px solid '+(statusCor[a.status||'aprovado']||'var(--tx3)')+'">' +
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">' +
+        '<div style="flex:1">' +
+          '<div style="font-weight:600;font-size:14px">' + (a.desc||'Sem descrição') + '</div>' +
+          '<div style="font-size:11px;color:var(--tx3);margin-top:3px">' + fmtData(a.data) + (a.obs?' · '+a.obs:'') + '</div>' +
+        '</div>' +
+        '<div style="text-align:right;white-space:nowrap">' +
+          '<div style="font-weight:700;font-size:16px;color:'+(statusCor[a.status||'aprovado']||'var(--gn)')+'">' + fmt(Number(a.valor||0)) + '</div>' +
+          '<div style="font-size:10px;color:var(--tx3)">' + (statusLabel[a.status||'aprovado']||a.status) + '</div>' +
+        '</div>' +
+      '</div>' +
+      '<div style="display:flex;gap:6px;margin-top:8px">' +
+        '<select onchange="alterarStatusAditivo(\''+a.id+'\',this.value)" style="font-size:11px;padding:4px;flex:1">' +
+          '<option value="aprovado"'+(a.status==='aprovado'?' selected':'')+'>✅ Aprovado</option>' +
+          '<option value="pendente"'+(a.status==='pendente'?' selected':'')+'>⏳ Pendente</option>' +
+          '<option value="cancelado"'+(a.status==='cancelado'?' selected':'')+'>❌ Cancelado</option>' +
+        '</select>' +
+        '<button class="btn xs br-" onclick="deletarAditivo(\''+a.id+'\')">🗑</button>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function salvarAditivo(){
+  var obraId = el('mo-aditivos').getAttribute('data-obra');
+  if(!obraId){ alert('Obra não identificada.'); return; }
+  var valor = Number(val('adit-valor'))||0;
+  var desc  = (val('adit-desc')||'').trim();
+  if(!desc){ alert('Informe a descrição do serviço adicional.'); return; }
+  if(valor <= 0){ alert('Informe o valor do aditivo.'); return; }
+
+  if(!DB.aditivos) DB.aditivos=[];
+  DB.aditivos.push({
+    id: id(), obra: obraId,
+    data:   val('adit-data') || hoje(),
+    desc:   desc,
+    valor:  valor,
+    status: val('adit-status') || 'aprovado',
+    obs:    val('adit-obs') || '',
+    _ts:    Date.now()
+  });
+  save();
+  setTimeout(function(){ sincronizarCompleto(true); }, 800);
+
+  setV('adit-valor',''); setV('adit-desc',''); setV('adit-obs','');
+  renderAditivos(obraId);
+  renderObras();
+}
+
+function alterarStatusAditivo(aditId, novoStatus){
+  if(!DB.aditivos) return;
+  var a = DB.aditivos.find(function(x){ return x.id===aditId; });
+  if(!a) return;
+  a.status = novoStatus;
+  a._ts = Date.now();
+  save();
+  setTimeout(function(){ sincronizarCompleto(true); }, 800);
+  var obraId = el('mo-aditivos').getAttribute('data-obra');
+  renderAditivos(obraId);
+  renderObras();
+}
+
+function deletarAditivo(aditId){
+  if(!confirm('Excluir este aditivo?')) return;
+  if(!DB.aditivos) return;
+  DB.aditivos = DB.aditivos.filter(function(a){ return a.id!==aditId; });
+  if(!DB._deletedIds) DB._deletedIds=[];
+  if(DB._deletedIds.indexOf(aditId)<0) DB._deletedIds.push(aditId);
+  save();
+  setTimeout(function(){ sincronizarCompleto(true); }, 800);
+  var obraId = el('mo-aditivos').getAttribute('data-obra');
+  renderAditivos(obraId);
+  renderObras();
+}
+
+// ── Imprimir relatório limpo para o cliente ──────────────────────────────
+function imprimirRelatorio(){
+  // Captura o HTML do relatório atual
+  var stats  = document.getElementById('rel-stats');
+  var obras  = document.getElementById('rel-obras');
+  var fin    = document.getElementById('rel-fin');
+  if(!obras){ alert('Gere o relatório primeiro.'); return; }
+
+  var cfg  = DB.config||{};
+  var nome = cfg.empresa||'FigForge';
+  var logo = cfg.logo||'';
+  var data = new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'});
+
+  var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"/><title>Relatório - '+nome+'</title>' +
+    '<style>body{font-family:system-ui,sans-serif;color:#111;background:#fff;padding:20px;max-width:800px;margin:0 auto}' +
+    'h1{font-size:20px;margin:0}h2{font-size:14px;color:#555;margin:4px 0 16px}' +
+    '.logo{max-height:60px;margin-bottom:8px}' +
+    '.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0}' +
+    '.card{border:1px solid #ddd;border-radius:8px;padding:10px;text-align:center}' +
+    '.card .lbl{font-size:10px;color:#888;text-transform:uppercase}' +
+    '.card .val{font-size:16px;font-weight:700;margin-top:4px}' +
+    '.obra{border:1px solid #ddd;border-radius:8px;padding:12px;margin-bottom:12px}' +
+    '.nome-obra{font-weight:700;font-size:16px}' +
+    '.detalhe{font-size:11px;color:#777;margin-top:2px}' +
+    '.linha{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px dashed #eee;font-size:12px}' +
+    '.badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600}' +
+    '.badge-and{background:#dbeafe;color:#1d4ed8}.badge-fin{background:#d1fae5;color:#065f46}' +
+    '.badge-par{background:#fee2e2;color:#991b1b}.badge-orc{background:#fef3c7;color:#92400e}' +
+    'footer{margin-top:20px;font-size:10px;color:#aaa;text-align:center;border-top:1px solid #eee;padding-top:10px}' +
+    '@media print{.no-print{display:none}}' +
+    '</style></head><body>';
+
+  // Cabeçalho com logo
+  html += '<div style="display:flex;align-items:center;gap:16px;margin-bottom:16px;border-bottom:2px solid #eee;padding-bottom:12px">';
+  if(logo) html += '<img src="'+logo+'" class="logo"/>';
+  html += '<div><h1>'+nome+'</h1><h2>Relatório de Obras — '+data+'</h2></div></div>';
+
+  // Stats (clone visual)
+  if(stats) html += '<div style="margin-bottom:12px">'+stats.innerHTML+'</div>';
+
+  // Obras
+  if(obras) html += obras.innerHTML;
+
+  // Resumo financeiro
+  if(fin) html += '<div style="margin-top:12px;border:1px solid #ddd;border-radius:8px;padding:12px"><h3 style="margin:0 0 8px;font-size:13px">Resumo financeiro</h3>'+fin.innerHTML+'</div>';
+
+  html += '<footer>Gerado pelo FigForge · Gestão para Construtoras · '+data+'</footer>';
+  html += '</body></html>';
+
+  var w = window.open('','_blank','width=900,height=700');
+  w.document.write(html);
+  w.document.close();
+  setTimeout(function(){ w.print(); }, 800);
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// SERVIÇOS / ETAPAS DE OBRA
+// ══════════════════════════════════════════════════════════════════════════
+function adicionarServicoObra(desc, valor, status){
+  var lista = el('ob-servicos-lista');
+  if(!lista) return;
+  var div = document.createElement('div');
+  div.className = 'srv-row';
+  div.style.cssText = 'display:grid;grid-template-columns:1fr 110px 110px 32px;gap:6px;margin-bottom:6px;align-items:center';
+  div.innerHTML =
+    '<input class="srv-desc" type="text" placeholder="Descrição do serviço/etapa..." value="'+(desc||'')+'" oninput="recalcTotalServicos()" style="padding:7px"/>' +
+    '<input class="srv-valor" type="number" placeholder="0,00" value="'+(valor||'')+'" oninput="recalcTotalServicos()" min="0" step="0.01" style="padding:7px"/>' +
+    '<select class="srv-status" style="padding:7px;font-size:12px">' +
+      '<option value="pendente"'+((!status||status==="pendente")?" selected":"")+'>⏳ Pendente</option>' +
+      '<option value="executado"'+(status==="executado"?" selected":"")+'>🔨 Executado</option>' +
+      '<option value="pago"'+(status==="pago"?" selected":"")+'>✅ Pago</option>' +
+    '</select>' +
+    '<button onclick="this.closest(\'.srv-row\').remove();recalcTotalServicos()" style="background:rgba(239,68,68,.15);color:var(--rd);border:none;border-radius:var(--r);cursor:pointer;height:32px;width:32px">✕</button>';
+  lista.appendChild(div);
+  if(!desc) div.querySelector('.srv-desc').focus();
+  recalcTotalServicos();
+}
+
+function recalcTotalServicos(){
+  var total = 0;
+  document.querySelectorAll('#ob-servicos-lista .srv-valor').forEach(function(inp){
+    total += Number(inp.value)||0;
+  });
+  var elTotal = el('ob-servicos-total');
+  if(elTotal) elTotal.textContent = 'R$ ' + total.toLocaleString('pt-BR',{minimumFractionDigits:2});
+  if(total > 0){
+    var vEl = el('ob-valor');
+    if(vEl){ vEl.value = total.toFixed(2); vEl.style.color='var(--tx3)'; }
+  }
+}
+
+function atualizarStatusServico(obraId, srvIdx, novoStatus){
+  var obra = DB.obras.find(function(o){return o.id===obraId;});
+  if(!obra || !obra.servicos) return;
+  obra.servicos[srvIdx].status = novoStatus;
+  obra._ts = Date.now();
+  // Atualiza status do orçamento vinculado automaticamente
+  sincronizarStatusOrcPorObra(obraId);
+  save();
+  setTimeout(function(){ sincronizarCompleto(true); }, 800);
+  renderObras();
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// PAINEL DE REFERÊNCIA DE SERVIÇOS (somente visual, não obrigatório)
+// ══════════════════════════════════════════════════════════════════════════
+function atualizarServicosLanc(){
+  var obraId = val('fl-obra');
+  var area   = el('fl-servicos-area');
+  if(!area) return;
+  if(!obraId){ area.style.display='none'; return; }
+  var obra = DB.obras.find(function(o){ return o.id===obraId; });
+  if(!obra || !obra.servicos || !obra.servicos.length){ area.style.display='none'; return; }
+  area.style.display = 'block';
+
+  var totalContratado = obra.servicos.reduce(function(s,sv){return s+Number(sv.valor||0);},0);
+  var totalPago = obra.servicos.filter(function(sv){return sv.status==='pago';}).reduce(function(s,sv){return s+Number(sv.valor||0);},0);
+  var totalExec = obra.servicos.filter(function(sv){return sv.status==='executado';}).reduce(function(s,sv){return s+Number(sv.valor||0);},0);
+
+  var lista = el('fl-servicos-lista');
+  lista.innerHTML =
+    '<div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap">' +
+    '<div style="flex:1;min-width:80px;text-align:center;padding:6px;background:var(--bg);border-radius:6px"><div style="font-size:9px;color:var(--tx3)">Contratado</div><div style="font-weight:700;font-size:12px">'+fmt(totalContratado)+'</div></div>' +
+    '<div style="flex:1;min-width:80px;text-align:center;padding:6px;background:rgba(16,185,129,.1);border-radius:6px"><div style="font-size:9px;color:var(--tx3)">Pago</div><div style="font-weight:700;font-size:12px;color:var(--gn)">'+fmt(totalPago)+'</div></div>' +
+    '<div style="flex:1;min-width:80px;text-align:center;padding:6px;background:rgba(245,158,11,.1);border-radius:6px"><div style="font-size:9px;color:var(--tx3)">Executado</div><div style="font-weight:700;font-size:12px;color:var(--am)">'+fmt(totalExec)+'</div></div>' +
+    '<div style="flex:1;min-width:80px;text-align:center;padding:6px;background:var(--bg);border-radius:6px"><div style="font-size:9px;color:var(--tx3)">Pendente</div><div style="font-weight:700;font-size:12px">'+fmt(totalContratado-totalPago-totalExec)+'</div></div>' +
+    '</div>';
+
+  // Cria linhas via DOM (evita problema de escape de aspas nos event handlers)
+  obra.servicos.forEach(function(sv){
+    var stCor  = sv.status==='pago'?'#16a34a':sv.status==='executado'?'#ca8a04':'var(--tx3)';
+    var stIcon = sv.status==='pago'?'✅':sv.status==='executado'?'🔨':'⏳';
+
+    var row = document.createElement('div');
+    row.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px dashed var(--br)';
+
+    var left = document.createElement('div');
+    left.style.flex = '1';
+    var nm = document.createElement('span');
+    nm.style.fontSize='12px'; nm.textContent=sv.desc||'Serviço';
+    var st = document.createElement('span');
+    st.style.cssText='font-size:10px;color:'+stCor+';margin-left:8px';
+    st.textContent=stIcon+' '+sv.status;
+    left.appendChild(nm); left.appendChild(st);
+
+    var right = document.createElement('div');
+    right.style.cssText='display:flex;align-items:center;gap:6px';
+    var val_span = document.createElement('span');
+    val_span.style.cssText='font-size:11px;font-weight:600';
+    val_span.textContent=fmt(Number(sv.valor||0));
+
+    var sel = document.createElement('select');
+    sel.style.cssText='font-size:10px;padding:2px;border:1px solid var(--br);border-radius:4px;background:var(--bg2)';
+    [['pendente','⏳'],['executado','🔨'],['pago','✅']].forEach(function(opt){
+      var op=document.createElement('option');
+      op.value=opt[0]; op.textContent=opt[1]+' '+opt[0];
+      if(sv.status===opt[0]) op.selected=true;
+      sel.appendChild(op);
+    });
+    // Closure para capturar IDs
+    (function(obraId2, srvId){
+      sel.addEventListener('change',function(){
+        atualizarStatusServicoRapido(obraId2, srvId, this.value);
+      });
+    })(obra.id, sv.id);
+
+    right.appendChild(val_span); right.appendChild(sel);
+    row.appendChild(left); row.appendChild(right);
+    lista.appendChild(row);
+  });
+}
+
+
+function atualizarStatusServicoRapido(obraId, srvId, novoStatus){
+  var obra = DB.obras.find(function(o){return o.id===obraId;});
+  if(!obra || !obra.servicos) return;
+  var srv = obra.servicos.find(function(s){return s.id===srvId;});
+  if(!srv) return;
+  srv.status = novoStatus;
+  obra._ts = Date.now();
+  save();
+  setTimeout(function(){ sincronizarCompleto(true); }, 800);
+  atualizarServicosLanc(); // Atualiza o painel imediatamente
+  renderObras(); // Atualiza o kanban também
+}
+
+function recalcSrvTotal(){ /* não usado mais, mantido por compatibilidade */ }
+
+// ══════════════════════════════════════════════════════════════════════════
+// APROVAÇÃO DE ORÇAMENTO → INTEGRAÇÃO COM OBRA
+// ══════════════════════════════════════════════════════════════════════════
+var _orcAprovId = null;
+var _orcAprovParcial = false;
+
+function abrirModalAprovacaoOrc(orcId, parcial){
+  var orc = DB.orcamentos.find(function(x){return x.id===orcId;});
+  if(!orc){ renderOrcLista(); return; }
+
+  _orcAprovId = orcId;
+  _orcAprovParcial = parcial;
+
+  var cli = DB.clientes.find(function(c){return c.id===orc.cli;});
+  el('mo-aprov-titulo').textContent = parcial ? '🔶 Aprovação Parcial' : '✅ Aprovação Total';
+  el('mo-aprov-sub').textContent = 'Orçamento #'+orc.num+' — '+(cli?cli.nome:'Cliente')
+    +' — Total: '+fmt(orc.total);
+
+  // Corpo do modal
+  if(!parcial){
+    // Total: apenas confirma
+    el('mo-aprov-body').innerHTML =
+      '<div style="background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);border-radius:var(--r);padding:12px;margin-bottom:12px">' +
+      '<div style="font-weight:600;color:var(--gn);margin-bottom:6px">📋 Todos os itens aprovados</div>' +
+      (orc.linhas||[]).map(function(l,i){
+        return '<div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0;border-bottom:1px dashed var(--br)">' +
+          '<span>'+(l.desc||'Item '+i)+'</span><span style="font-weight:600">'+fmt(l.tot||0)+'</span></div>';
+      }).join('') +
+      '<div style="display:flex;justify-content:space-between;font-size:13px;font-weight:700;margin-top:8px;color:var(--gn)">' +
+        '<span>TOTAL APROVADO</span><span>'+fmt(orc.total)+'</span></div>' +
+      '</div>';
+  } else {
+    // Parcial: checkboxes por item
+    var itensHtml = '<div style="background:var(--bg3);border-radius:var(--r);padding:12px;margin-bottom:12px">' +
+      '<div style="font-weight:600;color:var(--tx2);margin-bottom:8px;font-size:12px">Marque os itens aprovados pelo cliente:</div>' +
+      '<div id="mo-aprov-itens">';
+
+    (orc.linhas||[]).forEach(function(l,i){
+      itensHtml +=
+        '<div class="aprov-item-row" style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px dashed var(--br)">' +
+        '<input type="checkbox" class="aprov-chk" data-idx="'+i+'" checked style="width:18px;height:18px;cursor:pointer" onchange="recalcAprov()">' +
+        '<div style="flex:1"><div style="font-size:13px">'+(l.desc||'Item')+'</div>' +
+          '<div style="font-size:11px;color:var(--tx3)">'+l.qtd+' '+l.un+' × '+fmt(l.vu)+'</div></div>' +
+        '<span style="font-weight:600;font-size:13px">'+fmt(l.tot||0)+'</span>' +
+        '</div>';
+    });
+
+    itensHtml += '</div>' +
+      '<div style="display:flex;justify-content:space-between;font-size:13px;font-weight:700;margin-top:10px;color:var(--gn)">' +
+        '<span>Total aprovado:</span><span id="mo-aprov-total">'+fmt(orc.total)+'</span></div>' +
+      '</div>';
+
+    el('mo-aprov-body').innerHTML = itensHtml;
+  }
+
+  // Popula select de obras
+  var selObra = el('mo-aprov-obra');
+  selObra.innerHTML = '<option value="_nova">➕ Criar nova obra a partir deste orçamento</option>';
+  DB.obras.forEach(function(ob){
+    var opt = document.createElement('option');
+    opt.value = ob.id;
+    opt.textContent = ob.nome + (ob.status?' ('+ob.status+')':'');
+    // Pré-seleciona se já estava vinculada
+    if(ob.id === orc.obra) opt.selected = true;
+    selObra.appendChild(opt);
+  });
+
+  abrirMo('mo-aprov-orc');
+}
+
+function recalcAprov(){
+  var orc = DB.orcamentos.find(function(x){return x.id===_orcAprovId;});
+  if(!orc) return;
+  var total = 0;
+  document.querySelectorAll('#mo-aprov-itens .aprov-chk').forEach(function(cb){
+    if(cb.checked){
+      var idx = Number(cb.dataset.idx);
+      var linha = orc.linhas[idx];
+      if(linha) total += Number(linha.tot||0);
+    }
+  });
+  var elT = el('mo-aprov-total');
+  if(elT) elT.textContent = fmt(total);
+}
+
+function confirmarAprovacaoOrc(){
+  var orc = DB.orcamentos.find(function(x){return x.id===_orcAprovId;});
+  if(!orc) return;
+
+  // Determina as linhas aprovadas
+  var linhasAprov;
+  if(_orcAprovParcial){
+    linhasAprov = [];
+    document.querySelectorAll('#mo-aprov-itens .aprov-chk').forEach(function(cb){
+      if(cb.checked && orc.linhas[Number(cb.dataset.idx)]){
+        linhasAprov.push(orc.linhas[Number(cb.dataset.idx)]);
+      }
+    });
+    if(!linhasAprov.length){ alert('Marque pelo menos um item.'); return; }
+  } else {
+    linhasAprov = orc.linhas || [];
+  }
+
+  var obraAlvo = val('mo-aprov-obra');
+  fecharMo('mo-aprov-orc');
+
+  if(obraAlvo === '_nova'){
+    // Cria nova obra
+    criarObraDoOrcamento(_orcAprovId, linhasAprov);
+  } else {
+    // Vincula à obra existente como aditivos
+    var obra = DB.obras.find(function(o){return o.id===obraAlvo;});
+    if(!obra){ alert('Obra não encontrada.'); return; }
+
+    if(!DB.aditivos) DB.aditivos=[];
+    if(!obra.servicos) obra.servicos=[];
+
+    linhasAprov.forEach(function(l){
+      var desc = (orc.num?'Orc #'+orc.num+' — ':'')+l.desc;
+      var valor = Number(l.tot||0);
+      // Adiciona como aditivo
+      DB.aditivos.push({
+        id:id(), obra:obra.id, data:hoje(),
+        desc:desc, valor:valor, status:'aprovado',
+        obs:'Via aprovação do orçamento #'+orc.num, _ts:Date.now()
+      });
+      // Adiciona como serviço
+      obra.servicos.push({id:id(), desc:l.desc, valor:valor, status:'pendente', _ts:Date.now()});
+    });
+
+    orc.obra = obraAlvo;
+    obra._ts = Date.now();
+    save();
+    setTimeout(function(){ sincronizarCompleto(true); },800);
+    renderOrcLista();
+    var totalAprov = linhasAprov.reduce(function(s,l){return s+Number(l.tot||0);},0);
+    alert('✔ Orçamento integrado à obra!\nObra: '+obra.nome+'\n'+linhasAprov.length+' serviço(s) adicionados\nValor: '+fmt(totalAprov));
+  }
+}
+
+// ── Atualiza status do orçamento quando serviço na obra é marcado ─────────
+function sincronizarStatusOrcPorObra(obraId){
+  // Busca orçamentos vinculados a esta obra
+  var orcsVinc = DB.orcamentos.filter(function(o){return o.obra===obraId;});
+  if(!orcsVinc.length) return;
+
+  var obra = DB.obras.find(function(o){return o.id===obraId;});
+  if(!obra || !obra.servicos || !obra.servicos.length) return;
+
+  var totalSrv = obra.servicos.length;
+  var pagos = obra.servicos.filter(function(s){return s.status==='pago';}).length;
+  var executados = obra.servicos.filter(function(s){return s.status==='executado';}).length;
+
+  orcsVinc.forEach(function(orc){
+    var novoStatus;
+    if(pagos === totalSrv) novoStatus = 'Recebido';
+    else if(pagos > 0 || executados > 0) novoStatus = 'Executado';
+    if(novoStatus && orc.status !== novoStatus && orc.status !== 'Reprovado'){
+      orc.status = novoStatus;
+    }
+  });
+}
 </script>
 
 <div class="mo" id="mo-estq-edit"><div class="mbox">
@@ -9202,5 +10075,69 @@ function irParaPassoDois(){
   <div class="mobile-tab" id="mtab-funcionarios" onclick="navegarMobile('funcionarios')"><div>👷</div>Equipe</div>
   <div class="mobile-tab" id="mtab-mais" onclick="abrirMenuMobile()"><div>☰</div>Mais</div>
 </div>
+<div class="mo" id="mo-aditivos"><div class="mbox" style="max-width:680px">
+  <div class="mh">
+    <div>
+      <span id="mo-adit-titulo">📋 Aditivos de Obra</span>
+      <div id="mo-adit-subtitulo" style="font-size:11px;color:var(--tx3);margin-top:2px"></div>
+    </div>
+    <div class="mx" onclick="fecharMo('mo-aditivos')">✕</div>
+  </div>
+
+  <!-- Resumo financeiro da obra -->
+  <div id="mo-adit-resumo" style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap"></div>
+
+  <!-- Formulário novo aditivo -->
+  <div style="background:var(--bg3);border-radius:var(--r);padding:12px;margin-bottom:12px">
+    <div style="font-size:12px;font-weight:600;color:var(--tx2);margin-bottom:8px">➕ Novo aditivo de serviço</div>
+    <div class="fr fr2">
+      <div><label>Data</label><input id="adit-data" type="date"/></div>
+      <div><label>Valor do aditivo (R$)</label><input id="adit-valor" type="number" step="0.01" min="0" placeholder="0,00"/></div>
+    </div>
+    <div><label>Descrição do serviço adicional</label>
+      <input id="adit-desc" type="text" placeholder="Ex: Ampliação da varanda, Instalação elétrica extra..."/>
+    </div>
+    <div class="fr fr2">
+      <div><label>Status</label>
+        <select id="adit-status">
+          <option value="aprovado">Aprovado pelo cliente</option>
+          <option value="pendente">Pendente aprovação</option>
+          <option value="cancelado">Cancelado</option>
+        </select>
+      </div>
+      <div><label>Observação</label><input id="adit-obs" type="text" placeholder="Opcional..."/></div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;margin-top:8px">
+      <button class="btn bp" onclick="salvarAditivo()">💾 Adicionar aditivo</button>
+    </div>
+  </div>
+
+  <!-- Lista de aditivos -->
+  <div style="font-size:12px;font-weight:600;color:var(--tx2);margin-bottom:6px">Histórico de aditivos</div>
+  <div id="adit-lista"></div>
+</div></div>
+<div class="mo" id="mo-aprov-orc"><div class="mbox" style="max-width:600px">
+  <div class="mh">
+    <div>
+      <span id="mo-aprov-titulo">Aprovação de Orçamento</span>
+      <div id="mo-aprov-sub" style="font-size:11px;color:var(--tx3);margin-top:2px"></div>
+    </div>
+    <div class="mx" onclick="fecharMo('mo-aprov-orc')">✕</div>
+  </div>
+
+  <div id="mo-aprov-body"></div>
+
+  <div style="margin-top:14px">
+    <label style="font-size:12px;font-weight:600;color:var(--tx2)">Vincular a qual obra?</label>
+    <select id="mo-aprov-obra" style="width:100%;margin-top:6px">
+      <option value="_nova">➕ Criar nova obra a partir deste orçamento</option>
+    </select>
+  </div>
+
+  <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px">
+    <button class="btn" onclick="fecharMo('mo-aprov-orc')">Cancelar</button>
+    <button class="btn bp" onclick="confirmarAprovacaoOrc()">✔ Confirmar aprovação</button>
+  </div>
+</div></div>
 </body>
 </html>
