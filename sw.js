@@ -1,80 +1,85 @@
 // FigForge Service Worker
-// v2026.06.22 — ESTRATÉGIA CORRIGIDA: network-first para HTML (sempre busca versão nova)
-var CACHE_NAME = 'figforge-v2026-06-22';
+// v2026.08.23 — network-first SEMPRE para arquivos do app
+var CACHE_NAME = 'figforge-v2026-08-23';
+
+// Só cacheia a biblioteca PDF (pesada e raramente muda)
 var urlsToCache = [
   'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'
 ];
 
-// Instalação — cacheia só os arquivos estáticos (NÃO o index.html)
+// Instalação
 self.addEventListener('install', function(event) {
+  self.skipWaiting(); // Ativa imediatamente sem esperar fechar as abas
   event.waitUntil(
     caches.open(CACHE_NAME).then(function(cache) {
-      return cache.addAll(urlsToCache);
+      return cache.addAll(urlsToCache).catch(function(){});
     })
   );
-  self.skipWaiting();
 });
 
-// Ativação — limpa TODOS os caches antigos (de qualquer versão anterior)
+// Ativação — apaga TODOS os caches antigos
 self.addEventListener('activate', function(event) {
   event.waitUntil(
-    caches.keys().then(function(cacheNames) {
+    caches.keys().then(function(names) {
       return Promise.all(
-        cacheNames.filter(function(name) {
-          return name !== CACHE_NAME;
-        }).map(function(name) {
-          return caches.delete(name);
+        names.map(function(name) {
+          // Apaga qualquer cache que não seja o atual
+          if(name !== CACHE_NAME) return caches.delete(name);
         })
       );
-    }).then(function(){
+    }).then(function() {
+      // Assume controle de todas as abas abertas imediatamente
       return self.clients.claim();
     })
   );
 });
 
-// Fetch — estratégia por tipo de requisição
+// Fetch
 self.addEventListener('fetch', function(event) {
   var url = event.request.url;
 
-  // Nunca intercepta licença/sync/upload/whatsapp
+  // Nunca intercepta chamadas ao servidor/APIs externas
   if(url.includes('script.google.com') ||
      url.includes('api.imgbb.com') ||
-     url.includes('wa.me')) {
-    return;
+     url.includes('wa.me') ||
+     url.includes('googleapis.com')) {
+    return; // Deixa o browser lidar normalmente
   }
 
-  // Navegação e HTML/JS do próprio app: SEMPRE busca a rede primeiro (network-first)
-  // Isso garante que toda atualização publicada no GitHub apareça imediatamente.
+  // ARQUIVOS DO APP (HTML, SW, manifest): SEMPRE busca na rede
+  // Garante que toda atualização publicada no GitHub chegue imediatamente
   var isAppFile = event.request.mode === 'navigate' ||
-                   url.endsWith('.html') ||
-                   url.endsWith('/figforge/') ||
-                   url.endsWith('/figforge') ||
-                   url.endsWith('sw.js') ||
-                   url.endsWith('manifest.json');
+                  url.endsWith('.html') ||
+                  url.endsWith('/figforge/') ||
+                  url.endsWith('/figforge') ||
+                  url.endsWith('sw.js') ||
+                  url.endsWith('manifest.json');
 
-  if(isAppFile){
+  if(isAppFile) {
     event.respondWith(
-      fetch(event.request, {cache:'no-store'}).then(function(res){
-        return res;
-      }).catch(function(){
-        // Só usa cache se estiver OFFLINE
-        return caches.match(event.request);
-      })
+      fetch(event.request, { cache: 'no-store' })
+        .then(function(response) {
+          return response;
+        })
+        .catch(function() {
+          // Sem internet: usa cache se existir
+          return caches.match(event.request);
+        })
     );
     return;
   }
 
-  // Bibliotecas externas (CDN): cache-first com atualização em background
+  // BIBLIOTECAS EXTERNAS (CDN): cache-first — já são fixas
   event.respondWith(
-    caches.match(event.request).then(function(response) {
-      if(response) return response;
-      return fetch(event.request).then(function(res) {
-        if(!res || res.status !== 200) return res;
-        var resClone = res.clone();
+    caches.match(event.request).then(function(cached) {
+      if(cached) return cached;
+      return fetch(event.request).then(function(response) {
+        if(!response || response.status !== 200) return response;
+        var clone = response.clone();
         caches.open(CACHE_NAME).then(function(cache) {
-          cache.put(event.request, resClone);
+          cache.put(event.request, clone);
         });
-        return res;
+        return response;
       });
     })
   );
