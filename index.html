@@ -2373,6 +2373,7 @@ button[style*="background: #4F6EF7"], .btn-primary {
     </div>
     <div style="display:flex;gap:6px;flex-wrap:wrap">
       <button class="btn sm bg" onclick="salvarBackupNuvem(false)">☁️ Salvar na nuvem agora</button>
+      <button class="btn sm bp" onclick="restaurarDaNuvemForcar()">⬇️ Restaurar da nuvem</button>
       <button class="btn sm" onclick="compartilharWhatsApp()">📱 Enviar WhatsApp</button>
     </div>
     <div style="font-size:10px;color:var(--tx3);margin-top:6px">
@@ -9996,6 +9997,48 @@ function sincronizarStatusOrcPorObra(obraId){
     if(novoStatus && orc.status !== novoStatus && orc.status !== 'Reprovado'){
       orc.status = novoStatus;
     }
+  });
+}
+
+// ── RESTAURAR DA NUVEM (força puxar o backup guardado pelo computador) ────
+function restaurarDaNuvemForcar(){
+  var lic = {};
+  try{ lic = _lerLicenca(); }catch(e){}
+  if(!lic || !lic.email){
+    alert('Ative sua licença primeiro.\n\nDigite seu e-mail na tela de ativação.');
+    return;
+  }
+  if(!confirm('Isso vai SUBSTITUIR os dados deste dispositivo pelo backup salvo na nuvem.\n\nUse isso quando o computador tem dados mais recentes que o celular.\n\nContinuar?')) return;
+
+  var btn = event && event.target;
+  if(btn){ btn.disabled=true; btn.textContent='Restaurando...'; }
+
+  verificarBackupNuvem(lic.email, function(backup, dataBackup){
+    if(btn){ btn.disabled=false; btn.textContent='⬇️ Restaurar da nuvem'; }
+    if(!backup || backup.length < 10){
+      alert('Nenhum backup encontrado na nuvem.\n\nPeça para o outro dispositivo clicar em "Salvar na nuvem" primeiro.');
+      return;
+    }
+    try{
+      var dados = JSON.parse(backup);
+      // Preserva a senha local
+      var senhaLocal = DB.config && DB.config.adminSenha;
+      Object.assign(DB, dados);
+      if(senhaLocal && senhaLocal !== 'admin123') DB.config.adminSenha = senhaLocal;
+      // Inicializa campos que podem não existir
+      if(!DB.aditivos) DB.aditivos=[];
+      if(!DB.adiantamentos) DB.adiantamentos=[];
+      if(!DB.producoes) DB.producoes=[];
+      if(!DB.pagamentosParciais) DB.pagamentosParciais=[];
+      save();
+      alert('✔ Dados restaurados da nuvem!\nBackup de: ' + (dataBackup||'data desconhecida') + '\n\nO sistema vai recarregar.');
+      setTimeout(function(){ location.reload(); }, 1000);
+    } catch(e){
+      alert('Erro ao restaurar: ' + e.message);
+    }
+  }, function(){
+    if(btn){ btn.disabled=false; btn.textContent='⬇️ Restaurar da nuvem'; }
+    alert('Sem conexão com o servidor.\nVerifique sua internet e tente novamente.');
   });
 }
 </script>
