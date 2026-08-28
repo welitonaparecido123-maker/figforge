@@ -2870,15 +2870,16 @@ var PLANOS_CFG = {
   pro: {
     nome:'Profissional', preco:'R$ 97/mes', cor:'badge-pro', icone:'🚀',
     modulos:['dashboard','obras','orcamentos','clientes','financeiro',
-             'funcionarios','estoque','diario','relatorios','usuarios','config'],
+             'funcionarios','estoque','diario','relatorios','usuarios','config',
+             'pdv','pedidos'],
     desc:'Tudo do Starter + Funcionarios CLT, Estoque, Relatorios e Diario'
   },
   personalizado: {
     nome:'Personalizado', preco:'Sob consulta', cor:'badge-custom', icone:'🏢',
     modulos:['dashboard','obras','orcamentos','clientes','financeiro',
              'funcionarios','estoque','diario','relatorios','usuarios','config',
-             'ponto-digital'],
-    desc:'Tudo do Profissional + Ponto Digital GPS + Personalização completa'
+             'ponto-digital','pdv','pedidos'],
+    desc:'Tudo do Profissional + Ponto Digital GPS + PDV + Loja Online + Personalização completa'
   }
 };
 // ================================================================ ESTADO
@@ -6568,7 +6569,7 @@ function aplicarBloqueiosPlano(){
     if(!cfg.modulos.includes(p)){
       sbi.style.opacity='0.4';
       sbi.style.cursor='not-allowed';
-      sbi.title='Disponível no plano Profissional (R$97/mês)';
+      sbi.title='Disponível no plano Profissional ou superior';
       sbi.onclick=function(e){
         e.preventDefault();e.stopPropagation();
         mostrarUpgradeBanner(p);
