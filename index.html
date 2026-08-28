@@ -7490,7 +7490,7 @@ function puxarDadosEquipe(){
         });
       });
       save();
-      renderPanel(painelAtivo||'dashboard');
+      renderPanel(panelAtual||'dashboard');
       alert('✔ Dados mesclados com sucesso!\n\nNovos registros da equipe foram adicionados.');
     }catch(e){
       alert('Erro ao mesclar dados: ' + e.message);
@@ -7637,7 +7637,7 @@ function _puxarDaNuvem(email, silencioso){
 
         if(novosItens > 0){
           save();
-          if(typeof renderPanel==='function' && painelAtivo) renderPanel(painelAtivo);
+          if(typeof renderPanel==='function' && panelAtual) renderPanel(panelAtual);
         }
         localStorage.setItem(SK_SYNC_TS, new Date().toISOString());
         if(!silencioso) mostrarStatusSync('ok');
@@ -10871,7 +10871,7 @@ function copiarLinkLoja(){
 
 // Verifica pedidos novos periodicamente
 setInterval(function(){
-  if(painelAtivo==='pedidos') puxarPedidosServidor(true);
+  if(panelAtual==='pedidos') puxarPedidosServidor(true);
 }, 60000); // a cada 1 minuto
 
 // ══════════════════════════════════════════════════════════════════════════
@@ -10951,7 +10951,7 @@ function verificarPedidosNovos(){
       }
 
       // Se o painel de pedidos está aberto, atualiza
-      if(painelAtivo==='pedidos') renderListaPedidos();
+      if(panelAtual==='pedidos') renderListaPedidos();
     }
   };
 
