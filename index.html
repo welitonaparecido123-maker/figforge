@@ -11149,80 +11149,7 @@ function atualizarInfoMargemEstq(){ _infoMargemEstq(); }
   </div>
 </div></div>
 
-<div class="mobile-tabbar" id="mobile-tabbar">
-  <div class="mobile-tab active" id="mtab-dashboard" onclick="navegarMobile('dashboard')"><div>📊</div>Dashboard</div>
-  <div class="mobile-tab" id="mtab-obras" onclick="navegarMobile('obras')"><div>🏗️</div>Obras</div>
-  <div class="mobile-tab" id="mtab-pdv" onclick="navegarMobile('pdv')"><div>🛒</div>PDV</div>
-  <div class="mobile-tab" id="mtab-financeiro" onclick="navegarMobile('financeiro')"><div>💰</div>Financeiro</div>
-  <div class="mobile-tab" id="mtab-funcionarios" onclick="navegarMobile('funcionarios')"><div>👷</div>Equipe</div>
-  <div class="mobile-tab" id="mtab-mais" onclick="abrirMenuMobile()"><div>☰</div>Mais</div>
-</div>
-<div class="mo" id="mo-aditivos"><div class="mbox" style="max-width:680px">
-  <div class="mh">
-    <div>
-      <span id="mo-adit-titulo">📋 Aditivos de Obra</span>
-      <div id="mo-adit-subtitulo" style="font-size:11px;color:var(--tx3);margin-top:2px"></div>
-    </div>
-    <div class="mx" onclick="fecharMo('mo-aditivos')">✕</div>
-  </div>
-
-  <!-- Resumo financeiro da obra -->
-  <div id="mo-adit-resumo" style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap"></div>
-
-  <!-- Formulário novo aditivo -->
-  <div style="background:var(--bg3);border-radius:var(--r);padding:12px;margin-bottom:12px">
-    <div style="font-size:12px;font-weight:600;color:var(--tx2);margin-bottom:8px">➕ Novo aditivo de serviço</div>
-    <div class="fr fr2">
-      <div><label>Data</label><input id="adit-data" type="date"/></div>
-      <div><label>Valor do aditivo (R$)</label><input id="adit-valor" type="number" step="0.01" min="0" placeholder="0,00"/></div>
-    </div>
-    <div><label>Descrição do serviço adicional</label>
-      <input id="adit-desc" type="text" placeholder="Ex: Ampliação da varanda, Instalação elétrica extra..."/>
-    </div>
-    <div class="fr fr2">
-      <div><label>Status</label>
-        <select id="adit-status">
-          <option value="aprovado">Aprovado pelo cliente</option>
-          <option value="pendente">Pendente aprovação</option>
-          <option value="cancelado">Cancelado</option>
-        </select>
-      </div>
-      <div><label>Observação</label><input id="adit-obs" type="text" placeholder="Opcional..."/></div>
-    </div>
-    <div style="display:flex;justify-content:flex-end;margin-top:8px">
-      <button class="btn bp" onclick="salvarAditivo()">💾 Adicionar aditivo</button>
-    </div>
-  </div>
-
-  <!-- Lista de aditivos -->
-  <div style="font-size:12px;font-weight:600;color:var(--tx2);margin-bottom:6px">Histórico de aditivos</div>
-  <div id="adit-lista"></div>
-</div></div>
-<div class="mo" id="mo-aprov-orc"><div class="mbox" style="max-width:600px">
-  <div class="mh">
-    <div>
-      <span id="mo-aprov-titulo">Aprovação de Orçamento</span>
-      <div id="mo-aprov-sub" style="font-size:11px;color:var(--tx3);margin-top:2px"></div>
-    </div>
-    <div class="mx" onclick="fecharMo('mo-aprov-orc')">✕</div>
-  </div>
-
-  <div id="mo-aprov-body"></div>
-
-  <div style="margin-top:14px">
-    <label style="font-size:12px;font-weight:600;color:var(--tx2)">Vincular a qual obra?</label>
-    <select id="mo-aprov-obra" style="width:100%;margin-top:6px">
-      <option value="_nova">➕ Criar nova obra a partir deste orçamento</option>
-    </select>
-  </div>
-
-  <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px">
-    <button class="btn" onclick="fecharMo('mo-aprov-orc')">Cancelar</button>
-    <button class="btn bp" onclick="confirmarAprovacaoOrc()">✔ Confirmar aprovação</button>
-  </div>
-</div></div>
-</body>
-</html<div class="pnl" id="pnl-pedidos">
+<div class="pnl" id="pnl-pedidos">
   <div style="display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
     <div>
       <div style="font-size:18px;font-weight:700">📦 Pedidos Online</div>
@@ -11249,6 +11176,8 @@ function atualizarInfoMargemEstq(){ _infoMargemEstq(); }
     </div>
   </div>
 </div>
+
+
 
 <div class="pnl" id="pnl-pdv">
 
@@ -11360,3 +11289,80 @@ function atualizarInfoMargemEstq(){ _infoMargemEstq(); }
 </div>
 
 >
+
+<div class="mobile-tabbar" id="mobile-tabbar">
+  <div class="mobile-tab active" id="mtab-dashboard" onclick="navegarMobile('dashboard')"><div>📊</div>Dashboard</div>
+  <div class="mobile-tab" id="mtab-obras" onclick="navegarMobile('obras')"><div>🏗️</div>Obras</div>
+  <div class="mobile-tab" id="mtab-pdv" onclick="navegarMobile('pdv')"><div>🛒</div>PDV</div>
+  <div class="mobile-tab" id="mtab-financeiro" onclick="navegarMobile('financeiro')"><div>💰</div>Financeiro</div>
+  <div class="mobile-tab" id="mtab-funcionarios" onclick="navegarMobile('funcionarios')"><div>👷</div>Equipe</div>
+  <div class="mobile-tab" id="mtab-mais" onclick="abrirMenuMobile()"><div>☰</div>Mais</div>
+</div>
+<div class="mo" id="mo-aditivos"><div class="mbox" style="max-width:680px">
+  <div class="mh">
+    <div>
+      <span id="mo-adit-titulo">📋 Aditivos de Obra</span>
+      <div id="mo-adit-subtitulo" style="font-size:11px;color:var(--tx3);margin-top:2px"></div>
+    </div>
+    <div class="mx" onclick="fecharMo('mo-aditivos')">✕</div>
+  </div>
+
+  <!-- Resumo financeiro da obra -->
+  <div id="mo-adit-resumo" style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap"></div>
+
+  <!-- Formulário novo aditivo -->
+  <div style="background:var(--bg3);border-radius:var(--r);padding:12px;margin-bottom:12px">
+    <div style="font-size:12px;font-weight:600;color:var(--tx2);margin-bottom:8px">➕ Novo aditivo de serviço</div>
+    <div class="fr fr2">
+      <div><label>Data</label><input id="adit-data" type="date"/></div>
+      <div><label>Valor do aditivo (R$)</label><input id="adit-valor" type="number" step="0.01" min="0" placeholder="0,00"/></div>
+    </div>
+    <div><label>Descrição do serviço adicional</label>
+      <input id="adit-desc" type="text" placeholder="Ex: Ampliação da varanda, Instalação elétrica extra..."/>
+    </div>
+    <div class="fr fr2">
+      <div><label>Status</label>
+        <select id="adit-status">
+          <option value="aprovado">Aprovado pelo cliente</option>
+          <option value="pendente">Pendente aprovação</option>
+          <option value="cancelado">Cancelado</option>
+        </select>
+      </div>
+      <div><label>Observação</label><input id="adit-obs" type="text" placeholder="Opcional..."/></div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;margin-top:8px">
+      <button class="btn bp" onclick="salvarAditivo()">💾 Adicionar aditivo</button>
+    </div>
+  </div>
+
+  <!-- Lista de aditivos -->
+  <div style="font-size:12px;font-weight:600;color:var(--tx2);margin-bottom:6px">Histórico de aditivos</div>
+  <div id="adit-lista"></div>
+</div></div>
+<div class="mo" id="mo-aprov-orc"><div class="mbox" style="max-width:600px">
+  <div class="mh">
+    <div>
+      <span id="mo-aprov-titulo">Aprovação de Orçamento</span>
+      <div id="mo-aprov-sub" style="font-size:11px;color:var(--tx3);margin-top:2px"></div>
+    </div>
+    <div class="mx" onclick="fecharMo('mo-aprov-orc')">✕</div>
+  </div>
+
+  <div id="mo-aprov-body"></div>
+
+  <div style="margin-top:14px">
+    <label style="font-size:12px;font-weight:600;color:var(--tx2)">Vincular a qual obra?</label>
+    <select id="mo-aprov-obra" style="width:100%;margin-top:6px">
+      <option value="_nova">➕ Criar nova obra a partir deste orçamento</option>
+    </select>
+  </div>
+
+  <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px">
+    <button class="btn" onclick="fecharMo('mo-aprov-orc')">Cancelar</button>
+    <button class="btn bp" onclick="confirmarAprovacaoOrc()">✔ Confirmar aprovação</button>
+  </div>
+</div></div>
+
+
+</body>
+</html>
