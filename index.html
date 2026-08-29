@@ -10319,17 +10319,19 @@ function puxarPedidosServidor(silencioso){
   if(!lic||!lic.email) return;
 
   var listEl = el('pedidos-lista');
-  if(listEl && !silencioso) listEl.innerHTML='<div style="text-align:center;padding:20px;color:var(--tx3)">⏳ Buscando pedidos...</div>';
+  if(listEl && !silencioso && !_pedidosData.length){
+    listEl.innerHTML='<div style="text-align:center;padding:20px;color:var(--tx3)">⏳ Buscando pedidos...</div>';
+  }
 
   var cbName = 'cbListarPedidos_'+Date.now();
   window[cbName] = function(data){
     delete window[cbName];
     var dbgTxt2 = el('ped-debug-txt');
-    if(data && data.ok && data.pedidos){
-      _pedidosData = data.pedidos.reverse();
+    if(data && data.ok){
+      _pedidosData = (data.pedidos||[]).slice().reverse();
       if(dbgTxt2) dbgTxt2.textContent = '✔ '+_pedidosData.length+' pedido(s) encontrado(s) para '+lic.email;
     } else {
-      if(dbgTxt2) dbgTxt2.textContent = '✗ Resposta: '+(data?JSON.stringify(data).slice(0,100):'sem dados');
+      if(dbgTxt2) dbgTxt2.textContent = '✗ '+(data&&data.msg?data.msg:'Sem resposta do servidor');
     }
     renderListaPedidos();
     var novos = (_pedidosData||[]).filter(function(p){return p.status==='Novo';}).length;
