@@ -2851,6 +2851,23 @@ button[style*="background: #4F6EF7"], .btn-primary {
     <div><label>⚠️ Crítico mínimo</label><input id="es-min" type="number" value="0" min="0" step="0.01"/></div>
     <div><label>Localização</label><input id="es-loc" type="text" placeholder="Galpão A, prateleira 3"/></div>
   </div>
+  <!-- Foto do produto -->
+  <div style="background:var(--bg3);border-radius:var(--r);padding:12px;margin-top:4px;margin-bottom:4px">
+    <div style="font-size:12px;font-weight:600;color:var(--tx2);margin-bottom:8px">📷 Foto do produto <span style="font-weight:400;color:var(--tx3)">(aparece na loja online)</span></div>
+    <div style="display:flex;gap:12px;align-items:center">
+      <img id="es-foto-prev" src="" alt="" style="width:80px;height:80px;object-fit:cover;border-radius:8px;border:1px solid var(--br);display:none"/>
+      <div style="flex:1">
+        <label class="btn sm" style="cursor:pointer;display:inline-block">
+          📷 Escolher foto
+          <input type="file" id="es-foto-input" accept="image/*" style="display:none" onchange="carregarFotoProduto(this)"/>
+        </label>
+        <button class="btn sm br-" onclick="removerFotoProduto()" style="margin-left:6px">✕ Remover</button>
+        <div style="font-size:11px;color:var(--tx3);margin-top:6px">JPG, PNG até 1MB. Será redimensionada automaticamente.</div>
+      </div>
+    </div>
+    <input type="hidden" id="es-foto"/>
+  </div>
+
   <div style="background:var(--bg3);border-radius:var(--r);padding:12px;margin-top:4px">
     <div style="font-size:12px;font-weight:600;color:var(--tx2);margin-bottom:8px">💰 Precificação</div>
     <div class="fr fr3">
@@ -3781,16 +3798,53 @@ function editarMat(id){
   const m=DB.materiais.find(x=>x.id===id);if(!m)return;
   editId.mat=id;el('mo-estq-titulo').textContent='Editar material';
   abrirMo('mo-estq');
-  setTimeout(()=>{setV('es-nome',m.nome);el('es-un').value=m.un||'un';setV('es-qtd',m.qtd);setV('es-min',m.min);setV('es-vl',m.vl);setV('es-loc',m.loc);},80);
+  setTimeout(function(){
+    setV('es-nome',m.nome); el('es-un').value=m.un||'un';
+    setV('es-qtd',m.qtd); setV('es-min',m.min);
+    setV('es-custo',m.custo||0); setV('es-margem',m.margem||30);
+    setV('es-vl',m.vl||0); setV('es-loc',m.loc);
+    var catEl=el('es-cat'); if(catEl) catEl.value=m.cat||'';
+    // Carrega foto
+    var fEl=document.getElementById('es-foto');
+    var pEl=document.getElementById('es-foto-prev');
+    if(fEl) fEl.value=m.foto||'';
+    if(pEl && m.foto){pEl.src=m.foto;pEl.style.display='block';}
+    else if(pEl){pEl.src='';pEl.style.display='none';}
+    atualizarInfoMargemEstq();
+  },80);
 }
 function salvarMaterial(){
-  const dados={nome:val('es-nome'),un:val('es-un'),qtd:Number(val('es-qtd'))||0,min:Number(val('es-min'))||0,vl:Number(val('es-vl'))||0,loc:val('es-loc'),obra:val('es-obra')};
+  var fotoEl = document.getElementById('es-foto');
+  var dados = {
+    nome:val('es-nome'), un:val('es-un'),
+    qtd:Number(val('es-qtd'))||0, min:Number(val('es-min'))||0,
+    custo:Number(val('es-custo'))||0,
+    vl:Number(val('es-vl'))||0,
+    margem:Number(val('es-margem'))||0,
+    cat:val('es-cat')||'',
+    loc:val('es-loc'), obra:val('es-obra'),
+    foto: fotoEl ? (fotoEl.value||'') : '',
+    _ts:Date.now()
+  };
   if(!dados.nome){alert('Preencha a descrição.');return;}
-  if(editId.mat){Object.assign(DB.materiais.find(x=>x.id===editId.mat),dados);delete editId.mat;}
-  else{dados.id=id();DB.materiais.push(dados);}
-  save();fecharMo('mo-estq');renderEstoque();
+  if(editId.mat){
+    Object.assign(DB.materiais.find(function(x){return x.id===editId.mat;}), dados);
+    delete editId.mat;
+  } else {
+    dados.id=id(); DB.materiais.push(dados);
+  }
+  save();
+  _autoPublicarCatalogo();
+  setTimeout(function(){ sincronizarCompleto(true); },800);
+  fecharMo('mo-estq'); renderEstoque();
   el('mo-estq-titulo').textContent='Novo material';
-  ['es-nome','es-qtd','es-min','es-vl','es-loc'].forEach(i=>setV(i,''));
+  ['es-nome','es-qtd','es-min','es-vl','es-custo','es-loc'].forEach(function(i){setV(i,'');});
+  setV('es-margem','30'); setV('es-cat','');
+  if(fotoEl) fotoEl.value='';
+  var pEl=document.getElementById('es-foto-prev');
+  if(pEl){pEl.src='';pEl.style.display='none';}
+  var mi=document.getElementById('es-margem-info');
+  if(mi) mi.innerHTML='';
 }
 function salvarEntrada(){
   const mid=val('ent-mat'),qtd=Number(val('ent-qtd'))||0;
@@ -11210,6 +11264,70 @@ function _infoMargemEstq(){
 }
 // alias para compatibilidade com o HTML que chama atualizarInfoMargemEstq
 function atualizarInfoMargemEstq(){ _infoMargemEstq(); }
+
+// ── Foto do produto ───────────────────────────────────────────────────────
+function carregarFotoProduto(input){
+  if(!input.files[0]) return;
+  var file = input.files[0];
+  if(file.size > 2*1024*1024){ alert('Foto muito grande. Use uma imagem menor que 2MB.'); return; }
+  var reader = new FileReader();
+  reader.onload = function(e){
+    var img = new Image();
+    img.onload = function(){
+      // Redimensiona para máximo 400x400
+      var canvas = document.createElement('canvas');
+      var MAX = 400;
+      var w = img.width, h2 = img.height;
+      if(w > MAX){ h2 = Math.round(h2*MAX/w); w = MAX; }
+      if(h2 > MAX){ w = Math.round(w*MAX/h2); h2 = MAX; }
+      canvas.width = w; canvas.height = h2;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h2);
+      var dataUrl = canvas.toDataURL('image/jpeg', 0.75);
+      var fotoEl  = document.getElementById('es-foto');
+      var prevEl  = document.getElementById('es-foto-prev');
+      if(fotoEl)  fotoEl.value = dataUrl;
+      if(prevEl){ prevEl.src = dataUrl; prevEl.style.display = 'block'; }
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function removerFotoProduto(){
+  var fotoEl = document.getElementById('es-foto');
+  var prevEl = document.getElementById('es-foto-prev');
+  var inpEl  = document.getElementById('es-foto-input');
+  if(fotoEl)  fotoEl.value = '';
+  if(prevEl){ prevEl.src=''; prevEl.style.display='none'; }
+  if(inpEl)  inpEl.value = '';
+}
+
+// ── Auto-publicação do catálogo ────────────────────────────────────────────
+function _autoPublicarCatalogo(){
+  var lic = {};
+  try{ lic = _lerLicenca(); }catch(e){}
+  if(!lic || !lic.email) return;
+
+  var disponiveis = (DB.materiais||[]).filter(function(m){
+    return Number(m.qtd||0) > 0 && Number(m.vl||0) > 0;
+  });
+  if(!disponiveis.length) return;
+
+  var catalogo = disponiveis.map(function(m){
+    return {
+      id:m.id, nome:m.nome, preco:Number(m.vl||0),
+      un:m.un||'un', cat:m.cat||'', qtd:Number(m.qtd||0),
+      foto:m.foto||''
+    };
+  });
+
+  // Publica silenciosamente
+  var cbName = 'cbAutoPubl_'+Date.now();
+  window[cbName] = function(){ delete window[cbName]; };
+  var url = URL_SERVIDOR+'?action=publicarCatalogo&email='+encodeURIComponent(lic.email)+
+    '&catalogo='+encodeURIComponent(JSON.stringify(catalogo))+'&callback='+cbName;
+  var s=document.createElement('script'); s.src=url; document.head.appendChild(s);
+}
 </script>
 
 <div class="mo" id="mo-estq-edit"><div class="mbox">
