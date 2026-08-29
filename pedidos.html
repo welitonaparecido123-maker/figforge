@@ -407,8 +407,7 @@ async function carregarProdutosSupa(){
       .select('id,nome,descricao,categoria,unidade,qtd,preco_venda,foto_url,lojistas(empresa,tel)')
       .eq('publicado', true)
       .eq('ativo', true)
-      .gt('preco_venda', 0)
-      .gt('qtd', 0);
+      .gt('preco_venda', 0);  // inclui zerados — aparece como indisponível
 
     if(_lojista_id) query = query.eq('lojista_id', _lojista_id);
     else { /* busca pelo email */ }
@@ -505,10 +504,15 @@ function criarCardProduto(p){
         (p.desc?'<div class="prod-card-desc">'+p.desc+'</div>':'')+
       '</div>'+
       '<div class="prod-card-footer">'+
-        '<div class="prod-card-preco">R$ '+Number(p.preco||0).toFixed(2).replace('.',',')+'<span style="font-size:11px;color:var(--tx3);font-weight:400">/'+p.un+'</span></div>'+
+        '<div>'+
+          '<div class="prod-card-preco">R$ '+Number(p.preco||0).toFixed(2).replace('.',',')+'<span style="font-size:11px;color:var(--tx3);font-weight:400">/'+p.un+'</span></div>'+
+          (dispon
+            ? '<div style="font-size:11px;color:#16a34a;font-weight:600">✔ '+Number(p.qtd||0)+' '+p.un+' em estoque</div>'
+            : '<div style="font-size:11px;color:#dc2626;font-weight:600">⚠️ Indisponível</div>')
+        +'</div>'+
         (dispon
           ? '<button class="prod-card-btn" onclick="adicionarAoCarrinho(\''+p.id+'\')">+</button>'
-          : '<div class="prod-esgotado">Esgotado</div>')
+          : '<button class="prod-card-btn" disabled style="background:#e0e0e0;cursor:not-allowed;font-size:14px">✕</button>')
       +'</div>'+
     '</div>';
   return card;
@@ -532,7 +536,11 @@ function filtrarCat(cat, btn){
 // ── Carrinho ──────────────────────────────────────────────────────────────
 function adicionarAoCarrinho(prodId){
   var p = _produtos.find(function(x){return x.id===prodId;});
-  if(!p || Number(p.qtd||0)<=0) return;
+  if(!p) return;
+  if(Number(p.qtd||0)<=0){
+    alert('Produto indisponível no momento.');
+    return;
+  }
   var ja = _carrinho.find(function(c){return c.id===prodId;});
   if(ja){ ja.qty++; } else { _carrinho.push({id:p.id,nome:p.nome,preco:p.preco,un:p.un,qty:1}); }
   atualizarCarrinho();
