@@ -163,6 +163,33 @@ label{font-size:12px;color:var(--tx3);display:block;margin-bottom:4px;margin-top
     <div style="display:flex;justify-content:space-between;font-weight:700;font-size:17px;margin-top:8px;padding-top:8px;border-top:1px solid var(--br)"><span>Total</span><span id="ck-total" style="color:var(--gn)">R$ 0,00</span></div>
   </div>
 
+  <!-- Forma de pagamento -->
+  <div style="background:var(--bg3);border-radius:8px;padding:12px;margin-bottom:12px">
+    <div style="font-size:13px;font-weight:600;margin-bottom:8px">💳 Forma de pagamento</div>
+    <div id="pgto-pix" class="frete-opcao sel" onclick="selecionarPgto('pix',this)">
+      <span style="font-size:20px">📱</span>
+      <div style="flex:1">
+        <div style="font-weight:600">PIX <span style="background:rgba(16,185,129,.2);color:#10B981;padding:2px 8px;border-radius:10px;font-size:11px">5% de desconto</span></div>
+        <div style="font-size:11px;color:var(--tx3)">Pagamento instantâneo</div>
+      </div>
+    </div>
+    <div id="pgto-card" class="frete-opcao" onclick="selecionarPgto('card',this)">
+      <span style="font-size:20px">💳</span>
+      <div style="flex:1">
+        <div style="font-weight:600">Cartão de crédito</div>
+        <div style="font-size:11px;color:var(--tx3)">Acréscimo de 12% (parcelas) · Via InfinityPay</div>
+      </div>
+    </div>
+    <div id="pgto-dinheiro" class="frete-opcao" onclick="selecionarPgto('dinheiro',this)">
+      <span style="font-size:20px">💵</span>
+      <div style="flex:1">
+        <div style="font-weight:600">Dinheiro / Troco</div>
+        <div style="font-size:11px;color:var(--tx3)">Pagar na entrega/retirada</div>
+      </div>
+    </div>
+    <div id="pgto-aviso" style="margin-top:8px;font-size:12px;color:var(--tx3);display:none"></div>
+  </div>
+
   <label>Observação</label>
   <input id="ck-obs" type="text" placeholder="Ligar antes, portão azul..." style="margin-bottom:12px"/>
 
@@ -324,13 +351,43 @@ function selecionarFrete(tipo, valor, el){
   }
   calcTotalCheckout();
 }
+var _pgtoTipo = 'pix';
+var _INFINITYPAY_URL = 'https://infinitypay.io'; // Substitua pela sua URL de link de pagamento
+
+function selecionarPgto(tipo, el){
+  _pgtoTipo = tipo;
+  document.querySelectorAll('#pgto-pix,#pgto-card,#pgto-dinheiro').forEach(function(e){ e.classList.remove('sel'); });
+  el.classList.add('sel');
+  var aviso = document.getElementById('pgto-aviso');
+  if(tipo==='pix'){
+    aviso.style.display='block';
+    aviso.innerHTML='✅ <b>5% de desconto</b> aplicado automaticamente no PIX.';
+    aviso.style.color='var(--gn)';
+  } else if(tipo==='card'){
+    aviso.style.display='block';
+    aviso.innerHTML='⚠️ <b>12% de acréscimo</b> para parcelamento no cartão.';
+    aviso.style.color='var(--am)';
+  } else {
+    aviso.style.display='none';
+  }
+  calcTotalCheckout();
+}
+
 function calcTotalCheckout(){
-  var sub=_carrinho.reduce(function(s,c){return s+c.qty*c.preco;},0);
-  var tot=sub+_freteValor;
+  var sub = _carrinho.reduce(function(s,c){return s+c.qty*c.preco;},0);
+  var desconto = (_pgtoTipo==='pix') ? sub*0.05 : 0;
+  var acrescimo = (_pgtoTipo==='card') ? sub*0.12 : 0;
+  var tot = sub - desconto + acrescimo + _freteValor;
   var sEl=document.getElementById('ck-sub'); if(sEl) sEl.textContent='R$ '+sub.toFixed(2).replace('.',',');
   var fEl=document.getElementById('ck-frete-val'); if(fEl) fEl.textContent=_freteValor>0?'R$ '+_freteValor.toFixed(2).replace('.',','):'Grátis';
-  var tEl=document.getElementById('ck-total'); if(tEl) tEl.textContent='R$ '+tot.toFixed(2).replace('.',',');
-  return {sub:sub, frete:_freteValor, total:tot};
+  var dEl=document.getElementById('ck-total');
+  if(dEl){
+    var extra = '';
+    if(desconto>0) extra = ' <span style="color:var(--gn);font-size:12px">(-5% PIX)</span>';
+    if(acrescimo>0) extra = ' <span style="color:var(--am);font-size:12px">(+12% cartão)</span>';
+    dEl.innerHTML = 'R$ '+tot.toFixed(2).replace('.',',')+extra;
+  }
+  return {sub:sub, desconto:desconto, acrescimo:acrescimo, frete:_freteValor, total:tot};
 }
 
 // ── Checkout ──────────────────────────────────────────────────────────────
@@ -374,11 +431,12 @@ function enviarPedido(){
     (cep?' (CEP: '+cep+')':'');
 
   var totais = calcTotalCheckout();
+  var pgtoLabel = _pgtoTipo==='pix'?'PIX (5% desc.)':_pgtoTipo==='card'?'Cartão (+12%)':'Dinheiro';
   var pedido = {
     cliente:nome, telefone:tel,
     email:document.getElementById('ck-email').value.trim(),
     endereco:_freteTipo==='entrega'?endereco:'Retirada na loja',
-    entrega:_freteTipo, frete:totais.frete,
+    entrega:_freteTipo, frete:totais.frete, pagamento:pgtoLabel,
     itens:_carrinho.map(function(c){return{nome:c.nome,preco:c.preco,un:c.un,qtd:c.qty,total:c.qty*c.preco};}),
     subtotal:totais.sub, total:totais.total, obs:obs
   };
@@ -394,7 +452,16 @@ function enviarPedido(){
     document.getElementById('loading').classList.remove('on');
     delete window[cbName];
     if(data.ok){
-      document.getElementById('msg-sucesso').textContent='Pedido #'+data.pedidoId+' confirmado! Entraremos em contato.';
+      var msgSuc = 'Pedido #'+data.pedidoId+' confirmado!';
+      if(_pgtoTipo==='pix'){
+        msgSuc += ' Pague via PIX para confirmar a entrega.\n\nChave PIX: 57.048.794/0001-68 (CNPJ)\nValor com desconto: R$ '+totais.total.toFixed(2);
+      } else if(_pgtoTipo==='card'){
+        // Abre link InfinityPay em nova aba
+        var linkPgto = _INFINITYPAY_URL+'?amount='+Math.round(totais.total*100)+'&ref='+data.pedidoId;
+        window.open(linkPgto, '_blank');
+        msgSuc += '\n\nUma janela de pagamento foi aberta.';
+      }
+      document.getElementById('msg-sucesso').textContent=msgSuc;
       document.getElementById('sucesso').classList.add('on');
       _carrinho=[];
     } else { alert('Erro: '+(data.msg||'Tente novamente.')); }
