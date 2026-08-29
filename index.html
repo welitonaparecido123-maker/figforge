@@ -10467,10 +10467,10 @@ function renderListaPedidos(){
     var itens = [];
     try{ itens = JSON.parse(p.itens||'[]'); }catch(e){}
     var stCor = stCors[p.status||'Novo'] || 'var(--tx3)';
-    var telLimpo = (p.telefone||'').replace(/\D/g,'');
+    var telLimpo = String(p.telefone||'').replace(/\D/g,'');
     if(!telLimpo.startsWith('55')) telLimpo = '55'+telLimpo;
-    var endereco = p.endereco || p['endere\u00e7o'] || 'Endereço não informado';
-    var dataFmt = p.data ? p.data.slice(0,10).split('-').reverse().join('/') : '';
+    var endereco = String(p.endereco || p['endere\u00e7o'] || 'Endereço não informado');
+    var dataFmt = p.data ? String(p.data).slice(0,10).split('-').reverse().join('/') : '';
     var itensStr = itens.length ? itens.map(function(i){ return i.qtd+'× '+i.nome; }).join(', ') : '–';
     var totalStr = 'R$ '+Number(p.total||0).toFixed(2).replace('.',',');
 
