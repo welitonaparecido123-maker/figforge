@@ -2586,7 +2586,7 @@ button[style*="background: #4F6EF7"], .btn-primary {
       <div style="font-size:18px;font-weight:700">📦 Pedidos Online</div>
       <div style="font-size:12px;color:var(--tx3)">Pedidos recebidos pela loja virtual</div>
     </div>
-    <button class="btn sm bp" onclick="publicarCatalogo()" style="margin-left:auto">🌐 Publicar catálogo</button>
+    <button class="btn sm bp" onclick="sincronizarProdutosSupabase()" style="margin-left:auto">🌐 Publicar catálogo</button>
     <button class="btn sm" onclick="copiarLinkLoja()">🔗 Copiar link da loja</button>
   </div>
 
@@ -3866,6 +3866,7 @@ function salvarMaterial(){
   }
   save();
   _autoPublicarCatalogo();
+  _autoPublicarSupabase();
   setTimeout(function(){ sincronizarCompleto(true); },800);
   fecharMo('mo-estq'); renderEstoque();
   el('mo-estq-titulo').textContent='Novo material';
@@ -10908,6 +10909,64 @@ function _autoPublicarCatalogo(){
   var url = URL_SERVIDOR+'?action=publicarCatalogo&email='+encodeURIComponent(lic.email)+
     '&catalogo='+encodeURIComponent(JSON.stringify(catalogo))+'&callback='+cbName;
   var s=document.createElement('script'); s.src=url; document.head.appendChild(s);
+}
+
+// ── Sincroniza produtos com Supabase ──────────────────────────────────────
+async function sincronizarProdutosSupabase(){
+  if(!_supa || !_lojista_id){ alert('Supabase não conectado.'); return; }
+  var total = DB.materiais ? DB.materiais.length : 0;
+  if(!total){ alert('Nenhum produto no estoque.'); return; }
+
+  var btn = event && event.target;
+  if(btn){ btn.disabled=true; btn.textContent='⏳ Sincronizando...'; }
+
+  var rows = (DB.materiais||[]).filter(function(m){
+    return Number(m.vl||0) > 0; // só publica se tem preço
+  }).map(function(m){
+    return {
+      id: m.id, lojista_id: _lojista_id,
+      nome: m.nome||'Produto', descricao: m.desc||'',
+      categoria: m.cat||'', unidade: m.un||'un',
+      qtd: Number(m.qtd||0), qtd_minima: Number(m.min||0),
+      preco_custo: Number(m.custo||0), preco_venda: Number(m.vl||0),
+      margem: Number(m.margem||0),
+      foto_url: (m.foto && !m.foto.startsWith('data:')) ? m.foto : null,
+      localizacao: m.loc||'',
+      publicado: true,
+      ativo: true
+    };
+  });
+
+  try{
+    var { error } = await _supa.from('produtos').upsert(rows, { onConflict: 'id' });
+    if(btn){ btn.disabled=false; btn.textContent='🌐 Publicar catálogo'; }
+    if(error){ alert('Erro Supabase: '+error.message); return; }
+    alert('✅ '+rows.length+' produto(s) publicado(s) na loja online!');
+  }catch(e){
+    if(btn){ btn.disabled=false; btn.textContent='🌐 Publicar catálogo'; }
+    alert('Erro: '+e.message);
+  }
+}
+
+// Auto-publica quando salva produto (via Supabase se disponível)
+async function _autoPublicarSupabase(){
+  if(!_supa || !_lojista_id) return;
+  var disponiveis = (DB.materiais||[]).filter(function(m){
+    return Number(m.qtd||0)>0 && Number(m.vl||0)>0;
+  });
+  if(!disponiveis.length) return;
+  var rows = disponiveis.map(function(m){
+    return {
+      id:m.id, lojista_id:_lojista_id, nome:m.nome||'', descricao:m.desc||'',
+      categoria:m.cat||'', unidade:m.un||'un',
+      qtd:Number(m.qtd||0), qtd_minima:Number(m.min||0),
+      preco_custo:Number(m.custo||0), preco_venda:Number(m.vl||0),
+      margem:Number(m.margem||0),
+      foto_url:(m.foto&&!m.foto.startsWith('data:'))?m.foto:null,
+      localizacao:m.loc||'', publicado:true, ativo:true
+    };
+  });
+  try{ await _supa.from('produtos').upsert(rows,{onConflict:'id'}); }catch(e){}
 }
 </script>
 
