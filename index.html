@@ -2624,11 +2624,13 @@ button[style*="background: #4F6EF7"], .btn-primary {
     <button class="btn sm" onclick="filtrarPedidosStatus('Concluído',this)">✅ Concluídos</button>
   </div>
 
+  <div id="pedidos-debug" style="background:var(--bg3);border-radius:8px;padding:10px;margin-bottom:10px;font-size:12px;display:none">
+    <b>🔍 Status da conexão:</b> <span id="ped-debug-txt"></span>
+  </div>
   <div id="pedidos-lista">
     <div class="empty" style="padding:40px;text-align:center">
       <div style="font-size:32px;margin-bottom:8px">📦</div>
-      <div>Nenhum pedido ainda.</div>
-      <div style="font-size:12px;color:var(--tx3);margin-top:4px">Publique o catálogo e compartilhe o link com seus clientes.</div>
+      <div>Clique em 🔄 Atualizar pedidos para buscar.</div>
     </div>
   </div>
 </div>
@@ -5620,7 +5622,15 @@ function confirmarPagamentoFunc(){
   if(eParcial){
     msgConfirm += '⚠️ O ponto NÃO será zerado. Use novamente para pagar o saldo restante.';
   } else {
-    msgConfirm += '✅ O ponto será zerado após este lançamento.';
+    var excPrev = vPagar - saldo;
+    if(excPrev > 0.01){
+      var partesPrev = mes_pago.split('-');
+      var anoP = Number(partesPrev[0]); var mesP = Number(partesPrev[1]);
+      mesP++; if(mesP>12){mesP=1;anoP++;}
+      msgConfirm += '✅ Ponto zerado. Excedente de R$ '+excPrev.toFixed(2).replace('.',',')+' vira crédito para '+anoP+'-'+String(mesP).padStart(2,'0')+'.';
+    } else {
+      msgConfirm += '✅ O ponto será zerado após este lançamento.';
+    }
   }
   if(!confirm(msgConfirm)) return;
 
@@ -10892,8 +10902,8 @@ var _pedidosData = [];
 
 function renderPedidos(){
   if(!DB.pedidosLocais) DB.pedidosLocais=[];
-  // Tenta puxar pedidos do servidor
-  puxarPedidosServidor(true);
+  // Sempre busca do servidor (não silencioso para mostrar loading)
+  puxarPedidosServidor(false);
 }
 
 function puxarPedidosServidor(silencioso){
@@ -10910,8 +10920,12 @@ function puxarPedidosServidor(silencioso){
   var cbName = 'cbListarPedidos_'+Date.now();
   window[cbName] = function(data){
     delete window[cbName];
+    var dbgTxt2 = el('ped-debug-txt');
     if(data && data.ok && data.pedidos){
       _pedidosData = data.pedidos.reverse();
+      if(dbgTxt2) dbgTxt2.textContent = '✔ '+_pedidosData.length+' pedido(s) encontrado(s) para '+lic.email;
+    } else {
+      if(dbgTxt2) dbgTxt2.textContent = '✗ Resposta: '+(data?JSON.stringify(data).slice(0,100):'sem dados');
     }
     renderListaPedidos();
     var novos = (_pedidosData||[]).filter(function(p){return p.status==='Novo';}).length;
@@ -10923,7 +10937,15 @@ function puxarPedidosServidor(silencioso){
   }, 15000);
 
   var url = URL_SERVIDOR+'?action=listarPedidos&email='+encodeURIComponent(lic.email)+'&callback='+cbName;
-  var s=document.createElement('script'); s.src=url; document.head.appendChild(s);
+  // Debug visível
+  var dbgEl = el('pedidos-debug'); var dbgTxt = el('ped-debug-txt');
+  if(dbgEl && dbgTxt){ dbgEl.style.display='block'; dbgTxt.textContent = 'Buscando para: '+lic.email+'...'; }
+  var s=document.createElement('script');
+  s.onerror = function(){
+    if(dbgTxt) dbgTxt.textContent = '✗ Erro ao carregar script do servidor';
+    if(window[cbName]){ delete window[cbName]; renderListaPedidos(); }
+  };
+  s.src=url; document.head.appendChild(s);
 }
 
 function renderListaPedidos(){
@@ -11179,7 +11201,15 @@ function verificarPedidosNovos(){
   };
 
   var url = URL_SERVIDOR+'?action=listarPedidos&email='+encodeURIComponent(lic.email)+'&callback='+cbName;
-  var s=document.createElement('script'); s.src=url; document.head.appendChild(s);
+  // Debug visível
+  var dbgEl = el('pedidos-debug'); var dbgTxt = el('ped-debug-txt');
+  if(dbgEl && dbgTxt){ dbgEl.style.display='block'; dbgTxt.textContent = 'Buscando para: '+lic.email+'...'; }
+  var s=document.createElement('script');
+  s.onerror = function(){
+    if(dbgTxt) dbgTxt.textContent = '✗ Erro ao carregar script do servidor';
+    if(window[cbName]){ delete window[cbName]; renderListaPedidos(); }
+  };
+  s.src=url; document.head.appendChild(s);
 }
 
 // ── Toast visual dentro do app ────────────────────────────────────────────
