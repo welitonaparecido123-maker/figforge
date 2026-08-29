@@ -2640,6 +2640,7 @@ button[style*="background: #4F6EF7"], .btn-primary {
     <div style="font-size:18px;font-weight:700">🛒 Ponto de Venda</div>
     <button class="btn sm" onclick="verVendasPDV()" style="margin-left:auto">📋 Histórico de vendas</button>
     <button class="btn sm" onclick="verFiadosPDV()">📒 Fiado / Contas</button>
+    <button class="btn sm bp" onclick="puxarPedidosServidor(false)" style="margin-left:auto">🔄 Atualizar pedidos</button>
   </div>
 
   <div style="display:grid;grid-template-columns:1fr 340px;gap:12px">
@@ -7004,7 +7005,7 @@ function verComprovante(lancId){
     return;
   }
   const w=window.open('','_blank');
-  w.document.write('<html><body style="margin:0;background:#000;display:flex;align-items:center;justify-content:center;min-height:100vh"><img src="'+l.compImg+'" style="max-width:100%;max-height:100vh"/></body></html>');
+  w.document.write('<html><body style="margin:0;background:#000;display:flex;align-items:center;justify-content:center;min-height:100vh"><img src="'+l.compImg+'" style="max-width:100%;max-height:100vh"/>');
 }
 
 // ── TROCAR SENHA ─────────────────────────────────────────────────────────────
@@ -10898,25 +10899,28 @@ function renderPedidos(){
 function puxarPedidosServidor(silencioso){
   var lic = {};
   try{ lic=_lerLicenca(); }catch(e){}
+  if(!lic||!lic.email){
+    try{ var r=localStorage.getItem('figforge_lic_v2'); if(r) lic=JSON.parse(r); }catch(e){}
+  }
   if(!lic||!lic.email) return;
+
+  var listEl = el('pedidos-lista');
+  if(listEl && !silencioso) listEl.innerHTML='<div style="text-align:center;padding:20px;color:var(--tx3)">⏳ Buscando pedidos...</div>';
 
   var cbName = 'cbListarPedidos_'+Date.now();
   window[cbName] = function(data){
     delete window[cbName];
-    if(data.ok && data.pedidos && data.pedidos.length){
+    if(data && data.ok && data.pedidos){
       _pedidosData = data.pedidos.reverse();
-      renderListaPedidos();
-      // Badge de novos pedidos
-      var novos = _pedidosData.filter(function(p){return p.status==='Novo';}).length;
-      var badge = el('badge-pedidos');
-      if(badge){
-        badge.textContent = novos||'';
-        badge.style.display = novos>0 ? 'inline-flex' : 'none';
-      }
-    } else {
-      renderListaPedidos();
     }
+    renderListaPedidos();
+    var novos = (_pedidosData||[]).filter(function(p){return p.status==='Novo';}).length;
+    var badge = el('badge-pedidos');
+    if(badge){ badge.textContent=novos||''; badge.style.display=novos>0?'inline-flex':'none'; }
   };
+  setTimeout(function(){
+    if(window[cbName]){ delete window[cbName]; renderListaPedidos(); }
+  }, 15000);
 
   var url = URL_SERVIDOR+'?action=listarPedidos&email='+encodeURIComponent(lic.email)+'&callback='+cbName;
   var s=document.createElement('script'); s.src=url; document.head.appendChild(s);
@@ -11344,10 +11348,11 @@ function _autoPublicarCatalogo(){
   if(!disponiveis.length) return;
 
   var catalogo = disponiveis.map(function(m){
+    // Foto NÃO vai para o servidor (base64 é muito grande para URL)
+    // Fica salva localmente no DB para o PDV
     return {
       id:m.id, nome:m.nome, preco:Number(m.vl||0),
-      un:m.un||'un', cat:m.cat||'', qtd:Number(m.qtd||0),
-      foto:m.foto||''
+      un:m.un||'un', cat:m.cat||'', qtd:Number(m.qtd||0)
     };
   });
 
@@ -11515,3 +11520,6 @@ function _autoPublicarCatalogo(){
   </div>
 </div></div
 </div>
+
+</body>
+</html>
