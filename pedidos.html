@@ -4,7 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
 <meta name="theme-color" content="#1a1f2e"/>
-<title>Loja Online — Materiais de Construção</title>
+<title>Loja Online</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{--ac:#4F6EF7;--gn:#10B981;--rd:#EF4444;--am:#F59E0B;--bg:#0F1117;--bg2:#1A1F2E;--bg3:#252B3B;--tx:#F1F5F9;--tx2:#94A3B8;--tx3:#64748B;--br:#2D3448;--r:10px}
@@ -20,33 +20,24 @@ button{cursor:pointer;border:none;border-radius:8px;font-size:14px;font-weight:6
 .badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600}
 .badge-ok{background:rgba(16,185,129,.15);color:var(--gn)}
 .badge-out{background:rgba(239,68,68,.15);color:var(--rd)}
-
-/* Header */
+label{font-size:12px;color:var(--tx3);display:block;margin-bottom:4px;margin-top:10px}
 #header{background:var(--bg2);border-bottom:1px solid var(--br);padding:14px 16px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100}
-#header img{height:40px;border-radius:8px}
 #header-nome{font-size:18px;font-weight:700}
 #header-sub{font-size:12px;color:var(--tx3)}
-#carrinho-btn{margin-left:auto;background:var(--ac);color:#fff;padding:10px 14px;border-radius:8px;display:flex;align-items:center;gap:8px;font-weight:600}
+#carrinho-btn{margin-left:auto;background:var(--ac);color:#fff;padding:10px 14px;border-radius:8px;display:flex;align-items:center;gap:8px;font-weight:600;position:relative}
 #carrinho-count{background:#fff;color:var(--ac);border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700}
-
-/* Busca e filtros */
 #filtros{padding:12px 16px;background:var(--bg2);border-bottom:1px solid var(--br)}
-#busca-input{font-size:15px}
 #cats{display:flex;gap:6px;margin-top:8px;overflow-x:auto;padding-bottom:4px}
 .cat-btn{padding:6px 14px;border-radius:20px;background:var(--bg3);color:var(--tx2);font-size:12px;font-weight:600;border:1px solid var(--br);white-space:nowrap;cursor:pointer;flex-shrink:0}
 .cat-btn.active{background:var(--ac);color:#fff;border-color:var(--ac)}
-
-/* Produtos */
 #produtos{padding:12px 16px;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
 .prod-card{background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);padding:12px;cursor:pointer;transition:.15s}
-.prod-card:hover,.prod-card:active{border-color:var(--ac);background:rgba(79,110,247,.06)}
+.prod-card:hover{border-color:var(--ac);background:rgba(79,110,247,.06)}
 .prod-nome{font-weight:600;font-size:13px;margin-bottom:4px}
 .prod-cat{font-size:10px;color:var(--tx3);margin-bottom:6px}
 .prod-preco{font-size:18px;font-weight:700;color:var(--gn)}
 .prod-un{font-size:11px;color:var(--tx3)}
 .prod-btn{width:100%;margin-top:8px;padding:8px;background:var(--ac);color:#fff;border-radius:8px;font-weight:600;font-size:12px}
-
-/* Carrinho (sidebar) */
 #carrinho-panel{position:fixed;top:0;right:-100%;width:min(380px,100vw);height:100vh;background:var(--bg2);border-left:1px solid var(--br);z-index:200;transition:.3s;display:flex;flex-direction:column}
 #carrinho-panel.open{right:0}
 #carrinho-header{padding:14px 16px;border-bottom:1px solid var(--br);display:flex;align-items:center;justify-content:space-between}
@@ -59,373 +50,375 @@ button{cursor:pointer;border:none;border-radius:8px;font-size:14px;font-weight:6
 .cart-item-total{font-weight:700;color:var(--gn);font-size:13px;min-width:60px;text-align:right}
 .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:150}
 .overlay.on{display:block}
-
-/* Checkout modal */
-#checkout-modal{display:none;position:fixed;inset:0;z-index:300;padding:20px;align-items:center;justify-content:center}
+#checkout-modal{display:none;position:fixed;inset:0;z-index:300;padding:16px;align-items:flex-start;justify-content:center;overflow-y:auto;background:rgba(0,0,0,.7)}
 #checkout-modal.open{display:flex}
-#checkout-box{background:var(--bg2);border-radius:var(--r);padding:20px;width:min(440px,100%);max-height:90vh;overflow-y:auto}
-label{font-size:12px;color:var(--tx3);display:block;margin-bottom:4px;margin-top:10px}
-
-/* Loading e sucesso */
+#checkout-box{background:var(--bg2);border-radius:var(--r);padding:20px;width:min(500px,100%);margin:auto}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 #loading{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:400;align-items:center;justify-content:center;flex-direction:column;gap:16px}
 #loading.on{display:flex}
 .spinner{width:40px;height:40px;border:4px solid var(--br);border-top-color:var(--ac);border-radius:50%;animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 #sucesso{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:400;align-items:center;justify-content:center;flex-direction:column;gap:16px;text-align:center;padding:20px}
 #sucesso.on{display:flex}
-.sucesso-icon{font-size:64px}
+.frete-opcao{display:flex;align-items:center;gap:10px;padding:10px;background:var(--bg3);border-radius:8px;border:2px solid var(--br);cursor:pointer;margin-bottom:6px}
+.frete-opcao.sel{border-color:var(--ac);background:rgba(79,110,247,.1)}
 </style>
 </head>
 <body>
-
-<!-- LOADING -->
-<div id="loading"><div class="spinner"></div><div style="color:#fff">Enviando pedido...</div></div>
-
-<!-- SUCESSO -->
+<div id="loading"><div class="spinner"></div><div style="color:#fff">Processando...</div></div>
 <div id="sucesso">
-  <div class="sucesso-icon">✅</div>
+  <div style="font-size:64px">✅</div>
   <div style="font-size:22px;font-weight:700;color:#fff">Pedido confirmado!</div>
-  <div style="color:var(--tx2);max-width:300px" id="msg-sucesso">Seu pedido foi recebido e em breve entraremos em contato.</div>
+  <div style="color:var(--tx2);max-width:300px" id="msg-sucesso">Seu pedido foi recebido!</div>
   <button class="btn-g" onclick="location.reload()" style="margin-top:8px;padding:12px 24px">Fazer novo pedido</button>
 </div>
 
-<!-- HEADER -->
 <div id="header">
-  <div id="logo-area">
-    <div id="header-nome">Carregando...</div>
-    <div id="header-sub">Materiais de Construção</div>
-  </div>
-  <button id="carrinho-btn" onclick="abrirCarrinho()">
-    🛒 Carrinho <span id="carrinho-count">0</span>
-  </button>
+  <div><div id="header-nome">Carregando...</div><div id="header-sub">Materiais de Construção</div></div>
+  <button id="carrinho-btn" onclick="abrirCarrinho()">🛒 <span id="carrinho-count">0</span></button>
 </div>
 
-<!-- FILTROS -->
 <div id="filtros">
   <input id="busca-input" type="text" placeholder="🔍 Buscar produto..." oninput="filtrar()"/>
-  <div id="cats">
-    <button class="cat-btn active" onclick="filtrarCat('',this)">Todos</button>
-  </div>
+  <div id="cats"><button class="cat-btn active" onclick="filtrarCat('',this)">Todos</button></div>
 </div>
 
-<!-- PRODUTOS -->
-<div id="produtos">
-  <div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--tx3)">Carregando produtos...</div>
-</div>
+<div id="produtos"><div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--tx3)">Carregando...</div></div>
 
-<!-- OVERLAY -->
 <div class="overlay" id="overlay" onclick="fecharCarrinho()"></div>
 
-<!-- CARRINHO -->
 <div id="carrinho-panel">
   <div id="carrinho-header">
-    <div style="font-size:16px;font-weight:700">🛒 Meu Carrinho</div>
+    <div style="font-size:16px;font-weight:700">🛒 Carrinho</div>
     <button class="btn" onclick="fecharCarrinho()" style="padding:6px 12px">✕</button>
   </div>
-  <div id="carrinho-items">
-    <div style="text-align:center;padding:40px;color:var(--tx3)">Seu carrinho está vazio</div>
-  </div>
+  <div id="carrinho-items"><div style="text-align:center;padding:40px;color:var(--tx3)">Vazio</div></div>
   <div id="carrinho-footer">
-    <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px">
-      <span style="color:var(--tx3)">Subtotal:</span>
-      <span id="subtotal-val">R$ 0,00</span>
-    </div>
-    <div style="display:flex;justify-content:space-between;font-size:18px;font-weight:700;margin-bottom:12px">
-      <span>Total:</span><span id="total-val" style="color:var(--gn)">R$ 0,00</span>
-    </div>
+    <div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:13px"><span style="color:var(--tx3)">Subtotal:</span><span id="subtotal-val">R$ 0,00</span></div>
+    <div style="display:flex;justify-content:space-between;font-size:18px;font-weight:700;margin-bottom:12px"><span>Total:</span><span id="total-val" style="color:var(--gn)">R$ 0,00</span></div>
     <button class="btn-p" style="width:100%;margin-bottom:8px" onclick="abrirCheckout()">Finalizar pedido →</button>
     <button class="btn" style="width:100%" onclick="fecharCarrinho()">Continuar comprando</button>
   </div>
 </div>
 
-<!-- CHECKOUT MODAL -->
+<!-- CHECKOUT -->
 <div id="checkout-modal">
-  <div id="checkout-box">
-    <div style="font-size:18px;font-weight:700;margin-bottom:16px">📦 Dados para entrega</div>
+<div id="checkout-box">
+  <div style="font-size:18px;font-weight:700;margin-bottom:16px">📦 Finalizar pedido</div>
 
-    <label>Seu nome completo *</label>
-    <input id="ck-nome" type="text" placeholder="Ex: João Silva"/>
-
-    <label>Telefone (WhatsApp) *</label>
-    <input id="ck-tel" type="tel" placeholder="(67) 99999-9999"/>
-
-    <label>Endereço completo *</label>
-    <textarea id="ck-end" placeholder="Rua, número, bairro, cidade..." rows="3" style="resize:none"></textarea>
-
-    <label>Observação (opcional)</label>
-    <input id="ck-obs" type="text" placeholder="Ex: Ligar antes de entregar"/>
-
-    <div style="margin-top:16px;background:var(--bg3);border-radius:8px;padding:12px">
-      <div style="font-size:12px;color:var(--tx3);margin-bottom:6px">Resumo do pedido:</div>
-      <div id="ck-resumo"></div>
-      <div style="display:flex;justify-content:space-between;font-weight:700;font-size:16px;margin-top:8px;padding-top:8px;border-top:1px solid var(--br)">
-        <span>Total</span><span id="ck-total" style="color:var(--gn)">R$ 0,00</span>
-      </div>
+  <!-- Dados do cliente -->
+  <div style="background:var(--bg3);border-radius:8px;padding:12px;margin-bottom:12px">
+    <div style="font-size:13px;font-weight:600;margin-bottom:8px">👤 Seus dados</div>
+    <label>Nome completo *</label>
+    <input id="ck-nome" type="text" placeholder="João Silva"/>
+    <div class="row2">
+      <div><label>WhatsApp *</label><input id="ck-tel" type="tel" placeholder="(67) 99999-9999"/></div>
+      <div><label>E-mail</label><input id="ck-email" type="email" placeholder="Opcional"/></div>
     </div>
-
-    <div style="display:flex;gap:8px;margin-top:16px">
-      <button class="btn" style="flex:1" onclick="fecharCheckout()">Voltar</button>
-      <button class="btn-g" style="flex:2" onclick="enviarPedido()">✅ Confirmar pedido</button>
-    </div>
-    <button class="btn-w" style="width:100%;margin-top:8px" onclick="enviarWhatsApp()">
-      📱 Pedir pelo WhatsApp
-    </button>
   </div>
+
+  <!-- Entrega -->
+  <div style="background:var(--bg3);border-radius:8px;padding:12px;margin-bottom:12px">
+    <div style="font-size:13px;font-weight:600;margin-bottom:8px">📍 Endereço de entrega</div>
+    <div class="row2">
+      <div>
+        <label>CEP *</label>
+        <div style="display:flex;gap:6px">
+          <input id="ck-cep" type="text" placeholder="00000-000" maxlength="9" oninput="mascaraCep(this)" style="flex:1"/>
+          <button onclick="buscarCEP()" class="btn-p" style="padding:8px 12px;white-space:nowrap">🔍</button>
+        </div>
+        <div id="cep-status" style="font-size:11px;color:var(--tx3);margin-top:4px"></div>
+      </div>
+      <div><label>Número</label><input id="ck-num" type="text" placeholder="123"/></div>
+    </div>
+    <label>Rua</label><input id="ck-rua" type="text" placeholder="Preenchido pelo CEP"/>
+    <div class="row2">
+      <div><label>Bairro</label><input id="ck-bairro" type="text" placeholder=""/></div>
+      <div><label>Cidade/UF</label><input id="ck-cidade" type="text" placeholder=""/></div>
+    </div>
+    <label>Complemento</label><input id="ck-comp" type="text" placeholder="Apto, casa, referência..."/>
+  </div>
+
+  <!-- Frete -->
+  <div style="background:var(--bg3);border-radius:8px;padding:12px;margin-bottom:12px">
+    <div style="font-size:13px;font-weight:600;margin-bottom:8px">🚚 Forma de entrega</div>
+    <div class="frete-opcao sel" id="frete-retirada" onclick="selecionarFrete('retirada',0,this)">
+      <span style="font-size:20px">🏪</span>
+      <div style="flex:1"><div style="font-weight:600">Retirar na loja</div><div style="font-size:11px;color:var(--tx3)">Grátis • Combinar horário</div></div>
+      <span style="color:var(--gn);font-weight:700">Grátis</span>
+    </div>
+    <div class="frete-opcao" id="frete-entrega" onclick="selecionarFrete('entrega',15,this)">
+      <span style="font-size:20px">🛵</span>
+      <div style="flex:1"><div style="font-weight:600">Entrega em domicílio</div><div style="font-size:11px;color:var(--tx3)" id="frete-prazo">Calcular após CEP</div></div>
+      <span id="frete-valor" style="font-weight:700">R$ 15,00</span>
+    </div>
+  </div>
+
+  <!-- Resumo -->
+  <div style="background:var(--bg3);border-radius:8px;padding:12px;margin-bottom:12px">
+    <div style="font-size:12px;color:var(--tx3);margin-bottom:6px">Resumo:</div>
+    <div id="ck-resumo"></div>
+    <div style="display:flex;justify-content:space-between;font-size:13px;margin-top:6px"><span>Subtotal:</span><span id="ck-sub">R$ 0,00</span></div>
+    <div style="display:flex;justify-content:space-between;font-size:13px"><span>Frete:</span><span id="ck-frete-val">Grátis</span></div>
+    <div style="display:flex;justify-content:space-between;font-weight:700;font-size:17px;margin-top:8px;padding-top:8px;border-top:1px solid var(--br)"><span>Total</span><span id="ck-total" style="color:var(--gn)">R$ 0,00</span></div>
+  </div>
+
+  <label>Observação</label>
+  <input id="ck-obs" type="text" placeholder="Ligar antes, portão azul..." style="margin-bottom:12px"/>
+
+  <div style="display:flex;gap:8px;margin-bottom:8px">
+    <button class="btn" style="flex:1" onclick="fecharCheckout()">Voltar</button>
+    <button class="btn-g" style="flex:2" onclick="enviarPedido()">✅ Confirmar pedido</button>
+  </div>
+  <button class="btn-w" style="width:100%" onclick="enviarWhatsApp()">📱 Pedir pelo WhatsApp</button>
+</div>
 </div>
 
 <script>
-// ── Configuração ──────────────────────────────────────────────────────────
 var URL_SERVIDOR = 'https://script.google.com/macros/s/AKfycbzmLyefN11Xs8kNKJaGW-UESg4AYmyEEpCy5ECJ69bBhJmjQP5vL6_Jg6Ce470u5cnz/exec';
-// E-mail do proprietário da loja (preenche automaticamente via URL ou fixo)
-var OWNER_EMAIL = '';
+var OWNER_EMAIL  = '';
+var OWNER_TEL    = '5567984326429';
 
-// Pega o email do dono via parâmetro URL: pedidos.html?loja=seuemail@gmail.com
 (function(){
-  var params = new URLSearchParams(window.location.search);
-  OWNER_EMAIL = params.get('loja') || 'welitonaparecido123@gmail.com';
+  var p = new URLSearchParams(window.location.search);
+  OWNER_EMAIL = p.get('loja') || 'welitonaparecido123@gmail.com';
+  OWNER_TEL   = p.get('tel')  || OWNER_TEL;
+  // Tenta carregar dados do cliente do localStorage
+  try{
+    var saved = JSON.parse(localStorage.getItem('ff_cliente')||'{}');
+    if(saved.nome) setTimeout(function(){ preencherCamposCliente(saved); }, 500);
+  }catch(e){}
 })();
 
-var _produtos = [];
-var _carrinho = [];
-var _catAtiva = '';
+var _produtos=[], _carrinho=[], _catAtiva='', _freteValor=0, _freteTipo='retirada';
 
-// ── Carrega catálogo do servidor ──────────────────────────────────────────
+// ── Carrega catálogo ──────────────────────────────────────────────────────
 function carregarCatalogo(){
-  var url = URL_SERVIDOR + '?action=getCatalogo&email=' + encodeURIComponent(OWNER_EMAIL) + '&callback=cbCatalogo';
-  var script = document.createElement('script');
-  script.src = url;
-  document.head.appendChild(script);
+  var url = URL_SERVIDOR+'?action=getCatalogo&email='+encodeURIComponent(OWNER_EMAIL)+'&callback=cbCatalogo';
+  var s=document.createElement('script'); s.src=url; document.head.appendChild(s);
   setTimeout(function(){
-    if(!_produtos.length){
-      document.getElementById('produtos').innerHTML =
-        '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--tx3)">'+
-        '⚠️ Não foi possível carregar os produtos.<br>Tente recarregar a página.</div>';
-    }
-  }, 15000);
+    if(!_produtos.length) document.getElementById('produtos').innerHTML =
+      '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--tx3)">⚠️ Não foi possível carregar. Atualize a página.</div>';
+  },15000);
 }
-
 function cbCatalogo(data){
   if(!data.ok){ mostrarErro(data.msg); return; }
-
-  // Atualiza nome da loja
-  var nomeEl = document.getElementById('header-nome');
-  if(nomeEl && data.nomeEmpresa) nomeEl.textContent = data.nomeEmpresa;
-  document.title = (data.nomeEmpresa||'Loja') + ' — Materiais de Construção';
-
-  try { _produtos = JSON.parse(data.catalogo||'[]'); } catch(e){ _produtos=[]; }
-
-  if(!_produtos.length){
-    document.getElementById('produtos').innerHTML =
-      '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--tx3)">'+
-      '📦 Nenhum produto disponível no momento.</div>';
-    return;
-  }
-
-  // Monta categorias
-  var cats = [...new Set(_produtos.map(function(p){return p.cat||'';}).filter(Boolean))];
-  var catsEl = document.getElementById('cats');
+  var nEl=document.getElementById('header-nome');
+  if(nEl && data.nomeEmpresa) nEl.textContent=data.nomeEmpresa;
+  document.title=(data.nomeEmpresa||'Loja')+'';
+  try{ _produtos=JSON.parse(data.catalogo||'[]'); }catch(e){ _produtos=[]; }
+  if(!_produtos.length){ document.getElementById('produtos').innerHTML='<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--tx3)">📦 Nenhum produto disponível.</div>'; return; }
+  var cats=[...new Set(_produtos.map(function(p){return p.cat||'';}).filter(Boolean))];
+  var cEl=document.getElementById('cats');
   cats.forEach(function(cat){
-    var btn = document.createElement('button');
-    btn.className = 'cat-btn';
-    btn.textContent = cat;
-    btn.onclick = function(){ filtrarCat(cat, btn); };
-    catsEl.appendChild(btn);
+    var b=document.createElement('button'); b.className='cat-btn'; b.textContent=cat;
+    b.onclick=function(){ filtrarCat(cat,b); }; cEl.appendChild(b);
   });
-
   renderProdutos(_produtos);
 }
-
 function renderProdutos(lista){
-  var cont = document.getElementById('produtos');
-  if(!lista.length){
-    cont.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--tx3)">Nenhum produto encontrado</div>';
-    return;
-  }
-  cont.innerHTML = lista.map(function(p, i){
-    var temEstoque = Number(p.qtd||0) > 0;
-    var fotoHtml = p.foto ? '<img src="'+p.foto+'" style="width:100%;height:120px;object-fit:cover;border-radius:8px;margin-bottom:8px"/>' : '';
-    return '<div class="prod-card" onclick="adicionarAoCarrinho('+i+')">' +
-      fotoHtml +
-      '<div class="prod-nome">'+p.nome+'</div>' +
-      (p.cat?'<div class="prod-cat">'+p.cat+'</div>':'') +
-      '<div class="prod-preco">R$ '+Number(p.preco||0).toFixed(2).replace('.',',')+'</div>' +
-      '<div class="prod-un">por '+p.un+'</div>' +
-      '<span class="badge '+(temEstoque?'badge-ok':'badge-out')+'">'+
-        (temEstoque?'✅ Disponível':'❌ Indisponível')+'</span>' +
-      '<button class="prod-btn" '+(temEstoque?'':'disabled style="opacity:.4"')+'>+ Adicionar</button>' +
+  var cont=document.getElementById('produtos');
+  if(!lista.length){ cont.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--tx3)">Nenhum produto encontrado</div>'; return; }
+  cont.innerHTML=lista.map(function(p,i){
+    var dispon=Number(p.qtd||0)>0;
+    var fotoHtml=p.foto?'<img src="'+p.foto+'" style="width:100%;height:100px;object-fit:cover;border-radius:8px;margin-bottom:8px"/>':'';
+    return '<div class="prod-card" onclick="adicionarAoCarrinho('+i+')">'+
+      fotoHtml+
+      '<div class="prod-nome">'+p.nome+'</div>'+
+      (p.cat?'<div class="prod-cat">'+p.cat+'</div>':'')+
+      '<div class="prod-preco">R$ '+Number(p.preco||0).toFixed(2).replace('.',',')+'</div>'+
+      '<div class="prod-un">por '+p.un+'</div>'+
+      '<span class="badge '+(dispon?'badge-ok':'badge-out')+'">'+( dispon?'✅ Disponível':'❌ Indisponível')+'</span>'+
+      '<button class="prod-btn" '+(dispon?'':'disabled style="opacity:.4"')+'>+ Adicionar</button>'+
     '</div>';
   }).join('');
 }
-
 function filtrar(){
-  var q = document.getElementById('busca-input').value.toLowerCase();
-  var lista = _produtos.filter(function(p){
-    var okQ  = !q || p.nome.toLowerCase().includes(q);
-    var okC  = !_catAtiva || p.cat === _catAtiva;
-    return okQ && okC;
-  });
-  renderProdutos(lista);
+  var q=document.getElementById('busca-input').value.toLowerCase();
+  renderProdutos(_produtos.filter(function(p){ return(!_catAtiva||p.cat===_catAtiva)&&(!q||p.nome.toLowerCase().includes(q)); }));
 }
-
-function filtrarCat(cat, btn){
-  _catAtiva = cat;
-  document.querySelectorAll('.cat-btn').forEach(function(b){ b.classList.remove('active'); });
-  btn.classList.add('active');
-  filtrar();
+function filtrarCat(cat,btn){
+  _catAtiva=cat;
+  document.querySelectorAll('.cat-btn').forEach(function(b){b.classList.remove('active');});
+  btn.classList.add('active'); filtrar();
 }
 
 // ── Carrinho ──────────────────────────────────────────────────────────────
-function adicionarAoCarrinho(idx){
-  var p = _produtos[idx];
-  if(!p || Number(p.qtd||0) <= 0) return;
-  var ja = _carrinho.find(function(c){return c.nome===p.nome;});
-  if(ja){
-    ja.qty++;
-  } else {
-    _carrinho.push({nome:p.nome, preco:Number(p.preco||0), un:p.un, qty:1, matId:p.id});
-  }
+function adicionarAoCarrinho(i){
+  var p=_produtos[i]; if(!p||Number(p.qtd||0)<=0) return;
+  var ja=_carrinho.find(function(c){return c.nome===p.nome;});
+  if(ja) ja.qty++;
+  else _carrinho.push({nome:p.nome,preco:Number(p.preco||0),un:p.un,qty:1,matId:p.id});
   atualizarCarrinho();
-
-  // Feedback visual rápido
-  var prodCards = document.querySelectorAll('.prod-card');
-  if(prodCards[idx]){
-    prodCards[idx].style.borderColor='var(--gn)';
-    setTimeout(function(){ prodCards[idx].style.borderColor=''; },600);
-  }
+  var cards=document.querySelectorAll('.prod-card');
+  if(cards[i]){ cards[i].style.borderColor='var(--gn)'; setTimeout(function(){cards[i].style.borderColor='';},600); }
 }
-
 function atualizarCarrinho(){
-  var count = _carrinho.reduce(function(s,c){return s+c.qty;},0);
-  var total = _carrinho.reduce(function(s,c){return s+c.qty*c.preco;},0);
-  document.getElementById('carrinho-count').textContent = count;
-  document.getElementById('subtotal-val').textContent = 'R$ '+total.toFixed(2).replace('.',',');
-  document.getElementById('total-val').textContent     = 'R$ '+total.toFixed(2).replace('.',',');
-
-  var cont = document.getElementById('carrinho-items');
-  if(!_carrinho.length){
-    cont.innerHTML = '<div style="text-align:center;padding:40px;color:var(--tx3)">Seu carrinho está vazio</div>';
-    return;
-  }
-  cont.innerHTML = _carrinho.map(function(item, i){
-    return '<div class="cart-item">' +
-      '<div class="cart-item-nome">'+item.nome+'<br><span style="font-size:11px;color:var(--tx3)">'+
-        'R$ '+item.preco.toFixed(2).replace('.',',')+'/ '+item.un+'</span></div>' +
-      '<div class="qty-ctrl">' +
-        '<button class="qty-btn" onclick="altQty('+i+',-1)">−</button>' +
-        '<span style="font-weight:600;min-width:24px;text-align:center">'+item.qty+'</span>' +
-        '<button class="qty-btn" onclick="altQty('+i+',1)">+</button>' +
-      '</div>' +
-      '<div class="cart-item-total">R$ '+(item.qty*item.preco).toFixed(2).replace('.',',')+'</div>' +
-      '<button onclick="remover('+i+')" style="background:none;border:none;color:var(--rd);font-size:18px;cursor:pointer;padding:4px">✕</button>' +
+  var count=_carrinho.reduce(function(s,c){return s+c.qty;},0);
+  var total=_carrinho.reduce(function(s,c){return s+c.qty*c.preco;},0);
+  document.getElementById('carrinho-count').textContent=count;
+  document.getElementById('subtotal-val').textContent='R$ '+total.toFixed(2).replace('.',',');
+  document.getElementById('total-val').textContent='R$ '+total.toFixed(2).replace('.',',');
+  var cont=document.getElementById('carrinho-items');
+  if(!_carrinho.length){ cont.innerHTML='<div style="text-align:center;padding:40px;color:var(--tx3)">Vazio</div>'; return; }
+  cont.innerHTML=_carrinho.map(function(it,i){
+    return '<div class="cart-item">'+
+      '<button onclick="remover('+i+')" style="background:none;border:none;color:var(--rd);font-size:18px;cursor:pointer">✕</button>'+
+      '<div class="cart-item-nome">'+it.nome+'<br><span style="font-size:11px;color:var(--tx3)">R$ '+it.preco.toFixed(2)+'/'+it.un+'</span></div>'+
+      '<div class="qty-ctrl">'+
+        '<button class="qty-btn" onclick="altQty('+i+',-1)">−</button>'+
+        '<span style="min-width:24px;text-align:center;font-weight:600">'+it.qty+'</span>'+
+        '<button class="qty-btn" onclick="altQty('+i+',1)">+</button>'+
+      '</div>'+
+      '<div class="cart-item-total">R$ '+(it.qty*it.preco).toFixed(2).replace('.',',')+'</div>'+
     '</div>';
   }).join('');
 }
-
-function altQty(i, d){ _carrinho[i].qty = Math.max(1, _carrinho[i].qty+d); atualizarCarrinho(); }
+function altQty(i,d){ _carrinho[i].qty=Math.max(1,_carrinho[i].qty+d); atualizarCarrinho(); }
 function remover(i){ _carrinho.splice(i,1); atualizarCarrinho(); }
+function abrirCarrinho(){ document.getElementById('carrinho-panel').classList.add('open'); document.getElementById('overlay').classList.add('on'); }
+function fecharCarrinho(){ document.getElementById('carrinho-panel').classList.remove('open'); document.getElementById('overlay').classList.remove('on'); }
 
-function abrirCarrinho(){
-  document.getElementById('carrinho-panel').classList.add('open');
-  document.getElementById('overlay').classList.add('on');
+// ── CEP ───────────────────────────────────────────────────────────────────
+function mascaraCep(el){ el.value=el.value.replace(/\D/g,'').replace(/(\d{5})(\d)/,'$1-$2').slice(0,9); }
+function buscarCEP(){
+  var cep=document.getElementById('ck-cep').value.replace(/\D/g,'');
+  var st=document.getElementById('cep-status');
+  if(cep.length!==8){ st.textContent='CEP inválido'; st.style.color='var(--rd)'; return; }
+  st.textContent='🔍 Buscando...'; st.style.color='var(--tx3)';
+  fetch('https://viacep.com.br/ws/'+cep+'/json/')
+    .then(function(r){return r.json();})
+    .then(function(d){
+      if(d.erro){ st.textContent='CEP não encontrado'; st.style.color='var(--rd)'; return; }
+      document.getElementById('ck-rua').value=d.logradouro||'';
+      document.getElementById('ck-bairro').value=d.bairro||'';
+      document.getElementById('ck-cidade').value=(d.localidade||'')+' - '+(d.uf||'');
+      st.textContent='✔ '+d.localidade+'/'+d.uf; st.style.color='var(--gn)';
+      calcularFrete(d.uf);
+      document.getElementById('ck-num').focus();
+    })
+    .catch(function(){ st.textContent='Erro ao buscar CEP'; st.style.color='var(--rd)'; });
 }
-function fecharCarrinho(){
-  document.getElementById('carrinho-panel').classList.remove('open');
-  document.getElementById('overlay').classList.remove('on');
+
+// ── Frete ─────────────────────────────────────────────────────────────────
+function calcularFrete(uf){
+  // Tabela simples de frete por UF — personalize conforme sua região
+  var tabela = { 'MS':15, 'SP':25, 'RJ':30, 'MG':25, 'GO':20, 'DF':20, 'MT':20, 'PA':35, 'AM':40 };
+  var valor = tabela[uf] || 20;
+  document.getElementById('frete-valor').textContent = 'R$ '+valor.toFixed(2).replace('.',',');
+  document.getElementById('frete-prazo').textContent = 'Entrega em 1-3 dias úteis';
+  _freteValor = (_freteTipo === 'entrega') ? valor : 0;
+  if(_freteTipo==='entrega') document.getElementById('frete-valor').style.color='var(--am)';
+  calcTotalCheckout();
+}
+function selecionarFrete(tipo, valor, el){
+  _freteTipo = tipo;
+  document.querySelectorAll('.frete-opcao').forEach(function(e){e.classList.remove('sel');});
+  el.classList.add('sel');
+  if(tipo==='entrega'){
+    // Pega valor atual do frete calculado
+    var vEl=document.getElementById('frete-valor');
+    _freteValor = parseFloat((vEl.textContent||'15').replace('R$ ','').replace(',','.')) || 15;
+  } else {
+    _freteValor = 0;
+  }
+  calcTotalCheckout();
+}
+function calcTotalCheckout(){
+  var sub=_carrinho.reduce(function(s,c){return s+c.qty*c.preco;},0);
+  var tot=sub+_freteValor;
+  var sEl=document.getElementById('ck-sub'); if(sEl) sEl.textContent='R$ '+sub.toFixed(2).replace('.',',');
+  var fEl=document.getElementById('ck-frete-val'); if(fEl) fEl.textContent=_freteValor>0?'R$ '+_freteValor.toFixed(2).replace('.',','):'Grátis';
+  var tEl=document.getElementById('ck-total'); if(tEl) tEl.textContent='R$ '+tot.toFixed(2).replace('.',',');
+  return {sub:sub, frete:_freteValor, total:tot};
 }
 
 // ── Checkout ──────────────────────────────────────────────────────────────
 function abrirCheckout(){
   if(!_carrinho.length){ alert('Adicione produtos ao carrinho.'); return; }
   fecharCarrinho();
-  var total = _carrinho.reduce(function(s,c){return s+c.qty*c.preco;},0);
-  document.getElementById('ck-total').textContent = 'R$ '+total.toFixed(2).replace('.',',');
-  document.getElementById('ck-resumo').innerHTML = _carrinho.map(function(c){
+  document.getElementById('ck-resumo').innerHTML=_carrinho.map(function(c){
     return '<div style="display:flex;justify-content:space-between;font-size:12px;padding:2px 0">'+
       '<span>'+c.qty+'× '+c.nome+'</span><span>R$ '+(c.qty*c.preco).toFixed(2).replace('.',',')+'</span></div>';
   }).join('');
+  calcTotalCheckout();
   document.getElementById('checkout-modal').classList.add('open');
 }
+function fecharCheckout(){ document.getElementById('checkout-modal').classList.remove('open'); }
 
-function fecharCheckout(){
-  document.getElementById('checkout-modal').classList.remove('open');
+function preencherCamposCliente(d){
+  var f=function(id,v){var e=document.getElementById(id);if(e&&v)e.value=v;};
+  f('ck-nome',d.nome); f('ck-tel',d.tel); f('ck-email',d.email);
+  if(d.cep){ f('ck-cep',d.cep); }
 }
 
 function enviarPedido(){
-  var nome = document.getElementById('ck-nome').value.trim();
-  var tel  = document.getElementById('ck-tel').value.trim();
-  var end  = document.getElementById('ck-end').value.trim();
-  var obs  = document.getElementById('ck-obs').value.trim();
+  var nome=document.getElementById('ck-nome').value.trim();
+  var tel=document.getElementById('ck-tel').value.trim();
+  var cep=document.getElementById('ck-cep').value.trim();
+  var num=document.getElementById('ck-num').value.trim();
+  var rua=document.getElementById('ck-rua').value.trim();
+  var bairro=document.getElementById('ck-bairro').value.trim();
+  var cidade=document.getElementById('ck-cidade').value.trim();
+  var comp=document.getElementById('ck-comp').value.trim();
+  var obs=document.getElementById('ck-obs').value.trim();
 
   if(!nome){ alert('Informe seu nome.'); return; }
-  if(!tel){  alert('Informe seu telefone.'); return; }
-  if(!end){  alert('Informe o endereço de entrega.'); return; }
+  if(!tel){  alert('Informe seu WhatsApp.'); return; }
+  if(_freteTipo==='entrega' && !cep){ alert('Informe o CEP para entrega.'); return; }
 
-  var total = _carrinho.reduce(function(s,c){return s+c.qty*c.preco;},0);
+  var endereco = rua+(num?' '+num:'')+
+    (comp?' - '+comp:'')+
+    (bairro?', '+bairro:'')+
+    (cidade?', '+cidade:'')+
+    (cep?' (CEP: '+cep+')':'');
+
+  var totais = calcTotalCheckout();
   var pedido = {
-    cliente:nome, telefone:tel, endereco:end, obs:obs,
-    itens: _carrinho.map(function(c){
-      return {nome:c.nome, preco:c.preco, un:c.un, qtd:c.qty, total:c.qty*c.preco};
-    }),
-    total: total
+    cliente:nome, telefone:tel,
+    email:document.getElementById('ck-email').value.trim(),
+    endereco:_freteTipo==='entrega'?endereco:'Retirada na loja',
+    entrega:_freteTipo, frete:totais.frete,
+    itens:_carrinho.map(function(c){return{nome:c.nome,preco:c.preco,un:c.un,qtd:c.qty,total:c.qty*c.preco};}),
+    subtotal:totais.sub, total:totais.total, obs:obs
   };
+
+  // Salva dados do cliente localmente para próxima vez
+  try{ localStorage.setItem('ff_cliente',JSON.stringify({nome:nome,tel:tel,email:pedido.email,cep:cep})); }catch(e){}
 
   document.getElementById('loading').classList.add('on');
   fecharCheckout();
 
-  var cbName = 'cbPedido_'+Date.now();
-  window[cbName] = function(data){
+  var cbName='cbPedido_'+Date.now();
+  window[cbName]=function(data){
     document.getElementById('loading').classList.remove('on');
     delete window[cbName];
     if(data.ok){
-      document.getElementById('msg-sucesso').textContent =
-        'Pedido #'+data.pedidoId+' confirmado! Em breve entraremos em contato pelo WhatsApp.';
+      document.getElementById('msg-sucesso').textContent='Pedido #'+data.pedidoId+' confirmado! Entraremos em contato.';
       document.getElementById('sucesso').classList.add('on');
-      _carrinho = [];
-    } else {
-      alert('Erro ao enviar pedido: '+(data.msg||'Tente novamente.'));
-    }
+      _carrinho=[];
+    } else { alert('Erro: '+(data.msg||'Tente novamente.')); }
   };
+  setTimeout(function(){ document.getElementById('loading').classList.remove('on'); },30000);
 
-  var url = URL_SERVIDOR + '?action=novoPedido' +
-    '&email='+encodeURIComponent(OWNER_EMAIL) +
-    '&pedido='+encodeURIComponent(JSON.stringify(pedido)) +
-    '&callback='+cbName;
-  var s = document.createElement('script');
-  s.src = url;
-  document.head.appendChild(s);
-
-  setTimeout(function(){
-    document.getElementById('loading').classList.remove('on');
-  }, 30000);
+  var url=URL_SERVIDOR+'?action=novoPedido&email='+encodeURIComponent(OWNER_EMAIL)+
+    '&pedido='+encodeURIComponent(JSON.stringify(pedido))+'&callback='+cbName;
+  var s=document.createElement('script'); s.src=url; document.head.appendChild(s);
 }
 
 function enviarWhatsApp(){
-  var nome = document.getElementById('ck-nome').value.trim() || 'Cliente';
-  var end  = document.getElementById('ck-end').value.trim();
-  var total = _carrinho.reduce(function(s,c){return s+c.qty*c.preco;},0);
-  var tel   = (document.querySelector('[id="ck-tel"]')||{}).value||'';
-
-  var msg = '🛒 *Pedido de materiais*\n\n';
-  msg += '👤 '+nome+'\n';
-  if(end) msg += '📍 '+end+'\n';
-  msg += '\n*Itens:*\n';
-  _carrinho.forEach(function(c){ msg += '• '+c.qty+'× '+c.nome+' = R$ '+(c.qty*c.preco).toFixed(2)+'\n'; });
-  msg += '\n💰 *Total: R$ '+total.toFixed(2)+'*';
-
-  // Número do proprietário (preenche via URL ?tel=55679...)
-  var params = new URLSearchParams(window.location.search);
-  var telProp = params.get('tel') || '5567984326429';
-  window.open('https://wa.me/'+telProp+'?text='+encodeURIComponent(msg),'_blank');
+  var nome=document.getElementById('ck-nome').value.trim()||'Cliente';
+  var end=_freteTipo==='entrega'?document.getElementById('ck-rua').value+' '+document.getElementById('ck-num').value:'Retirada na loja';
+  var totais=calcTotalCheckout();
+  var msg='🛒 *Pedido*\n\n👤 '+nome+'\n📍 '+end+'\n\n*Itens:*\n';
+  _carrinho.forEach(function(c){ msg+='• '+c.qty+'× '+c.nome+' = R$ '+(c.qty*c.preco).toFixed(2)+'\n'; });
+  if(totais.frete>0) msg+='\n🚚 Frete: R$ '+totais.frete.toFixed(2);
+  msg+='\n💰 *Total: R$ '+totais.total.toFixed(2)+'*';
+  window.open('https://wa.me/'+OWNER_TEL+'?text='+encodeURIComponent(msg),'_blank');
 }
 
-function mostrarErro(msg){
-  document.getElementById('produtos').innerHTML =
-    '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--rd)">'+
-    '⚠️ '+(msg||'Erro ao carregar')+'</div>';
-}
+function mostrarErro(msg){ document.getElementById('produtos').innerHTML='<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--rd)">⚠️ '+(msg||'Erro')+'</div>'; }
 
-// ── Inicia ────────────────────────────────────────────────────────────────
 carregarCatalogo();
 </script>
-</body>
-</html>
+</body></html>
