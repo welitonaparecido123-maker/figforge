@@ -176,9 +176,13 @@ label{font-size:12px;color:var(--tx3);display:block;margin-bottom:4px;margin-top
     <div id="pgto-card" class="frete-opcao" onclick="selecionarPgto('card',this)">
       <span style="font-size:20px">💳</span>
       <div style="flex:1">
-        <div style="font-weight:600">Cartão de crédito</div>
-        <div style="font-size:11px;color:var(--tx3)">Acréscimo de 12% (parcelas) · Via InfinityPay</div>
+        <div style="font-weight:600">Cartão de crédito · InfinityPay</div>
+        <div style="font-size:11px;color:var(--tx3)">Escolha o número de parcelas abaixo</div>
       </div>
+    </div>
+    <div id="parcelas-area" style="display:none;margin-top:8px;padding:10px;background:var(--bg2);border-radius:8px;border:1px solid var(--br)">
+      <div style="font-size:12px;font-weight:600;margin-bottom:8px;color:var(--tx2)">Número de parcelas:</div>
+      <div id="parcelas-lista"></div>
     </div>
     <div id="pgto-dinheiro" class="frete-opcao" onclick="selecionarPgto('dinheiro',this)">
       <span style="font-size:20px">💵</span>
@@ -352,31 +356,59 @@ function selecionarFrete(tipo, valor, el){
   calcTotalCheckout();
 }
 var _pgtoTipo = 'pix';
-var _INFINITYPAY_URL = 'https://infinitypay.io'; // Substitua pela sua URL de link de pagamento
+
+var _parcelaSel = 1;
+var _taxasCartao = {1:0, 2:2.99, 3:4.49, 4:5.99, 5:6.99, 6:7.99, 7:8.99, 8:9.99, 9:10.99, 10:11.99, 11:13.49, 12:14.49};
 
 function selecionarPgto(tipo, el){
   _pgtoTipo = tipo;
   document.querySelectorAll('#pgto-pix,#pgto-card,#pgto-dinheiro').forEach(function(e){ e.classList.remove('sel'); });
   el.classList.add('sel');
   var aviso = document.getElementById('pgto-aviso');
+  var parcelasArea = document.getElementById('parcelas-area');
   if(tipo==='pix'){
     aviso.style.display='block';
-    aviso.innerHTML='✅ <b>5% de desconto</b> aplicado automaticamente no PIX.';
+    aviso.innerHTML='✅ <b>5% de desconto</b> aplicado no pagamento via PIX.';
     aviso.style.color='var(--gn)';
+    if(parcelasArea) parcelasArea.style.display='none';
   } else if(tipo==='card'){
-    aviso.style.display='block';
-    aviso.innerHTML='⚠️ <b>12% de acréscimo</b> para parcelamento no cartão.';
-    aviso.style.color='var(--am)';
+    aviso.style.display='none';
+    if(parcelasArea){ parcelasArea.style.display='block'; renderParcelas(); }
   } else {
     aviso.style.display='none';
+    if(parcelasArea) parcelasArea.style.display='none';
   }
+  calcTotalCheckout();
+}
+
+function renderParcelas(){
+  var sub = _carrinho.reduce(function(s,c){return s+c.qty*c.preco;},0) + _freteValor;
+  var lista = document.getElementById('parcelas-lista');
+  if(!lista) return;
+  lista.innerHTML = Object.keys(_taxasCartao).map(function(n){
+    n = Number(n);
+    var taxa = _taxasCartao[n];
+    var total = sub * (1 + taxa/100);
+    var parcela = total / n;
+    var sel = n===_parcelaSel;
+    return '<div onclick="selecionarParcela('+n+')" style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border-radius:6px;margin-bottom:4px;cursor:pointer;background:'+(sel?'rgba(79,110,247,.15)':'var(--bg3)')+';border:1px solid '+(sel?'var(--ac)':'var(--br)')+'">'+
+      '<div><b>'+n+'x</b> de <b>R$ '+parcela.toFixed(2).replace('.',',')+'</b>'+(taxa===0?' <span style="color:var(--gn);font-size:11px">sem juros</span>':'')+'</div>'+
+      '<div style="font-size:11px;color:var(--tx3)">Total: R$ '+total.toFixed(2).replace('.',',')+(taxa>0?' (+'+taxa+'%)':'')+'</div>'+
+    '</div>';
+  }).join('');
+}
+
+function selecionarParcela(n){
+  _parcelaSel = n;
+  renderParcelas();
   calcTotalCheckout();
 }
 
 function calcTotalCheckout(){
   var sub = _carrinho.reduce(function(s,c){return s+c.qty*c.preco;},0);
+  var taxa = (_pgtoTipo==='card') ? ((_taxasCartao&&_taxasCartao[_parcelaSel])||0)/100 : 0;
   var desconto = (_pgtoTipo==='pix') ? sub*0.05 : 0;
-  var acrescimo = (_pgtoTipo==='card') ? sub*0.12 : 0;
+  var acrescimo = (_pgtoTipo==='card') ? sub*taxa : 0;
   var tot = sub - desconto + acrescimo + _freteValor;
   var sEl=document.getElementById('ck-sub'); if(sEl) sEl.textContent='R$ '+sub.toFixed(2).replace('.',',');
   var fEl=document.getElementById('ck-frete-val'); if(fEl) fEl.textContent=_freteValor>0?'R$ '+_freteValor.toFixed(2).replace('.',','):'Grátis';
@@ -384,7 +416,10 @@ function calcTotalCheckout(){
   if(dEl){
     var extra = '';
     if(desconto>0) extra = ' <span style="color:var(--gn);font-size:12px">(-5% PIX)</span>';
-    if(acrescimo>0) extra = ' <span style="color:var(--am);font-size:12px">(+12% cartão)</span>';
+    if(acrescimo>0){
+      var parc = tot/_parcelaSel;
+      extra = ' <span style="color:var(--am);font-size:12px">('+_parcelaSel+'x R$ '+parc.toFixed(2).replace('.',',')+')' + (taxa*100>0?' +'+(_taxasCartao[_parcelaSel])+'%':'')+'</span>';
+    }
     dEl.innerHTML = 'R$ '+tot.toFixed(2).replace('.',',')+extra;
   }
   return {sub:sub, desconto:desconto, acrescimo:acrescimo, frete:_freteValor, total:tot};
