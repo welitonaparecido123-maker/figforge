@@ -14,6 +14,7 @@
 <link rel="apple-touch-icon" href="icon-192.png"/>
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png"/>
 <title>FigForge — Gestão para Construtoras</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js">
 setTimeout(() => document.getElementById('splash-screen').classList.add('hidden'), 2500);
 
@@ -2839,7 +2840,7 @@ button[style*="background: #4F6EF7"], .btn-primary {
           <input type="file" id="es-foto-input" accept="image/*" style="display:none" onchange="carregarFotoProduto(this)"/>
         </label>
         <button class="btn sm br-" onclick="removerFotoProduto()" style="margin-left:6px">✕ Remover</button>
-        <div style="font-size:11px;color:var(--tx3);margin-top:6px">JPG, PNG até 1MB. Será redimensionada automaticamente.</div>
+        <div style="font-size:11px;color:var(--tx3);margin-top:6px">JPG, PNG até 5MB.</div><div id="es-foto-loading" style="font-size:11px;color:var(--gn);margin-top:4px"></div>
       </div>
     </div>
     <input type="hidden" id="es-foto"/>
@@ -2983,6 +2984,85 @@ button[style*="background: #4F6EF7"], .btn-primary {
 </div></div>
 
 <script>
+// ══════════════════════════════════════════════════════════════════════════
+// SUPABASE — Configuração (substitua com suas credenciais)
+// ══════════════════════════════════════════════════════════════════════════
+var SUPABASE_URL  = 'https://olkoswzeudgpysxbsgog.supabase.co';   // ex: https://xyzabc.supabase.co
+var SUPABASE_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9sa29zd3pldWRncHlzeGJzZ29nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgwMjQ4NDUsImV4cCI6MjEwMzYwMDg0NX0.qVnAL2KaS0Tz8C_orfyBP4RCWBX59a3B02xL2qMrxlQ';   // Settings → API → anon public
+var _supa = null;  // cliente Supabase inicializado após login
+var _lojista_id = null;  // UUID do lojista logado
+
+function iniciarSupabase(){
+  try {
+    if(typeof supabase === 'undefined') return;
+    _supa = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    console.log('✔ Supabase conectado');
+  } catch(e) {
+    console.warn('Supabase não disponível:', e.message);
+  }
+}
+
+// Busca ou cria o lojista no Supabase após login
+async function sincronizarLojistaSupa(){
+  if(!_supa) return;
+  var lic = {};
+  try { lic = _lerLicenca(); } catch(e) {}
+  if(!lic || !lic.email) return;
+
+  try {
+    // Busca lojista pelo email
+    var { data, error } = await _supa
+      .from('lojistas')
+      .select('id')
+      .eq('email', lic.email)
+      .single();
+
+    if(error || !data) {
+      // Cria novo lojista
+      var { data: novo } = await _supa
+        .from('lojistas')
+        .insert({ email: lic.email, nome: DB.config.resp||'', empresa: DB.config.empresa||'', tel: DB.config.tel||'' })
+        .select('id')
+        .single();
+      _lojista_id = novo ? novo.id : null;
+    } else {
+      _lojista_id = data.id;
+    }
+    console.log('✔ Lojista ID:', _lojista_id);
+    // Inicia realtime de pedidos
+    iniciarRealtimePedidos();
+  } catch(e) {
+    console.warn('Erro ao sincronizar lojista:', e.message);
+  }
+}
+
+// ── Realtime — pedidos aparecem instantaneamente ──────────────────────────
+function iniciarRealtimePedidos(){
+  if(!_supa || !_lojista_id) return;
+  _supa
+    .channel('pedidos_lojista')
+    .on('postgres_changes', {
+      event: 'INSERT',
+      schema: 'public',
+      table: 'pedidos',
+      filter: 'lojista_id=eq.' + _lojista_id
+    }, function(payload){
+      var p = payload.new;
+      // Adiciona ao array local
+      if(!_pedidosData) _pedidosData = [];
+      _pedidosData.unshift(p);
+      // Badge e toast
+      mostrarToastPedido(1, p);
+      tocarSomPedido();
+      var badge = el('badge-pedidos');
+      if(badge){ badge.textContent = _pedidosData.filter(function(x){return x.status==='Novo';}).length; badge.style.display='inline-flex'; }
+      // Atualiza lista se painel aberto
+      if(panelAtual==='pedidos') renderListaPedidos();
+    })
+    .subscribe();
+  console.log('✔ Realtime pedidos ativo');
+}
+
 
 var URL_SERVIDOR_CFG = 'https://script.google.com/macros/s/AKfycbzmLyefN11Xs8kNKJaGW-UESg4AYmyEEpCy5ECJ69bBhJmjQP5vL6_Jg6Ce470u5cnz/exec';
 var SK_LIC_GLOBAL    = 'figforge_lic_v2';
@@ -6200,6 +6280,8 @@ function fazerLogin(){
     iniciarBackupAutomatico();
     iniciarSyncAutomatico();
   iniciarMonitorPedidos();
+  iniciarSupabase();
+  sincronizarLojistaSupa();
     setTimeout(function(){
       atualizarLogoSidebar();
       atualizarIconesPWA();
@@ -10310,47 +10392,56 @@ function renderPedidos(){
   puxarPedidosServidor(false);
 }
 
-function puxarPedidosServidor(silencioso){
-  var lic = {};
-  try{ lic=_lerLicenca(); }catch(e){}
-  if(!lic||!lic.email){
-    try{ var r=localStorage.getItem('figforge_lic_v2'); if(r) lic=JSON.parse(r); }catch(e){}
-  }
-  if(!lic||!lic.email) return;
-
+async function puxarPedidosServidor(silencioso){
   var listEl = el('pedidos-lista');
-  if(listEl && !silencioso && !_pedidosData.length){
+  var dbgEl  = el('pedidos-debug');
+  var dbgTxt = el('ped-debug-txt');
+
+  if(!silencioso && listEl && !_pedidosData.length){
     listEl.innerHTML='<div style="text-align:center;padding:20px;color:var(--tx3)">⏳ Buscando pedidos...</div>';
   }
+
+  // ── Tenta via Supabase (rápido e confiável) ─────────────────────────
+  if(_supa && _lojista_id){
+    try{
+      var { data, error } = await _supa
+        .from('pedidos')
+        .select('*')
+        .eq('lojista_id', _lojista_id)
+        .order('criado_em', { ascending: false })
+        .limit(100);
+
+      if(!error && data){
+        _pedidosData = data;
+        if(dbgEl && dbgTxt){ dbgEl.style.display='block'; dbgTxt.textContent='✔ '+data.length+' pedido(s) — Supabase'; }
+        renderListaPedidos();
+        var novos = data.filter(function(p){return p.status==='Novo';}).length;
+        var badge = el('badge-pedidos');
+        if(badge){ badge.textContent=novos||''; badge.style.display=novos>0?'inline-flex':'none'; }
+        return;
+      }
+    }catch(e){ console.warn('Supabase pedidos:', e.message); }
+  }
+
+  // ── Fallback via Google Apps Script (JSONP) ──────────────────────────
+  var lic = {};
+  try{ lic=_lerLicenca(); }catch(e){}
+  if(!lic||!lic.email) try{ var r=localStorage.getItem('figforge_lic_v2'); if(r) lic=JSON.parse(r); }catch(e){}
+  if(!lic||!lic.email){ renderListaPedidos(); return; }
 
   var cbName = 'cbListarPedidos_'+Date.now();
   window[cbName] = function(data){
     delete window[cbName];
-    var dbgTxt2 = el('ped-debug-txt');
-    if(data && data.ok){
-      _pedidosData = (data.pedidos||[]).slice().reverse();
-      if(dbgTxt2) dbgTxt2.textContent = '✔ '+_pedidosData.length+' pedido(s) encontrado(s) para '+lic.email;
-    } else {
-      if(dbgTxt2) dbgTxt2.textContent = '✗ '+(data&&data.msg?data.msg:'Sem resposta do servidor');
-    }
+    if(data && data.ok){ _pedidosData = (data.pedidos||[]).slice().reverse(); }
+    if(dbgTxt) dbgTxt.textContent = '✔ '+_pedidosData.length+' pedido(s) — servidor legado';
     renderListaPedidos();
     var novos = (_pedidosData||[]).filter(function(p){return p.status==='Novo';}).length;
     var badge = el('badge-pedidos');
     if(badge){ badge.textContent=novos||''; badge.style.display=novos>0?'inline-flex':'none'; }
   };
-  setTimeout(function(){
-    if(window[cbName]){ delete window[cbName]; renderListaPedidos(); }
-  }, 15000);
-
+  setTimeout(function(){ if(window[cbName]){ delete window[cbName]; renderListaPedidos(); } }, 15000);
   var url = URL_SERVIDOR+'?action=listarPedidos&email='+encodeURIComponent(lic.email)+'&callback='+cbName;
-  var dbgEl = el('pedidos-debug'); var dbgTxt = el('ped-debug-txt');
-  if(dbgEl && dbgTxt){ dbgEl.style.display='block'; dbgTxt.textContent = 'Buscando para: '+lic.email+'...'; }
-  var s=document.createElement('script');
-  s.onerror = function(){
-    if(dbgTxt) dbgTxt.textContent = '✗ Erro ao carregar script do servidor';
-    if(window[cbName]){ delete window[cbName]; renderListaPedidos(); }
-  };
-  s.src=url; document.head.appendChild(s);
+  var s=document.createElement('script'); s.src=url; document.head.appendChild(s);
 }
 
 function renderListaPedidos(){
@@ -10446,22 +10537,26 @@ function filtrarPedidosStatus(status, btn){
   renderListaPedidos();
 }
 
-function mudarStatusPedido(pedidoId, novoStatus){
+async function mudarStatusPedido(pedidoId, novoStatus){
+  // Atualiza localmente imediato (UX responsiva)
+  var p = _pedidosData.find(function(x){return x.id===pedidoId;});
+  if(p) p.status = novoStatus;
+  renderListaPedidos();
+
+  // ── Supabase ────────────────────────────────────────────────────────
+  if(_supa && _lojista_id){
+    try{
+      await _supa.from('pedidos').update({ status: novoStatus, atualizado_em: new Date().toISOString() }).eq('id', pedidoId);
+      return;
+    }catch(e){ console.warn('Supabase update pedido:', e.message); }
+  }
+
+  // ── Fallback Apps Script ─────────────────────────────────────────────
   var lic={};
   try{ lic=_lerLicenca(); }catch(e){}
   if(!lic.email) return;
-
   var cbName = 'cbAtualizar_'+Date.now();
-  window[cbName] = function(data){
-    delete window[cbName];
-    if(data.ok){
-      var p = _pedidosData.find(function(x){return x.id===pedidoId;});
-      if(p) p.status = novoStatus;
-      renderListaPedidos();
-    } else {
-      alert('Erro: '+(data.msg||'Tente novamente.'));
-    }
-  };
+  window[cbName] = function(data){ delete window[cbName]; };
   var url = URL_SERVIDOR+'?action=atualizarPedido&email='+encodeURIComponent(lic.email)+
     '&pedidoId='+encodeURIComponent(pedidoId)+'&status='+encodeURIComponent(novoStatus)+'&callback='+cbName;
   var s=document.createElement('script'); s.src=url; document.head.appendChild(s);
@@ -10733,10 +10828,34 @@ function _infoMargemEstq(){
 }
 function atualizarInfoMargemEstq(){ _infoMargemEstq(); }
 
-function carregarFotoProduto(input){
+async function carregarFotoProduto(input){
   if(!input.files[0]) return;
   var file = input.files[0];
-  if(file.size > 2*1024*1024){ alert('Foto muito grande. Use uma imagem menor que 2MB.'); return; }
+  if(file.size > 5*1024*1024){ alert('Foto muito grande. Use menor que 5MB.'); return; }
+
+  var prevEl = document.getElementById('es-foto-prev');
+  var fotoEl = document.getElementById('es-foto');
+  var loadMsg = document.getElementById('es-foto-loading');
+  if(loadMsg) loadMsg.textContent = '⏳ Enviando...';
+
+  // ── Tenta upload para Supabase Storage ─────────────────────────────
+  if(_supa && _lojista_id){
+    try{
+      var ext = file.name.split('.').pop().toLowerCase() || 'jpg';
+      var path = _lojista_id + '/' + Date.now() + '.' + ext;
+      var { data, error } = await _supa.storage.from('produtos').upload(path, file, { upsert: true });
+      if(!error && data){
+        var { data: pub } = _supa.storage.from('produtos').getPublicUrl(path);
+        var url = pub.publicUrl;
+        if(fotoEl)  fotoEl.value = url;
+        if(prevEl){ prevEl.src = url; prevEl.style.display = 'block'; }
+        if(loadMsg) loadMsg.textContent = '✔ Foto enviada';
+        return;
+      }
+    }catch(e){ console.warn('Upload Supabase:', e.message); }
+  }
+
+  // ── Fallback: base64 local ───────────────────────────────────────────
   var reader = new FileReader();
   reader.onload = function(e){
     var img = new Image();
@@ -10749,10 +10868,9 @@ function carregarFotoProduto(input){
       canvas.width = w; canvas.height = h2;
       canvas.getContext('2d').drawImage(img, 0, 0, w, h2);
       var dataUrl = canvas.toDataURL('image/jpeg', 0.75);
-      var fotoEl  = document.getElementById('es-foto');
-      var prevEl  = document.getElementById('es-foto-prev');
       if(fotoEl)  fotoEl.value = dataUrl;
       if(prevEl){ prevEl.src = dataUrl; prevEl.style.display = 'block'; }
+      if(loadMsg) loadMsg.textContent = '✔ Foto carregada (local)';
     };
     img.src = e.target.result;
   };
