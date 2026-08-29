@@ -3799,17 +3799,45 @@ function editarMat(id){
   editId.mat=id;el('mo-estq-titulo').textContent='Editar material';
   abrirMo('mo-estq');
   setTimeout(function(){
-    setV('es-nome',m.nome); el('es-un').value=m.un||'un';
-    setV('es-qtd',m.qtd); setV('es-min',m.min);
-    setV('es-custo',m.custo||0); setV('es-margem',m.margem||30);
-    setV('es-vl',m.vl||0); setV('es-loc',m.loc);
-    var catEl=el('es-cat'); if(catEl) catEl.value=m.cat||'';
-    // Carrega foto
-    var fEl=document.getElementById('es-foto');
-    var pEl=document.getElementById('es-foto-prev');
-    if(fEl) fEl.value=m.foto||'';
-    if(pEl && m.foto){pEl.src=m.foto;pEl.style.display='block';}
-    else if(pEl){pEl.src='';pEl.style.display='none';}
+    // Dados básicos
+    setV('es-nome', m.nome);
+    el('es-un').value = m.un||'un';
+    setV('es-qtd', m.qtd||0);
+    setV('es-min', m.min||0);
+    setV('es-loc', m.loc||'');
+
+    // Categoria — preserva o valor original
+    var catEl = el('es-cat');
+    if(catEl){
+      // Adiciona a categoria ao select se não existir
+      var catVal = m.cat||'';
+      if(catVal && !Array.from(catEl.options).some(function(o){return o.value===catVal;})){
+        var newOpt = document.createElement('option');
+        newOpt.value = catVal; newOpt.textContent = catVal;
+        catEl.appendChild(newOpt);
+      }
+      catEl.value = catVal;
+    }
+
+    // Precificação — define DIRETAMENTE sem disparar cálculo automático
+    // Usa _carregandoMat para suprimir calcPrecoVendaEstq durante load
+    window._carregandoMat = true;
+    var vlCusto = document.getElementById('es-custo');
+    var vlMargem = document.getElementById('es-margem');
+    var vlVenda  = document.getElementById('es-vl');
+    if(vlCusto)  vlCusto.value  = (m.custo!=null ? m.custo : '');
+    if(vlMargem) vlMargem.value = (m.margem!=null ? m.margem : '');
+    if(vlVenda)  vlVenda.value  = (m.vl!=null ? m.vl : '');
+    window._carregandoMat = false;
+
+    // Foto
+    var fEl = document.getElementById('es-foto');
+    var pEl = document.getElementById('es-foto-prev');
+    if(fEl) fEl.value = m.foto||'';
+    if(pEl && m.foto){ pEl.src=m.foto; pEl.style.display='block'; }
+    else if(pEl){ pEl.src=''; pEl.style.display='none'; }
+
+    // Atualiza o info de margem sem recalcular
     atualizarInfoMargemEstq();
   },80);
 }
@@ -11214,6 +11242,7 @@ function iniciarMonitorPedidos(){
 
 // ── Precificação do estoque (cálculo bidirecional) ─────────────────────────
 function calcPrecoVendaEstq(){
+  if(window._carregandoMat) return; // Não recalcula durante carregamento do produto
   var elC = document.getElementById('es-custo');
   var elM = document.getElementById('es-margem');
   var elV = document.getElementById('es-vl');
@@ -11227,6 +11256,7 @@ function calcPrecoVendaEstq(){
 }
 
 function calcMargemEstq(){
+  if(window._carregandoMat) return; // Não recalcula durante carregamento do produto
   var elC = document.getElementById('es-custo');
   var elM = document.getElementById('es-margem');
   var elV = document.getElementById('es-vl');
