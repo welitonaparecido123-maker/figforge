@@ -2719,7 +2719,7 @@ button[style*="background: #4F6EF7"], .btn-primary {
     <div class="fr fr3">
       <div>
         <label>Preço de custo (R$)</label>
-        <input id="es-custo" type="number" value="0" min="0" step="0.01" oninput="calcPrecoVendaEstq()" placeholder="0,00"/>
+        <input id="es-custo" type="number" value="0" min="0" step="0.01" oninput="calcPrecoVendaEstq()" onchange="calcPrecoVendaEstq()" placeholder="0,00"/>
         <div style="font-size:10px;color:var(--tx3);margin-top:2px">Quanto você paga</div>
       </div>
       <div>
@@ -2729,7 +2729,7 @@ button[style*="background: #4F6EF7"], .btn-primary {
       </div>
       <div>
         <label>Preço de venda (R$)</label>
-        <input id="es-vl" type="number" value="0" min="0" step="0.01" oninput="calcMargemEstq()" placeholder="0,00" style="color:var(--gn);font-weight:600"/>
+        <input id="es-vl" type="number" value="0" min="0" step="0.01" oninput="calcMargemEstq()" onchange="calcMargemEstq()" placeholder="0,00" style="color:var(--gn);font-weight:600"/>
         <div style="font-size:10px;color:var(--tx3);margin-top:2px">Quanto o cliente paga</div>
       </div>
     </div>
@@ -11020,6 +11020,59 @@ function iniciarMonitorPedidos(){
   // Depois a cada 30s
   setInterval(verificarPedidosNovos, 30000);
 }
+
+// ── Precificação do estoque (cálculo bidirecional) ─────────────────────────
+function calcPrecoVendaEstq(){
+  var elC = document.getElementById('es-custo');
+  var elM = document.getElementById('es-margem');
+  var elV = document.getElementById('es-vl');
+  if(!elC||!elM||!elV) return;
+  var custo  = parseFloat(elC.value)||0;
+  var margem = parseFloat(elM.value)||0;
+  if(custo > 0){
+    elV.value = (custo*(1+margem/100)).toFixed(2);
+  }
+  _infoMargemEstq();
+}
+
+function calcMargemEstq(){
+  var elC = document.getElementById('es-custo');
+  var elM = document.getElementById('es-margem');
+  var elV = document.getElementById('es-vl');
+  if(!elC||!elM||!elV) return;
+  var custo = parseFloat(elC.value)||0;
+  var venda = parseFloat(elV.value)||0;
+  if(custo > 0 && venda >= 0){
+    elM.value = ((venda-custo)/custo*100).toFixed(1);
+  }
+  _infoMargemEstq();
+}
+
+function _infoMargemEstq(){
+  var elC   = document.getElementById('es-custo');
+  var elM   = document.getElementById('es-margem');
+  var elV   = document.getElementById('es-vl');
+  var info  = document.getElementById('es-margem-info');
+  if(!info) return;
+  var custo  = elC ? (parseFloat(elC.value)||0) : 0;
+  var margem = elM ? (parseFloat(elM.value)||0) : 0;
+  var venda  = elV ? (parseFloat(elV.value)||0) : 0;
+  if(custo > 0 && venda > 0){
+    var lucro = venda - custo;
+    var cor   = lucro >= 0 ? 'var(--gn)' : 'var(--rd)';
+    info.innerHTML =
+      'Custo: <b>'+fmt(custo)+'</b> &rarr; '+
+      'Venda: <b style="color:var(--gn)">'+fmt(venda)+'</b>' +
+      ' | Lucro: <b style="color:'+cor+'">'+fmt(lucro)+'</b>' +
+      ' | Margem: <b style="color:'+cor+'">'+margem.toFixed(1)+'%</b>';
+  } else if(custo > 0){
+    info.innerHTML = '<span style="color:var(--tx3)">Preencha a margem ou o preço de venda.</span>';
+  } else {
+    info.innerHTML = '';
+  }
+}
+// alias para compatibilidade com o HTML que chama atualizarInfoMargemEstq
+function atualizarInfoMargemEstq(){ _infoMargemEstq(); }
 </script>
 
 <div class="mo" id="mo-estq-edit"><div class="mbox">
