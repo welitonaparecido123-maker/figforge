@@ -395,6 +395,9 @@ var INFINITE_HANDLE = 'SEU_HANDLE_INFINITEPAY';
 var _params = new URLSearchParams(window.location.search);
 var OWNER_EMAIL = _params.get('loja') || 'welitonaparecido123@gmail.com';
 var _lojista_id = _params.get('lid') || 'e1cdcdee-13ae-42b6-96be-f940f7a400c1';
+// Nome e logo via parâmetro URL ou Supabase
+var _nomeEmpresaParam = _params.get('empresa') || '';
+var _logoParam = _params.get('logo') || '';
 
 // Estado
 var _supa      = null;
@@ -501,16 +504,24 @@ async function carregarProdutosSupa(){
   var statusEl = document.getElementById('load-status');
   if(statusEl) statusEl.textContent = '⏳ Carregando produtos...';
   try{
-    // Carrega info da loja
+    // Aplica nome/logo imediato (via parâmetro URL)
+    if(_nomeEmpresaParam){
+      var nEl=el('loja-nome'); if(nEl) nEl.textContent=_nomeEmpresaParam;
+      var nCd=el('loja-nome-cad'); if(nCd) nCd.textContent=_nomeEmpresaParam;
+      document.title=_nomeEmpresaParam;
+    }
+    if(_logoParam){
+      var lgEl=el('loja-logo'); if(lgEl) lgEl.src=_logoParam;
+    }
+    // Também tenta buscar do Supabase
     try{
-      var lojData = await supaFetch('lojistas','id=eq.'+encodeURIComponent(_lojista_id)+'&select=empresa,tel,logo_url');
+      var lojData = await supaFetch('lojistas','id=eq.'+encodeURIComponent(_lojista_id)+'&select=empresa,tel');
       if(lojData && lojData[0]){
         var loj = lojData[0];
-        var nomeEl = el('loja-nome'); if(nomeEl) nomeEl.textContent = loj.empresa||'Loja';
-        var nomeCad = el('loja-nome-cad'); if(nomeCad) nomeCad.textContent = loj.empresa||'Bem-vindo!';
-        document.title = loj.empresa||'Loja Online';
-        if(loj.logo_url){
-          var logoEl = el('loja-logo'); if(logoEl) logoEl.src = loj.logo_url;
+        if(loj.empresa){
+          var nomeEl=el('loja-nome'); if(nomeEl) nomeEl.textContent=loj.empresa;
+          var nomeCad=el('loja-nome-cad'); if(nomeCad) nomeCad.textContent=loj.empresa;
+          document.title=loj.empresa;
         }
       }
     }catch(e){}
@@ -655,15 +666,25 @@ function filtrarCat(cat, btn){
 }
 
 // ── Carrinho ──────────────────────────────────────────────────────────────
+var _adicionandoProd = false;
 function adicionarAoCarrinho(prodId){
+  if(_adicionandoProd) return; // evita duplo toque
+  _adicionandoProd = true;
+  setTimeout(function(){ _adicionandoProd=false; }, 800);
+
   var p = _produtos.find(function(x){return x.id===prodId;});
   if(!p) return;
-  if(Number(p.qtd||0)<=0){
-    alert('Produto indisponível no momento.');
-    return;
-  }
+  if(Number(p.qtd||0)<=0){ alert('Produto indisponível.'); return; }
+
   var ja = _carrinho.find(function(c){return c.id===prodId;});
-  if(ja){ ja.qty++; } else { _carrinho.push({id:p.id,nome:p.nome,preco:p.preco,un:p.un,qty:1}); }
+  if(ja){
+    ja.qty++;
+    // Toast rápido de confirmação
+    mostrarToastAdd(p.nome, ja.qty);
+  } else {
+    _carrinho.push({id:p.id,nome:p.nome,preco:p.preco,un:p.un,qty:1});
+    mostrarToastAdd(p.nome, 1);
+  }
   atualizarCarrinho();
   // Feedback visual
   var cards = document.querySelectorAll('.prod-card');
@@ -671,6 +692,23 @@ function adicionarAoCarrinho(prodId){
 }
 function altQty(i, d){ _carrinho[i].qty = Math.max(1, _carrinho[i].qty+d); if(_carrinho[i].qty===0) _carrinho.splice(i,1); atualizarCarrinho(); }
 function removerItem(i){ _carrinho.splice(i,1); atualizarCarrinho(); }
+
+function mostrarToastAdd(nome, qty){
+  var t = document.getElementById('toast-add');
+  if(!t){
+    t = document.createElement('div');
+    t.id = 'toast-add';
+    t.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);'+
+      'background:#1a1a1a;color:#fff;padding:10px 18px;border-radius:20px;'+
+      'z-index:9999;font-size:13px;font-weight:600;white-space:nowrap;'+
+      'display:none;box-shadow:0 4px 12px rgba(0,0,0,.3)';
+    document.body.appendChild(t);
+  }
+  t.textContent = '✔ '+nome+(qty>1?' ('+qty+'x)':'')+' adicionado';
+  t.style.display='block';
+  clearTimeout(t._timer);
+  t._timer = setTimeout(function(){ t.style.display='none'; },1500);
+}
 
 function atualizarCarrinho(){
   var total = _carrinho.reduce(function(s,c){return s+c.qty*c.preco;},0);
@@ -839,8 +877,8 @@ async function confirmarPedido(){
   fecharCheckout();
 
   var pedidoData = {
-    cliente_nome: nome,
-    cliente_tel: tel,
+    cliente_nome: nome || (_clienteCadastrado&&_clienteCadastrado.nome) || 'Cliente',
+    cliente_tel: tel || (_clienteCadastrado&&_clienteCadastrado.tel) || '',
     cliente_email: el('ck-email').value.trim(),
     endereco_entrega: endereco,
     tipo_entrega: _freteTipo,
