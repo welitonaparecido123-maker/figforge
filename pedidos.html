@@ -644,6 +644,13 @@ function criarCardProduto(p){
   var card = document.createElement('div');
   card.className = 'prod-card';
   var dispon = Number(p.qtd||0) > 0;
+
+  // Destaque e oferta — calculados DENTRO da função
+  var ofertasIds = window._ofertasIds || [];
+  var isDestaque = ofertasIds.includes(p.id) || p.destaque;
+  var descOferta = Number(p.desconto_oferta||0);
+  var precoFinal = descOferta>0 ? p.preco*(1-descOferta/100) : p.preco;
+
   var fotoHtml = p.foto
     ? '<img class="prod-card-img" src="'+p.foto+'" alt="'+p.nome+'" loading="lazy" onerror="this.parentNode.replaceChild(criarPlaceholder(),this)"/>'
     : '<div class="prod-card-img-placeholder">📦</div>';
@@ -694,7 +701,7 @@ function filtrarCat(cat, btn){
 // ── Carrinho ──────────────────────────────────────────────────────────────
 var _adicionandoProd = false;
 function adicionarAoCarrinho(prodId){
-  if(_adicionandoProd) return; // evita duplo toque
+  if(_adicionandoProd) return;
   _adicionandoProd = true;
   setTimeout(function(){ _adicionandoProd=false; }, 800);
 
@@ -702,10 +709,14 @@ function adicionarAoCarrinho(prodId){
   if(!p) return;
   if(Number(p.qtd||0)<=0){ alert('Produto indisponível.'); return; }
 
+  // Calcula preço com desconto se houver
+  var ofertasIds = window._ofertasIds || [];
+  var descOferta = Number(p.desconto_oferta||0);
+  var precoFinal = descOferta>0 ? p.preco*(1-descOferta/100) : p.preco;
+
   var ja = _carrinho.find(function(c){return c.id===prodId;});
   if(ja){
     ja.qty++;
-    // Toast rápido de confirmação
     mostrarToastAdd(p.nome, ja.qty);
   } else {
     _carrinho.push({id:p.id,nome:p.nome,preco:precoFinal,precoOriginal:p.preco,un:p.un,qty:1});
