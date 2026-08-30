@@ -174,7 +174,9 @@ label{font-size:12px;color:var(--tx3);display:block;margin-bottom:4px;margin-top
     <div id="loja-info">
       <div id="loja-nome">Carregando...</div>
       <div id="loja-desc">Materiais de Construção</div>
-      <div id="loja-status"><span>🟢</span> Aberto</div>
+      <div id="loja-status" onclick="verHorarios()" style="cursor:pointer">
+      <span id="loja-status-icon">🟢</span> <span id="loja-status-txt">Verificando...</span>
+    </div>
     </div>
     <button id="btn-carrinho" onclick="abrirCarrinho()">
       🛒
@@ -528,7 +530,11 @@ async function carregarProdutosSupa(){
         }
         if(loj.logo_url){
           var logoEl=el('loja-logo');
-          if(logoEl){ logoEl.src=loj.logo_url; logoEl.style.display='block'; }
+          if(logoEl){
+            logoEl.src=loj.logo_url+'?t='+Date.now(); // evita cache
+            logoEl.style.display='block';
+            logoEl.onerror=function(){ this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 40 40%22><rect fill=%22%23ff6b00%22 width=%2240%22 height=%2240%22 rx=%228%22/><text y=%2226%22 x=%2250%25%22 text-anchor=%22middle%22 font-size=%2220%22>🏪</text></svg>'; };
+          }
         }
       }
     }catch(e){}
@@ -870,7 +876,11 @@ async function confirmarPedido(){
   var tel  = el('ck-tel').value.trim();
   if(!nome){ alert('Informe seu nome.'); return; }
   if(!tel){  alert('Informe seu WhatsApp.'); return; }
-  if(_freteTipo==='entrega' && !el('ck-cep').value){ alert('Informe o CEP.'); return; }
+  if(_freteTipo==='entrega'){
+    if(!el('ck-cep').value){ alert('Informe o CEP para entrega.'); return; }
+    if(!el('ck-num').value.trim()){ alert('Informe o número do endereço.'); el('ck-num').focus(); return; }
+    if(!el('ck-rua').value.trim()){ alert('Informe a rua do endereço.'); el('ck-rua').focus(); return; }
+  }
 
   var totais = atualizarResumo();
   var endereco = _freteTipo==='entrega'
@@ -895,7 +905,7 @@ async function confirmarPedido(){
     frete: totais.frete,
     desconto: totais.desc,
     total: totais.total,
-    itens: _carrinho.map(function(c){ return {nome:c.nome,qtd:c.qty,preco:c.preco,total:c.qty*c.preco,un:c.un}; }),
+    itens: _carrinho.map(function(c){ return {id:c.id,nome:c.nome,qtd:c.qty,preco:c.preco,total:c.qty*c.preco,un:c.un}; }),
     status: 'Novo',
     obs: el('ck-obs').value.trim()
   };
@@ -1041,5 +1051,83 @@ function preencherCliente(d){
   if(d.email) el('ck-email').value=d.email;
   if(d.cep) el('ck-cep').value=d.cep;
 }
+
+// ── Horários de funcionamento ─────────────────────────────────────────────
+// Formato: [abertura_hora, fechamento_hora] por dia (0=Dom, 1=Seg...6=Sab)
+// null = fechado
+var _horarios = [
+  null,          // Domingo — fechado
+  [8, 18],       // Segunda
+  [8, 18],       // Terça
+  [8, 18],       // Quarta
+  [8, 18],       // Quinta
+  [8, 18],       // Sexta
+  [8, 13]        // Sábado — meio período
+];
+var _diasNome = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
+
+function verificarFuncionamento(){
+  var agora = new Date();
+  var dia   = agora.getDay();
+  var hora  = agora.getHours();
+  var min   = agora.getMinutes();
+  var horDia = _horarios[dia];
+
+  var statusEl = el('loja-status-txt');
+  var iconEl   = el('loja-status-icon');
+  if(!statusEl) return;
+
+  if(!horDia){
+    statusEl.textContent = 'Fechado hoje';
+    iconEl.textContent   = '🔴';
+    iconEl.parentElement.style.background = 'rgba(220,38,38,.2)';
+  } else {
+    var horaAtual = hora + min/60;
+    var aberto    = horaAtual >= horDia[0] && horaAtual < horDia[1];
+    if(aberto){
+      statusEl.textContent = 'Aberto até '+horDia[1]+'h';
+      iconEl.textContent   = '🟢';
+      iconEl.parentElement.style.background = 'rgba(22,163,74,.2)';
+    } else {
+      // Próximo horário de abertura
+      var proximo = '';
+      for(var d=1;d<=7;d++){
+        var dNext = (dia+d)%7;
+        if(_horarios[dNext]){
+          proximo = d===1 ? 'Abre amanhã às '+_horarios[dNext][0]+'h' : 'Abre '+_diasNome[dNext]+' às '+_horarios[dNext][0]+'h';
+          break;
+        }
+      }
+      statusEl.textContent = 'Fechado · '+proximo;
+      iconEl.textContent   = '🔴';
+      iconEl.parentElement.style.background = 'rgba(220,38,38,.2)';
+    }
+  }
+}
+
+function verHorarios(){
+  var dias = _diasNome.map(function(d,i){
+    var h = _horarios[i];
+    return '<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #eee">'+
+      '<span style="font-weight:600">'+d+'</span>'+
+      '<span style="color:'+(h?'#16a34a':'#dc2626')+'">'+
+        (h ? h[0]+'h às '+h[1]+'h' : 'Fechado')+
+      '</span></div>';
+  }).join('');
+
+  var modal = document.createElement('div');
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:500;display:flex;align-items:center;justify-content:center;padding:16px';
+  modal.innerHTML = '<div style="background:#fff;border-radius:16px;padding:20px;width:min(340px,100%)">' +
+    '<div style="font-size:16px;font-weight:700;margin-bottom:12px">🕐 Horários de Funcionamento</div>' +
+    dias +
+    '<button onclick="this.parentElement.parentElement.remove()" style="width:100%;margin-top:14px;padding:12px;background:#ff6b00;color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer">Fechar</button>' +
+    '</div>';
+  document.body.appendChild(modal);
+}
+
+// Atualiza status a cada minuto
+verificarFuncionamento();
+setInterval(verificarFuncionamento, 60000);
+
 </script>
 </body></html>
