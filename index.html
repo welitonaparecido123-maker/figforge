@@ -10487,10 +10487,12 @@ async function mudarStatusPedido(pedidoId, novoStatus){
   if(p && p.cliente_tel){
     var tel = String(p.cliente_tel||'').replace(/\D/g,'');
     if(!tel.startsWith('55')) tel='55'+tel;
+    var primeiroNome = String(p.cliente_nome||'Cliente').split(' ')[0];
+    var numPed = String(pedidoId).slice(-8).toUpperCase();
     var msgs = {
-      'Em separação': '📦 Seu pedido *#'+String(pedidoId).slice(-8).toUpperCase()+'* está sendo *separado*! Em breve sairá para entrega. 😊',
-      'Em entrega':   '🛵 Seu pedido *#'+String(pedidoId).slice(-8).toUpperCase()+'* *saiu para entrega*! Fique de olho, chegará em breve! 🚀',
-      'Concluído':    '✅ Seu pedido *#'+String(pedidoId).slice(-8).toUpperCase()+'* foi *entregue*! Obrigado pela preferência! 😊🙏'
+      'Em separação': '📦 Olá *'+primeiroNome+'*! Seu pedido *#'+numPed+'* está sendo *separado*. Em breve sairá para entrega! 😊',
+      'Em entrega':   '🛵 Olá *'+primeiroNome+'*! Seu pedido *#'+numPed+'* *saiu para entrega*! Fique de olho, está chegando! 🚀',
+      'Concluído':    '✅ Olá *'+primeiroNome+'*! Seu pedido *#'+numPed+'* foi *entregue* com sucesso! Obrigado pela preferência! 😊🙏'
     };
     var msg = msgs[novoStatus];
     if(msg && tel.length>=12){
@@ -10879,6 +10881,16 @@ async function sincronizarProdutosSupabase(){
   var btn = event && event.target;
   if(btn){ btn.disabled=true; btn.textContent='⏳ Sincronizando...'; }
 
+  // Atualiza info da loja no Supabase (nome e logo)
+  try{
+    var logoUrl = DB.config && DB.config.logo && !DB.config.logo.startsWith('data:')
+      ? DB.config.logo : null;
+    await supaREST('PATCH','lojistas','id=eq.'+encodeURIComponent(_lojista_id),{
+      empresa: DB.config.empresa||'', tel: DB.config.tel||'',
+      logo_url: logoUrl
+    });
+  }catch(e){}
+
   var rows = (DB.materiais||[]).filter(function(m){
     return Number(m.vl||0) > 0; // só publica se tem preço
   }).map(function(m){
@@ -10889,7 +10901,7 @@ async function sincronizarProdutosSupabase(){
       qtd: Number(m.qtd||0), qtd_minima: Number(m.min||0),
       preco_custo: Number(m.custo||0), preco_venda: Number(m.vl||0),
       margem: Number(m.margem||0),
-      foto_url: (m.foto && !m.foto.startsWith('data:')) ? m.foto : null,
+      foto_url: m.foto || null,  // inclui base64 e URLs
       localizacao: m.loc||'',
       publicado: true,
       ativo: true
