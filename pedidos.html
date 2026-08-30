@@ -752,14 +752,17 @@ function atualizarCarrinho(){
     div.innerHTML =
       '<div style="flex:1;min-width:0">'+
         '<div class="cart-item-nome">'+item.nome+'</div>'+
-        '<div class="cart-item-sub">R$ '+item.preco.toFixed(2)+' / '+item.un+'</div>'+
+        '<div class="cart-item-sub">R$ '+item.preco.toFixed(2).replace('.',',')+' / '+item.un+'</div>'+
       '</div>'+
       '<div class="qty-ctrl">'+
         '<button class="qty-btn minus" onclick="altQty('+i+',-1)">−</button>'+
         '<span style="font-weight:700;min-width:20px;text-align:center">'+item.qty+'</span>'+
         '<button class="qty-btn" onclick="altQty('+i+',1)">+</button>'+
       '</div>'+
-      '<div class="cart-item-total">R$ '+(item.qty*item.preco).toFixed(2).replace('.',',')+'</div>';
+      '<div style="text-align:right">'+
+        '<div class="cart-item-total">R$ '+(item.qty*item.preco).toFixed(2).replace('.',',')+'</div>'+
+        '<button onclick="removerItem('+i+')" style="background:none;border:none;color:#dc2626;font-size:12px;cursor:pointer;font-weight:600;padding:2px 0">🗑 excluir</button>'+
+      '</div>';
     cont.appendChild(div);
   });
 }
