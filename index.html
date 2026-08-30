@@ -10479,10 +10479,24 @@ function filtrarPedidosStatus(status, btn){
 }
 
 async function mudarStatusPedido(pedidoId, novoStatus){
-  // Atualiza localmente imediato (UX responsiva)
   var p = _pedidosData.find(function(x){return x.id===pedidoId;});
   if(p) p.status = novoStatus;
   renderListaPedidos();
+
+  // Notifica cliente por WhatsApp
+  if(p && p.cliente_tel){
+    var tel = String(p.cliente_tel||'').replace(/\D/g,'');
+    if(!tel.startsWith('55')) tel='55'+tel;
+    var msgs = {
+      'Em separação': '📦 Seu pedido *#'+String(pedidoId).slice(-8).toUpperCase()+'* está sendo *separado*! Em breve sairá para entrega. 😊',
+      'Em entrega':   '🛵 Seu pedido *#'+String(pedidoId).slice(-8).toUpperCase()+'* *saiu para entrega*! Fique de olho, chegará em breve! 🚀',
+      'Concluído':    '✅ Seu pedido *#'+String(pedidoId).slice(-8).toUpperCase()+'* foi *entregue*! Obrigado pela preferência! 😊🙏'
+    };
+    var msg = msgs[novoStatus];
+    if(msg && tel.length>=12){
+      window.open('https://wa.me/'+tel+'?text='+encodeURIComponent(msg),'_blank');
+    }
+  }
 
   // ── Supabase REST ────────────────────────────────────────────────────
   if(_lojista_id){
