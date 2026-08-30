@@ -10943,11 +10943,9 @@ async function sincronizarProdutosSupabase(){
   // Atualiza dados completos da empresa no Supabase
   try{
     var cfg = DB.config||{};
-    var logoUrl = null;
-    // Logo: só manda se for URL pública (não base64)
-    if(cfg.logo && !cfg.logo.startsWith('data:')){
-      logoUrl = cfg.logo;
-    } else if(cfg.logo && cfg.logo.startsWith('data:')){
+    var logoUrl = cfg.logo && !cfg.logo.startsWith('data:') ? cfg.logo : null;
+
+    if(cfg.logo && cfg.logo.startsWith('data:')){
       // Faz upload do logo para o Storage
       try{
         var b64logo = cfg.logo.split(',')[1];
