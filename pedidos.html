@@ -136,6 +136,34 @@ label{font-size:12px;color:var(--tx3);display:block;margin-bottom:4px;margin-top
 </head>
 <body>
 
+
+<!-- MODAL DE CADASTRO OBRIGATÓRIO -->
+<div id="cadastro-overlay" style="display:flex;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.85);align-items:center;justify-content:center;padding:16px">
+  <div style="background:#fff;border-radius:16px;padding:24px;width:min(400px,100%);max-height:90vh;overflow-y:auto">
+    <div style="text-align:center;margin-bottom:20px">
+      <div style="font-size:48px">🛍️</div>
+      <div style="font-size:20px;font-weight:700;margin-top:8px" id="loja-nome-cad">Bem-vindo!</div>
+      <div style="font-size:13px;color:#999;margin-top:4px">Para continuar, informe seus dados</div>
+    </div>
+    <div style="margin-bottom:12px">
+      <label style="font-size:12px;font-weight:600;color:#555;display:block;margin-bottom:4px">Nome completo *</label>
+      <input id="cad-nome" type="text" placeholder="João Silva" style="width:100%;padding:12px;border:1.5px solid #e5e5e5;border-radius:8px;font-size:15px;outline:none"/>
+    </div>
+    <div style="margin-bottom:12px">
+      <label style="font-size:12px;font-weight:600;color:#555;display:block;margin-bottom:4px">WhatsApp *</label>
+      <input id="cad-tel" type="tel" placeholder="(67) 99999-9999" style="width:100%;padding:12px;border:1.5px solid #e5e5e5;border-radius:8px;font-size:15px;outline:none"/>
+    </div>
+    <div style="margin-bottom:20px">
+      <label style="font-size:12px;font-weight:600;color:#555;display:block;margin-bottom:4px">E-mail <span style="font-weight:400;color:#999">(opcional)</span></label>
+      <input id="cad-email" type="email" placeholder="seu@email.com" style="width:100%;padding:12px;border:1.5px solid #e5e5e5;border-radius:8px;font-size:15px;outline:none"/>
+    </div>
+    <button onclick="confirmarCadastro()" style="width:100%;padding:14px;background:#ff6b00;color:#fff;border:none;border-radius:10px;font-size:16px;font-weight:700;cursor:pointer">
+      Entrar na loja →
+    </button>
+    <div id="cad-erro" style="color:#dc2626;font-size:13px;text-align:center;margin-top:8px;display:none"></div>
+  </div>
+</div>
+
 <div id="loading"><div class="spinner"></div><div style="color:#fff;font-size:14px">Processando...</div></div>
 
 <!-- ── Header ──────────────────────────────────────────────────────────── -->
@@ -429,12 +457,44 @@ async function supaPatch(tabela, filtro, dados){
 
 // ── Inicialização ─────────────────────────────────────────────────────────
 window.onload = async function(){
+  // Carrega dados salvos
   try{
     var d = JSON.parse(localStorage.getItem('ff_cliente')||'{}');
-    if(d.nome) setTimeout(function(){ preencherCliente(d); }, 500);
-  }catch(e){}
+    if(d.nome && d.tel){
+      // Cliente já cadastrado — preenche e libera a loja
+      _clienteCadastrado = d;
+      el('cadastro-overlay').style.display = 'none';
+      preencherCliente(d);
+    } else {
+      // Mostra tela de cadastro
+      el('cadastro-overlay').style.display = 'flex';
+    }
+  }catch(e){
+    el('cadastro-overlay').style.display = 'flex';
+  }
   await carregarProdutosSupa();
+  // Atualiza nome na tela de cadastro
+  var nEl = el('loja-nome-cad');
+  if(nEl && el('loja-nome')) nEl.textContent = el('loja-nome').textContent || 'Bem-vindo!';
 };
+
+var _clienteCadastrado = null;
+
+function confirmarCadastro(){
+  var nome  = el('cad-nome').value.trim();
+  var tel   = el('cad-tel').value.trim();
+  var email = el('cad-email').value.trim();
+  var erro  = el('cad-erro');
+
+  if(!nome){ erro.textContent='Informe seu nome.'; erro.style.display='block'; return; }
+  if(!tel||tel.replace(/\D/g,'').length<10){ erro.textContent='Informe um WhatsApp válido.'; erro.style.display='block'; return; }
+
+  _clienteCadastrado = { nome:nome, tel:tel, email:email };
+  try{ localStorage.setItem('ff_cliente', JSON.stringify(_clienteCadastrado)); }catch(e){}
+
+  el('cadastro-overlay').style.display = 'none';
+  preencherCliente(_clienteCadastrado);
+}
 
 // ── Carrega produtos do Supabase ──────────────────────────────────────────
 async function carregarProdutosSupa(){
@@ -644,6 +704,12 @@ function fecharCarrinho(){ el('cart-overlay').classList.remove('on'); el('cart-s
 function abrirCheckout(){
   if(!_carrinho.length){ alert('Adicione produtos primeiro.'); return; }
   fecharCarrinho();
+  // Preenche com dados do cadastro
+  if(_clienteCadastrado){
+    var n=el('ck-nome'); if(n&&!n.value) n.value=_clienteCadastrado.nome||'';
+    var t=el('ck-tel');  if(t&&!t.value) t.value=_clienteCadastrado.tel||'';
+    var e=el('ck-email');if(e&&!e.value) e.value=_clienteCadastrado.email||'';
+  }
   atualizarResumo();
   el('checkout-overlay').classList.add('on');
 }
@@ -810,7 +876,29 @@ async function confirmarPedido(){
 function exibirSucesso(pedidoId, totais){
   _carrinho = [];
   atualizarCarrinho();
-  el('msg-pedido-id').textContent = 'Pedido #'+String(pedidoId).slice(-8).toUpperCase();
+  var pedidoCurto = String(pedidoId).slice(-8).toUpperCase();
+  el('msg-pedido-id').textContent = 'Pedido #'+pedidoCurto;
+
+  // Envia confirmação por WhatsApp para o cliente
+  var nomeCliente = (_clienteCadastrado&&_clienteCadastrado.nome)||el('ck-nome').value||'Cliente';
+  var telCliente  = (_clienteCadastrado&&_clienteCadastrado.tel)||el('ck-tel').value||'';
+  var numCliente  = telCliente.replace(/\D/g,'');
+  if(!numCliente.startsWith('55')) numCliente = '55'+numCliente;
+
+  var msgCliente = '✅ *Pedido confirmado!*\n\n';
+  msgCliente += 'Olá '+nomeCliente+'! 😊\n';
+  msgCliente += 'Seu pedido *#'+pedidoCurto+'* foi recebido com sucesso.\n\n';
+  msgCliente += '📦 *Itens:*\n';
+  _carrinho.forEach(function(c){ msgCliente += '• '+c.qty+'× '+c.nome+'\n'; });
+  msgCliente += '\n💰 *Total: R$ '+totais.total.toFixed(2).replace('.',',')+'*\n';
+  msgCliente += '💳 Pagamento: '+(_pgtoTipo==='pix'?'PIX (5% desconto)':_pgtoTipo==='card'?'Cartão':'Dinheiro')+'\n\n';
+  msgCliente += 'Acompanhe seu pedido pelo WhatsApp. Você receberá atualizações aqui! 📱';
+
+  if(numCliente.length >= 12){
+    setTimeout(function(){
+      window.open('https://wa.me/'+numCliente+'?text='+encodeURIComponent(msgCliente),'_blank');
+    }, 1200);
+  }
   // PIX
   if(_pgtoTipo==='pix'){
     el('pix-section').style.display='block';
