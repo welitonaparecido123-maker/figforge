@@ -553,11 +553,17 @@ async function carregarProdutosSupa(){
     if(statusEl) statusEl.textContent = '';
 
     _produtos = data.map(function(prod){
+      // Tenta construir URL da foto do Storage se não tiver salva
+      var fotoUrl = prod.foto_url || '';
+      if(!fotoUrl && prod.id){
+        // Tenta JPG, PNG do Storage
+        fotoUrl = SUPABASE_URL+'/storage/v1/object/public/produtos/'+_lojista_id+'/'+prod.id+'.jpg';
+      }
       return {
         id: prod.id, nome: prod.nome,
         desc: prod.descricao||'', cat: prod.categoria||'',
         un: prod.unidade||'un', qtd: Number(prod.qtd||0),
-        preco: Number(prod.preco_venda||0), foto: prod.foto_url||''
+        preco: Number(prod.preco_venda||0), foto: fotoUrl
       };
     });
 
