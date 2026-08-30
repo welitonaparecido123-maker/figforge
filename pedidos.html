@@ -951,7 +951,7 @@ async function confirmarPedido(){
     if(pedidoSalvo && pedidoSalvo.id){
       el('loading').classList.remove('on');
       _pedidoId = pedidoSalvo.id;
-      exibirSucesso(pedidoSalvo.id, totais);
+      exibirSucesso(pedidoSalvo.id, totais, pedidoData.itens);
       return;
     }
   }catch(e){ console.warn('Supabase insert pedido:', e.message); }
@@ -963,7 +963,7 @@ async function confirmarPedido(){
     delete window[cbName];
     if(resp && resp.ok){
       _pedidoId = resp.pedidoId;
-      exibirSucesso(resp.pedidoId, totais);
+      exibirSucesso(resp.pedidoId, totais, pedidoData.itens);
     } else {
       alert('Erro ao enviar pedido. Tente pelo WhatsApp.');
     }
@@ -975,100 +975,37 @@ async function confirmarPedido(){
 }
 
 // ── Exibe tela de sucesso ─────────────────────────────────────────────────
-function exibirSucesso(pedidoId, totais){
-  var pedidoCurto = String(pedidoId).slice(-8).toUpperCase();
+function exibirSucesso(pedidoId, totais, _itensSalvos){
+  var pedidoCurto = String(pedidoId||'').slice(-8).toUpperCase();
   el('msg-pedido-id').textContent = 'Pedido #'+pedidoCurto;
 
-  // PIX com QR Code real
+  // ── PIX ──────────────────────────────────────────────────────────────
   if(_pgtoTipo === 'pix'){
     el('pix-section').style.display = 'block';
-    var vlComDesc = totais.total;
-    el('pix-valor').textContent = 'R$ '+vlComDesc.toFixed(2).replace('.',',');
-
-    // Gera código PIX copia e cola
-    var pixCode = gerarPixCopiaCola(vlComDesc, PIX_CHAVE, 'Pedido '+pedidoCurto);
+    var vlPix = totais.total;
+    el('pix-valor').textContent = 'R$\u00a0'+vlPix.toFixed(2).replace('.',',');
+    var pixCode = gerarPixCopiaCola(vlPix, PIX_CHAVE, 'Ped '+pedidoCurto);
     el('pix-copia').textContent = pixCode;
-
-    // QR Code real via API gratuita
     var qrEl = el('pix-qr');
     if(qrEl){
-      var qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=180x180&data='+encodeURIComponent(pixCode);
-      qrEl.innerHTML = '<img src="'+qrUrl+'" style="width:180px;height:180px;border-radius:8px" alt="QR Code PIX"/>';
+      var qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=180x180&ecc=M&data='+encodeURIComponent(pixCode);
+      qrEl.innerHTML = '<img src="'+qrUrl+'" style="width:180px;height:180px;border-radius:8px;display:block;margin:0 auto" alt="QR Code PIX" onerror="this.parentNode.innerHTML=\'<div style=padding:20px>Escaneie: código abaixo</div>\'"/>';
     }
+    el('sucesso-overlay').classList.add('on');
   }
-
-  // Limpa carrinho após montar tela de sucesso
-  _carrinho = [];
-  atualizarCarrinho();
-
-  // Envia confirmação por WhatsApp para o cliente
-  var nomeCliente = (_clienteCadastrado&&_clienteCadastrado.nome)||el('ck-nome').value||'Cliente';
-  var telCliente  = (_clienteCadastrado&&_clienteCadastrado.tel)||el('ck-tel').value||'';
-  var numCliente  = telCliente.replace(/\D/g,'');
-  if(!numCliente.startsWith('55')) numCliente = '55'+numCliente;
-
-  var primeiroNome = nomeCliente.split(' ')[0];
-  var itensMsg = (_carrinho.length?_carrinho:pedidoData.itens||[]);
-  var msgCliente = '✅ *Pedido confirmado!*\n\n';
-  msgCliente += 'Olá *'+primeiroNome+'*! 😊\n';
-  msgCliente += 'Seu pedido *#'+pedidoCurto+'* foi recebido com sucesso.\n\n';
-  msgCliente += '📦 *Itens:*\n';
-  itensMsg.forEach(function(c){ msgCliente += '• '+(c.qty||c.qtd||1)+'× '+(c.nome)+'\n'; });
-  msgCliente += '\n💰 *Total: R$ '+totais.total.toFixed(2).replace('.',',')+'*\n';
-  msgCliente += '💳 Pagamento: '+(_pgtoTipo==='pix'?'PIX (5% desconto)':_pgtoTipo==='card'?'Cartão '+_parcelaSel+'x':'Dinheiro')+'\n\n';
-  msgCliente += '📱 Fique atento! Você receberá atualizações do seu pedido aqui no WhatsApp.';
-
-  if(numCliente.length >= 12){
-    setTimeout(function(){
-      window.open('https://wa.me/'+numCliente+'?text='+encodeURIComponent(msgCliente),'_blank');
-    }, 1200);
-  }
-  // PIX
-  if(_pgtoTipo==='pix'){
-    el('pix-section').style.display='block';
-    el('pix-valor').textContent = 'R$ '+totais.total.toFixed(2).replace('.',',');
-    // Gera código PIX (copia e cola simples)
-    var pixCode = gerarPixCopiaCola(totais.total, PIX_CHAVE, 'Pedido '+String(pedidoId).slice(-6));
-    el('pix-copia').textContent = pixCode;
-  }
-  // Cartão: abre InfinityPay
-  if(_pgtoTipo==='card'){
-    // Gera link InfinitePay via API oficial
+  // ── CARTÃO via GAS → InfinitePay ────────────────────────────────────
+  else if(_pgtoTipo === 'card'){
     el('loading').classList.add('on');
-    var numTel = String(pedidoData.cliente_tel||'').replace(/\D/g,'');
-    if(!numTel.startsWith('+')) numTel = '+55'+numTel;
-    var payload = {
-      handle: INFINITE_HANDLE,
-      order_nsu: String(pedidoSalvo&&pedidoSalvo.id||Date.now()).slice(-12),
-      items: pedidoData.itens.map(function(c){
-        return { quantity:Number(c.qtd||1), price:Math.round(Number(c.preco||0)*100), description:String(c.nome||'Produto') };
-      }),
-      customer:{ name:pedidoData.cliente_nome, phone_number:numTel }
-    };
-    if(totais.frete>0) payload.items.push({quantity:1,price:Math.round(totais.frete*100),description:'Frete'});
-    if(_freteTipo==='entrega' && el('ck-cep') && el('ck-cep').value.replace(/\D/g,'').length===8){
-      payload.address={
-        cep:el('ck-cep').value.replace(/\D/g,''),
-        street:el('ck-rua')?el('ck-rua').value:'',
-        neighborhood:el('ck-bairro')?el('ck-bairro').value:'',
-        number:el('ck-num')?el('ck-num').value:'',
-        complement:el('ck-comp')?el('ck-comp').value:''
-      };
-    }
-    // Chama GAS que faz o POST para InfinitePay (evita CORS)
-    var cbIP = 'cbInfinitePay_'+Date.now();
+    var cbIP = 'cbIP_'+Date.now();
     window[cbIP] = function(resp){
       delete window[cbIP];
       el('loading').classList.remove('on');
+      el('sucesso-overlay').classList.add('on');
       if(resp && resp.ok && resp.link){
-        el('sucesso-overlay').classList.add('on');
-        setTimeout(function(){ window.open(resp.link,'_blank'); }, 600);
+        setTimeout(function(){ window.open(resp.link,'_blank'); }, 500);
       } else {
-        // Fallback: abre link direto sem personalização
-        var fallbackUrl = 'https://checkout.infinitepay.io/'+INFINITE_HANDLE;
-        el('sucesso-overlay').classList.add('on');
-        setTimeout(function(){ window.open(fallbackUrl,'_blank'); }, 600);
-        console.warn('InfinitePay fallback:', resp);
+        // Fallback — link direto do perfil
+        setTimeout(function(){ window.open('https://checkout.infinitepay.io/welitonfigueire','_blank'); }, 500);
       }
     };
     setTimeout(function(){
@@ -1076,36 +1013,61 @@ function exibirSucesso(pedidoId, totais){
         delete window[cbIP];
         el('loading').classList.remove('on');
         el('sucesso-overlay').classList.add('on');
-        window.open('https://checkout.infinitepay.io/'+INFINITE_HANDLE,'_blank');
+        window.open('https://checkout.infinitepay.io/welitonfigueire','_blank');
       }
-    }, 20000);
-    var gasUrl = URL_SERVIDOR+'?action=gerarLinkPagamento&callback='+cbIP+
-      '&orderNsu='+encodeURIComponent(payload.order_nsu||'')+
-      '&pedido='+encodeURIComponent(JSON.stringify({
-        itens: pedidoData.itens, frete: totais.frete,
-        cliente: pedidoData.cliente_nome, email: pedidoData.cliente_email,
-        telefone: pedidoData.cliente_tel,
-        cep: el('ck-cep')?el('ck-cep').value.replace(/\D/g,''):'',
-        rua: el('ck-rua')?el('ck-rua').value:'',
-        bairro: el('ck-bairro')?el('ck-bairro').value:'',
-        numero: el('ck-num')?el('ck-num').value:'',
-        complemento: el('ck-comp')?el('ck-comp').value:''
-      }));
+    }, 25000);
+    var nomeCliente = (_clienteCadastrado&&_clienteCadastrado.nome)||'';
+    var telCliente  = (_clienteCadastrado&&_clienteCadastrado.tel)||'';
+    var emailCliente= (_clienteCadastrado&&_clienteCadastrado.email)||'';
+    var pedidoGas = {
+      itens: _itensSalvos||[],
+      frete: totais.frete,
+      cliente: nomeCliente, email: emailCliente, telefone: telCliente,
+      cep: el('ck-cep')?el('ck-cep').value.replace(/\D/g,''):'',
+      rua: el('ck-rua')?el('ck-rua').value:'',
+      bairro: el('ck-bairro')?el('ck-bairro').value:'',
+      numero: el('ck-num')?el('ck-num').value:'',
+      complemento: el('ck-comp')?el('ck-comp').value:''
+    };
+    var gasUrl = URL_SERVIDOR+
+      '?action=gerarLinkPagamento'+
+      '&callback='+cbIP+
+      '&orderNsu='+encodeURIComponent(pedidoCurto)+
+      '&pedido='+encodeURIComponent(JSON.stringify(pedidoGas));
     var sip = document.createElement('script'); sip.src=gasUrl; document.head.appendChild(sip);
-    return;
   }
-  el('sucesso-overlay').classList.add('on');
+  // ── DINHEIRO ─────────────────────────────────────────────────────────
+  else {
+    el('sucesso-overlay').classList.add('on');
+  }
+
+  // WhatsApp para o cliente (cópia dos itens antes de limpar carrinho)
+  var nomeC = (_clienteCadastrado&&_clienteCadastrado.nome)||'';
+  var telC  = (_clienteCadastrado&&_clienteCadastrado.tel)||'';
+  var numC  = telC.replace(/\D/g,'');
+  if(!numC.startsWith('55')) numC='55'+numC;
+  if(numC.length >= 12){
+    var primeiroNome = nomeC.split(' ')[0];
+    var msg = '\u2705 *Pedido confirmado!*\n\n';
+    msg += 'Ol\u00e1 *'+primeiroNome+'*! \ud83d\ude0a\n';
+    msg += 'Pedido *#'+pedidoCurto+'* recebido.\n\n';
+    if(_itensSalvos && _itensSalvos.length){
+      msg += '\ud83d\udce6 *Itens:*\n';
+      _itensSalvos.forEach(function(c){ msg+='\u2022 '+(c.qtd||c.qty||1)+'\u00d7 '+c.nome+'\n'; });
+    }
+    msg += '\n\ud83d\udcb0 *Total: R$ '+totais.total.toFixed(2).replace('.',',')+'*\n';
+    msg += '\ud83d\udcb3 Pgto: '+(_pgtoTipo==='pix'?'PIX (5% desc.)':_pgtoTipo==='card'?'Cart\u00e3o '+_parcelaSel+'x':'Dinheiro')+'\n\n';
+    msg += '\ud83d\udcf1 Acompanhe seu pedido pelo WhatsApp!';
+    setTimeout(function(){ window.open('https://wa.me/'+numC+'?text='+encodeURIComponent(msg),'_blank'); }, 1500);
+  }
+
+  // Limpa carrinho
+  _carrinho = [];
+  atualizarCarrinho();
+  escutarStatusPedido(pedidoId);
 }
 
-// ── Realtime: status do pedido ────────────────────────────────────────────
-function escutarStatusPedido(pedidoId){
-  // Realtime via Supabase REST polling
-  _supa.channel('pedido_'+pedidoId)
-    .on('postgres_changes', { event:'UPDATE', schema:'public', table:'pedidos', filter:'id=eq.'+pedidoId }, function(payload){
-      atualizarSteps(payload.new.status);
-    })
-    .subscribe();
-}
+
 function atualizarSteps(status){
   var steps = { 'Em separação':'step-separacao', 'Em entrega':'step-entrega', 'Concluído':'step-concluido' };
   var ordem = ['Em separação','Em entrega','Concluído'];
