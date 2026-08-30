@@ -515,13 +515,20 @@ async function carregarProdutosSupa(){
     }
     // Também tenta buscar do Supabase
     try{
-      var lojData = await supaFetch('lojistas','id=eq.'+encodeURIComponent(_lojista_id)+'&select=empresa,tel');
+      var lojData = await supaFetch('lojistas','id=eq.'+encodeURIComponent(_lojista_id)+'&select=empresa,tel,logo_url,cnpj,endereco');
       if(lojData && lojData[0]){
         var loj = lojData[0];
         if(loj.empresa){
           var nomeEl=el('loja-nome'); if(nomeEl) nomeEl.textContent=loj.empresa;
-          var nomeCad=el('loja-nome-cad'); if(nomeCad) nomeCad.textContent=loj.empresa;
-          document.title=loj.empresa;
+          var nomeCad=el('loja-nome-cad'); if(nomeCad) nomeCad.textContent='Bem-vindo à '+loj.empresa+'!';
+          document.title=loj.empresa+' — Loja Online';
+          // Subtítulo
+          var subEl=el('loja-desc');
+          if(subEl) subEl.textContent=(loj.cnpj?'CNPJ: '+loj.cnpj:'Materiais de Construção');
+        }
+        if(loj.logo_url){
+          var logoEl=el('loja-logo');
+          if(logoEl){ logoEl.src=loj.logo_url; logoEl.style.display='block'; }
         }
       }
     }catch(e){}
