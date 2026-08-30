@@ -2,6 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8"/>
+<link rel="icon" href="icon-192.png" type="image/png"/>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -2997,36 +2998,8 @@ function iniciarSupabase(){
 
 // Busca ou cria o lojista no Supabase após login
 async function sincronizarLojistaSupa(){
-  if(!_supa) return;
-  var lic = {};
-  try { lic = _lerLicenca(); } catch(e) {}
-  if(!lic || !lic.email) return;
-
-  try {
-    // Busca lojista pelo email
-    var { data, error } = await _supa
-      .from('lojistas')
-      .select('id')
-      .eq('email', lic.email)
-      .single();
-
-    if(error || !data) {
-      // Cria novo lojista
-      var { data: novo } = await _supa
-        .from('lojistas')
-        .insert({ email: lic.email, nome: DB.config.resp||'', empresa: DB.config.empresa||'', tel: DB.config.tel||'' })
-        .select('id')
-        .single();
-      _lojista_id = novo ? novo.id : null;
-    } else {
-      _lojista_id = data.id;
-    }
-    console.log('✔ Lojista ID:', _lojista_id);
-    // Inicia realtime de pedidos
-    iniciarRealtimePedidos();
-  } catch(e) {
-    console.warn('Erro ao sincronizar lojista:', e.message);
-  }
+  console.log('✔ Lojista ID:', _lojista_id);
+  iniciarRealtimePedidos();
 }
 
 // ── Polling de pedidos (substitui realtime SDK) ───────────────────────────
@@ -10946,6 +10919,25 @@ async function _autoPublicarSupabase(){
     if(rows.length) await supaREST('POST','produtos','',rows);
     console.log('✔ Catálogo auto-publicado: '+rows.length+' produtos');
   }catch(e){ console.warn('Auto-publicar Supabase:', e.message); }
+}
+
+// ── Supabase REST API helper (sem SDK) ───────────────────────────────────
+async function supaREST(method, tabela, params, body){
+  var url = SUPABASE_URL+'/rest/v1/'+tabela+(params?'?'+params:'');
+  var opts = {
+    method: method||'GET',
+    headers:{
+      'apikey': SUPABASE_KEY,
+      'Authorization': 'Bearer '+SUPABASE_KEY,
+      'Content-Type': 'application/json',
+      'Prefer': method==='POST'?'return=representation':''
+    }
+  };
+  if(body) opts.body = JSON.stringify(body);
+  var r = await fetch(url, opts);
+  var txt = await r.text();
+  if(!r.ok) throw new Error('Supabase '+r.status+': '+txt.slice(0,150));
+  return txt ? JSON.parse(txt) : null;
 }
 </script>
 
