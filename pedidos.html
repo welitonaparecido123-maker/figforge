@@ -902,11 +902,17 @@ async function confirmarPedido(){
   var nome = el('ck-nome').value.trim();
   var tel  = el('ck-tel').value.trim();
   if(!nome){ alert('Informe seu nome.'); return; }
-  if(!tel){  alert('Informe seu WhatsApp.'); return; }
+  if(!tel||tel.replace(/\D/g,'').length<10){ alert('Informe um WhatsApp válido com DDD.'); return; }
   if(_freteTipo==='entrega'){
     if(!el('ck-cep').value){ alert('Informe o CEP para entrega.'); return; }
     if(!el('ck-num').value.trim()){ alert('Informe o número do endereço.'); el('ck-num').focus(); return; }
     if(!el('ck-rua').value.trim()){ alert('Informe a rua do endereço.'); el('ck-rua').focus(); return; }
+  }
+  // Valida forma de pagamento
+  if(!_pgtoTipo){ alert('Selecione a forma de pagamento.'); return; }
+  if(_pgtoTipo==='card' && (!INFINITE_HANDLE || INFINITE_HANDLE==='SEU_HANDLE_AQUI')){
+    alert('Pagamento por cartão não está disponível no momento. Escolha PIX ou Dinheiro.');
+    return;
   }
 
   var totais = atualizarResumo();
@@ -970,10 +976,30 @@ async function confirmarPedido(){
 
 // ── Exibe tela de sucesso ─────────────────────────────────────────────────
 function exibirSucesso(pedidoId, totais){
-  _carrinho = [];
-  atualizarCarrinho();
   var pedidoCurto = String(pedidoId).slice(-8).toUpperCase();
   el('msg-pedido-id').textContent = 'Pedido #'+pedidoCurto;
+
+  // PIX com QR Code real
+  if(_pgtoTipo === 'pix'){
+    el('pix-section').style.display = 'block';
+    var vlComDesc = totais.total;
+    el('pix-valor').textContent = 'R$ '+vlComDesc.toFixed(2).replace('.',',');
+
+    // Gera código PIX copia e cola
+    var pixCode = gerarPixCopiaCola(vlComDesc, PIX_CHAVE, 'Pedido '+pedidoCurto);
+    el('pix-copia').textContent = pixCode;
+
+    // QR Code real via API gratuita
+    var qrEl = el('pix-qr');
+    if(qrEl){
+      var qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=180x180&data='+encodeURIComponent(pixCode);
+      qrEl.innerHTML = '<img src="'+qrUrl+'" style="width:180px;height:180px;border-radius:8px" alt="QR Code PIX"/>';
+    }
+  }
+
+  // Limpa carrinho após montar tela de sucesso
+  _carrinho = [];
+  atualizarCarrinho();
 
   // Envia confirmação por WhatsApp para o cliente
   var nomeCliente = (_clienteCadastrado&&_clienteCadastrado.nome)||el('ck-nome').value||'Cliente';
@@ -1029,20 +1055,44 @@ function exibirSucesso(pedidoId, totais){
         complement:el('ck-comp')?el('ck-comp').value:''
       };
     }
-    fetch('https://api.checkout.infinitepay.io/links',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify(payload)
-    }).then(function(r){return r.json();}).then(function(rd){
+    // Chama GAS que faz o POST para InfinitePay (evita CORS)
+    var cbIP = 'cbInfinitePay_'+Date.now();
+    window[cbIP] = function(resp){
+      delete window[cbIP];
       el('loading').classList.remove('on');
-      el('sucesso-overlay').classList.add('on');
-      if(rd.url){ setTimeout(function(){ window.open(rd.url,'_blank'); },800); }
-    }).catch(function(e){
-      el('loading').classList.remove('on');
-      el('sucesso-overlay').classList.add('on');
-      console.warn('InfinitePay:',e.message);
-    });
-    return; // sucesso-overlay aberto no then
+      if(resp && resp.ok && resp.link){
+        el('sucesso-overlay').classList.add('on');
+        setTimeout(function(){ window.open(resp.link,'_blank'); }, 600);
+      } else {
+        // Fallback: abre link direto sem personalização
+        var fallbackUrl = 'https://checkout.infinitepay.io/'+INFINITE_HANDLE;
+        el('sucesso-overlay').classList.add('on');
+        setTimeout(function(){ window.open(fallbackUrl,'_blank'); }, 600);
+        console.warn('InfinitePay fallback:', resp);
+      }
+    };
+    setTimeout(function(){
+      if(window[cbIP]){
+        delete window[cbIP];
+        el('loading').classList.remove('on');
+        el('sucesso-overlay').classList.add('on');
+        window.open('https://checkout.infinitepay.io/'+INFINITE_HANDLE,'_blank');
+      }
+    }, 20000);
+    var gasUrl = URL_SERVIDOR+'?action=gerarLinkPagamento&callback='+cbIP+
+      '&orderNsu='+encodeURIComponent(payload.order_nsu||'')+
+      '&pedido='+encodeURIComponent(JSON.stringify({
+        itens: pedidoData.itens, frete: totais.frete,
+        cliente: pedidoData.cliente_nome, email: pedidoData.cliente_email,
+        telefone: pedidoData.cliente_tel,
+        cep: el('ck-cep')?el('ck-cep').value.replace(/\D/g,''):'',
+        rua: el('ck-rua')?el('ck-rua').value:'',
+        bairro: el('ck-bairro')?el('ck-bairro').value:'',
+        numero: el('ck-num')?el('ck-num').value:'',
+        complemento: el('ck-comp')?el('ck-comp').value:''
+      }));
+    var sip = document.createElement('script'); sip.src=gasUrl; document.head.appendChild(sip);
+    return;
   }
   el('sucesso-overlay').classList.add('on');
 }
