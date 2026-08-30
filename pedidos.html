@@ -172,6 +172,7 @@ label{font-size:12px;color:var(--tx3);display:block;margin-bottom:4px;margin-top
 
 <!-- ── Produtos ───────────────────────────────────────────────────────── -->
 <div id="main">
+  <div id="load-status" style="text-align:center;padding:12px;color:#999;font-size:13px"></div>
   <div id="produtos-container">
     <div style="text-align:center;padding:60px 20px;color:var(--tx3)">
       <div style="font-size:48px;margin-bottom:12px">⏳</div>
@@ -402,32 +403,49 @@ window.onload = async function(){
 
 // ── Carrega produtos do Supabase ──────────────────────────────────────────
 async function carregarProdutosSupa(){
+  var statusEl = document.getElementById('load-status');
+  if(statusEl) statusEl.textContent = '⏳ Conectando ao banco de dados...';
   try{
-    var query = _supa.from('produtos')
-      .select('id,nome,descricao,categoria,unidade,qtd,preco_venda,foto_url,lojistas(empresa,tel)')
+    // Query simples sem join para evitar problemas de RLS
+    var { data, error } = await _supa
+      .from('produtos')
+      .select('id,nome,descricao,categoria,unidade,qtd,preco_venda,foto_url')
+      .eq('lojista_id', _lojista_id)
       .eq('publicado', true)
       .eq('ativo', true)
-      .gt('preco_venda', 0);  // inclui zerados — aparece como indisponível
+      .gt('preco_venda', 0)
+      .order('categoria')
+      .order('nome');
 
-    if(_lojista_id) query = query.eq('lojista_id', _lojista_id);
-    else { /* busca pelo email */ }
-
-    var { data, error } = await query;
-    if(error) throw error;
-
-    // Info da loja
-    if(data && data.length && data[0].lojistas){
-      el('loja-nome').textContent = data[0].lojistas.empresa || 'Loja';
-      document.title = data[0].lojistas.empresa || 'Loja';
+    if(error){
+      console.warn('Supabase erro:', error.message, error.code);
+      if(statusEl) statusEl.textContent = '⚠️ Erro: '+error.message;
+      carregarProdutosGAS();
+      return;
     }
 
-    _produtos = (data||[]).map(function(p){
-      return { id:p.id, nome:p.nome, desc:p.descricao, cat:p.categoria||'', un:p.unidade||'un', qtd:p.qtd, preco:p.preco_venda, foto:p.foto_url };
+    console.log('✔ Supabase produtos:', (data||[]).length);
+    if(statusEl) statusEl.textContent = '';
+
+    _produtos = (data||[]).map(function(prod){
+      return {
+        id: prod.id, nome: prod.nome,
+        desc: prod.descricao||'', cat: prod.categoria||'',
+        un: prod.unidade||'un', qtd: Number(prod.qtd||0),
+        preco: Number(prod.preco_venda||0), foto: prod.foto_url||''
+      };
     });
+
+    if(!_produtos.length){
+      document.getElementById('produtos-container').innerHTML =
+        '<div style="text-align:center;padding:60px;color:#999"><div style="font-size:48px">📦</div><div style="margin-top:8px">Nenhum produto disponível no momento.</div></div>';
+      return;
+    }
     renderCats();
     renderProdutos(_produtos);
   }catch(e){
-    console.warn('Supabase produtos:', e.message);
+    console.warn('Supabase falhou:', e.message);
+    if(statusEl) statusEl.textContent = '⚠️ '+e.message;
     carregarProdutosGAS();
   }
 }
