@@ -501,6 +501,20 @@ async function carregarProdutosSupa(){
   var statusEl = document.getElementById('load-status');
   if(statusEl) statusEl.textContent = '⏳ Carregando produtos...';
   try{
+    // Carrega info da loja
+    try{
+      var lojData = await supaFetch('lojistas','id=eq.'+encodeURIComponent(_lojista_id)+'&select=empresa,tel,logo_url');
+      if(lojData && lojData[0]){
+        var loj = lojData[0];
+        var nomeEl = el('loja-nome'); if(nomeEl) nomeEl.textContent = loj.empresa||'Loja';
+        var nomeCad = el('loja-nome-cad'); if(nomeCad) nomeCad.textContent = loj.empresa||'Bem-vindo!';
+        document.title = loj.empresa||'Loja Online';
+        if(loj.logo_url){
+          var logoEl = el('loja-logo'); if(logoEl) logoEl.src = loj.logo_url;
+        }
+      }
+    }catch(e){}
+
     var params = [
       'lojista_id=eq.'+encodeURIComponent(_lojista_id),
       'publicado=eq.true',
@@ -885,14 +899,16 @@ function exibirSucesso(pedidoId, totais){
   var numCliente  = telCliente.replace(/\D/g,'');
   if(!numCliente.startsWith('55')) numCliente = '55'+numCliente;
 
+  var primeiroNome = nomeCliente.split(' ')[0];
+  var itensMsg = (_carrinho.length?_carrinho:pedidoData.itens||[]);
   var msgCliente = '✅ *Pedido confirmado!*\n\n';
-  msgCliente += 'Olá '+nomeCliente+'! 😊\n';
+  msgCliente += 'Olá *'+primeiroNome+'*! 😊\n';
   msgCliente += 'Seu pedido *#'+pedidoCurto+'* foi recebido com sucesso.\n\n';
   msgCliente += '📦 *Itens:*\n';
-  _carrinho.forEach(function(c){ msgCliente += '• '+c.qty+'× '+c.nome+'\n'; });
+  itensMsg.forEach(function(c){ msgCliente += '• '+(c.qty||c.qtd||1)+'× '+(c.nome)+'\n'; });
   msgCliente += '\n💰 *Total: R$ '+totais.total.toFixed(2).replace('.',',')+'*\n';
-  msgCliente += '💳 Pagamento: '+(_pgtoTipo==='pix'?'PIX (5% desconto)':_pgtoTipo==='card'?'Cartão':'Dinheiro')+'\n\n';
-  msgCliente += 'Acompanhe seu pedido pelo WhatsApp. Você receberá atualizações aqui! 📱';
+  msgCliente += '💳 Pagamento: '+(_pgtoTipo==='pix'?'PIX (5% desconto)':_pgtoTipo==='card'?'Cartão '+_parcelaSel+'x':'Dinheiro')+'\n\n';
+  msgCliente += '📱 Fique atento! Você receberá atualizações do seu pedido aqui no WhatsApp.';
 
   if(numCliente.length >= 12){
     setTimeout(function(){
