@@ -2414,6 +2414,50 @@ button[style*="background: #4F6EF7"], .btn-primary {
       </div>
     </div>
 
+    
+    <!-- CONFIGURAÇÕES DA LOJA ONLINE -->
+    <div class="card" style="margin-top:16px">
+      <div class="ct" style="margin-bottom:12px">
+        🛒 Configurações da Loja Online
+        <button class="btn sm bp" onclick="salvarConfigLoja()" style="margin-left:auto">💾 Salvar</button>
+      </div>
+
+      <!-- Status da loja -->
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px;background:var(--bg3);border-radius:var(--r);margin-bottom:10px">
+        <div>
+          <div style="font-weight:600">Status da loja</div>
+          <div style="font-size:12px;color:var(--tx3)">Clientes podem fazer pedidos</div>
+        </div>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:0">
+          <input type="checkbox" id="loja-aberta" style="width:20px;height:20px;cursor:pointer" onchange="atualizarStatusLojaVisual()"/>
+          <span id="loja-status-label" style="font-weight:600;color:var(--gn)">Aberta</span>
+        </label>
+      </div>
+
+      <!-- Horários por dia -->
+      <div style="margin-bottom:10px">
+        <div style="font-size:12px;font-weight:600;color:var(--tx2);margin-bottom:8px">⏰ Horários de funcionamento</div>
+        <div id="horarios-grid">
+          <!-- gerado por renderHorariosConfig() -->
+        </div>
+      </div>
+
+      <!-- Mensagem personalizada -->
+      <div style="margin-bottom:10px">
+        <label>Mensagem de boas-vindas</label>
+        <input id="loja-msg-bv" type="text" placeholder="Ex: Entregamos em toda Campo Grande!" style="margin-top:4px"/>
+      </div>
+
+      <!-- Produtos em oferta -->
+      <div>
+        <div style="font-size:12px;font-weight:600;color:var(--tx2);margin-bottom:8px">🏷️ Produtos em destaque / Oferta</div>
+        <div style="font-size:11px;color:var(--tx3);margin-bottom:8px">Selecione até 6 produtos para aparecer em destaque na loja</div>
+        <div id="ofertas-lista" style="max-height:200px;overflow-y:auto">
+          <!-- gerado por renderOfertasConfig() -->
+        </div>
+      </div>
+    </div>
+
     <!-- SEGMENTO DE ATUAÇÃO -->
     <div class="card">
       <div class="ct">🏷️ Segmento de atuação</div>
@@ -4925,6 +4969,7 @@ function aplicarPerfilBase(nivel, somenteDesc){
 function renderPerms(nivel){} // mantido por compatibilidade
 
 function renderConfig(){
+  setTimeout(carregarConfigLoja, 200);
   setTimeout(gerarLinkAcesso, 100);
   const cfg=DB.config;
   setV('cfg-empresa',cfg.empresa);setV('cfg-cnpj',cfg.cnpj);setV('cfg-crea',cfg.crea);
@@ -11081,6 +11126,165 @@ async function supaREST(method, tabela, params, body){
   var txt = await r.text();
   if(!r.ok) throw new Error('Supabase '+r.status+': '+txt.slice(0,150));
   return txt ? JSON.parse(txt) : null;
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// CONFIGURAÇÕES DA LOJA ONLINE
+// ══════════════════════════════════════════════════════════════════════════
+var _diasSemana = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+var _lojaConfig = {
+  aberta: true,
+  horarios: [null,[8,18],[8,18],[8,18],[8,18],[8,18],[8,13]],
+  mensagemBV: '',
+  ofertas: []  // array de IDs de materiais em destaque
+};
+
+function renderHorariosConfig(){
+  var cont = el('horarios-grid');
+  if(!cont) return;
+  var cfg = _lojaConfig;
+  cont.innerHTML = _diasSemana.map(function(dia, i){
+    var h = cfg.horarios[i];
+    var fechado = !h;
+    return '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px dashed var(--br)">'+
+      '<div style="width:30px;font-size:12px;font-weight:600;color:var(--tx2)">'+dia+'</div>'+
+      '<label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer;margin:0">'+
+        '<input type="checkbox" id="dia-ativo-'+i+'" '+(fechado?'':'checked')+' onchange="toggleDiaLoja('+i+')" style="cursor:pointer"/>'+
+        '<span>Aberto</span>'+
+      '</label>'+
+      '<div id="dia-horas-'+i+'" style="display:flex;align-items:center;gap:4px;'+(fechado?'opacity:.3;pointer-events:none':'')+'">'+
+        '<input type="number" id="dia-ab-'+i+'" value="'+(h?h[0]:8)+'" min="0" max="23" style="width:52px;padding:4px;font-size:12px"/>'+
+        '<span style="font-size:12px;color:var(--tx3)">às</span>'+
+        '<input type="number" id="dia-fc-'+i+'" value="'+(h?h[1]:18)+'" min="0" max="23" style="width:52px;padding:4px;font-size:12px"/>'+
+        '<span style="font-size:12px;color:var(--tx3)">h</span>'+
+      '</div>'+
+      (fechado?'<span style="font-size:11px;color:var(--rd);font-weight:600">Fechado</span>':'')+'</div>';
+  }).join('');
+}
+
+function toggleDiaLoja(i){
+  var chk = el('dia-ativo-'+i);
+  var div = el('dia-horas-'+i);
+  if(div){
+    div.style.opacity = chk && chk.checked ? '1' : '.3';
+    div.style.pointerEvents = chk && chk.checked ? '' : 'none';
+  }
+}
+
+function renderOfertasConfig(){
+  var cont = el('ofertas-lista');
+  if(!cont) return;
+  var mats = DB.materiais||[];
+  if(!mats.length){ cont.innerHTML='<div style="font-size:12px;color:var(--tx3)">Nenhum produto no estoque</div>'; return; }
+  cont.innerHTML = mats.filter(function(m){ return Number(m.vl||0)>0; }).map(function(m){
+    var oferta = _lojaConfig.ofertas.includes(m.id);
+    return '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px dashed var(--br)">'+
+      '<input type="checkbox" id="oferta-'+m.id+'" '+(oferta?'checked':'')+' style="cursor:pointer;width:16px;height:16px"/>'+
+      (m.foto?'<img src="'+m.foto+'" style="width:32px;height:32px;border-radius:6px;object-fit:cover"/>':'')+''+
+      '<div style="flex:1">'+
+        '<div style="font-size:13px;font-weight:600">'+m.nome+'</div>'+
+        '<div style="font-size:11px;color:var(--tx3)">R$ '+Number(m.vl||0).toFixed(2).replace('.',',')+'</div>'+
+      '</div>'+
+      '<div style="display:flex;align-items:center;gap:4px">'+
+        '<span style="font-size:11px;color:var(--tx3)">% desc:</span>'+
+        '<input type="number" id="desc-'+m.id+'" value="'+(m._descOferta||0)+'" min="0" max="90" style="width:44px;padding:3px;font-size:12px"/>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+}
+
+function atualizarStatusLojaVisual(){
+  var chk = el('loja-aberta');
+  var lbl = el('loja-status-label');
+  if(!chk||!lbl) return;
+  lbl.textContent = chk.checked ? 'Aberta' : 'Fechada';
+  lbl.style.color = chk.checked ? 'var(--gn)' : 'var(--rd)';
+}
+
+function carregarConfigLoja(){
+  // Carrega do DB.config.lojaConfig
+  if(DB.config && DB.config.lojaConfig){
+    try{ _lojaConfig = Object.assign({}, _lojaConfig, JSON.parse(DB.config.lojaConfig)); }catch(e){}
+  }
+  // Preenche UI
+  var chk = el('loja-aberta');
+  if(chk){ chk.checked = _lojaConfig.aberta !== false; atualizarStatusLojaVisual(); }
+  var bv = el('loja-msg-bv');
+  if(bv) bv.value = _lojaConfig.mensagemBV||'';
+  renderHorariosConfig();
+  renderOfertasConfig();
+}
+
+async function salvarConfigLoja(){
+  // Coleta horários
+  var horarios = _diasSemana.map(function(_,i){
+    var chk = el('dia-ativo-'+i);
+    if(!chk || !chk.checked) return null;
+    var ab = Number(el('dia-ab-'+i).value)||8;
+    var fc = Number(el('dia-fc-'+i).value)||18;
+    return [ab, fc];
+  });
+
+  // Coleta ofertas
+  var ofertas = [];
+  (DB.materiais||[]).forEach(function(m){
+    var chk = el('oferta-'+m.id);
+    var descEl = el('desc-'+m.id);
+    if(chk && chk.checked){
+      m._descOferta = Number(descEl&&descEl.value||0);
+      ofertas.push(m.id);
+    } else {
+      delete m._descOferta;
+    }
+  });
+
+  _lojaConfig = {
+    aberta: el('loja-aberta') ? el('loja-aberta').checked : true,
+    horarios: horarios,
+    mensagemBV: el('loja-msg-bv') ? el('loja-msg-bv').value.trim() : '',
+    ofertas: ofertas
+  };
+
+  // Salva no DB.config
+  DB.config.lojaConfig = JSON.stringify(_lojaConfig);
+  save();
+
+  // Publica catálogo com novas configurações
+  await sincronizarProdutosSupabase_config();
+  alert('✅ Configurações da loja salvas e publicadas!');
+}
+
+async function sincronizarProdutosSupabase_config(){
+  if(!_lojista_id) return;
+  try{
+    // Salva config no lojista
+    var cfg = DB.config||{};
+    var rows = (DB.materiais||[]).filter(function(m){ return Number(m.vl||0)>0; }).map(function(m){
+      return {
+        id:m.id, lojista_id:_lojista_id,
+        nome:m.nome||'', descricao:m.desc||'',
+        categoria:m.cat||'', unidade:m.un||'un',
+        qtd:Number(m.qtd||0), qtd_minima:Number(m.min||0),
+        preco_custo:Number(m.custo||0), preco_venda:Number(m.vl||0),
+        margem:Number(m.margem||0),
+        foto_url:m.foto||null,
+        localizacao:m.loc||'',
+        publicado:true, ativo:true,
+        destaque:_lojaConfig.ofertas.includes(m.id),
+        desconto_oferta:m._descOferta||0
+      };
+    });
+    await supaREST('PATCH','lojistas','id=eq.'+encodeURIComponent(_lojista_id),{
+      empresa:cfg.empresa||'', tel:cfg.tel||'', logo_url:cfg.logo||null,
+      cnpj:cfg.cnpj||'', endereco:cfg.end||'',
+      loja_config:JSON.stringify(_lojaConfig)
+    });
+    if(rows.length){
+      await supaREST('DELETE','produtos','lojista_id=eq.'+encodeURIComponent(_lojista_id));
+      await supaREST('POST','produtos','',rows);
+    }
+    console.log('✔ Config loja publicada');
+  }catch(e){ console.warn('Config loja:', e.message); }
 }
 </script>
 
