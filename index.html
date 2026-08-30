@@ -10881,13 +10881,42 @@ async function sincronizarProdutosSupabase(){
   var btn = event && event.target;
   if(btn){ btn.disabled=true; btn.textContent='⏳ Sincronizando...'; }
 
-  // Atualiza info da loja no Supabase
+  // Atualiza dados completos da empresa no Supabase
   try{
+    var cfg = DB.config||{};
+    var logoUrl = null;
+    // Logo: só manda se for URL pública (não base64)
+    if(cfg.logo && !cfg.logo.startsWith('data:')){
+      logoUrl = cfg.logo;
+    } else if(cfg.logo && cfg.logo.startsWith('data:')){
+      // Faz upload do logo para o Storage
+      try{
+        var b64logo = cfg.logo.split(',')[1];
+        var mimelogo = cfg.logo.split(';')[0].split(':')[1]||'image/png';
+        var extlogo = mimelogo.split('/')[1]||'png';
+        var byteslogo = atob(b64logo);
+        var arrlogo = new Uint8Array(byteslogo.length);
+        for(var bi=0;bi<byteslogo.length;bi++) arrlogo[bi]=byteslogo.charCodeAt(bi);
+        var bloblogo = new Blob([arrlogo],{type:mimelogo});
+        var urlUpload = SUPABASE_URL+'/storage/v1/object/produtos/logos/'+_lojista_id+'.'+extlogo;
+        var rLogo = await fetch(urlUpload,{
+          method:'POST',
+          headers:{'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY,'Content-Type':mimelogo,'x-upsert':'true'},
+          body:bloblogo
+        });
+        if(rLogo.ok) logoUrl = SUPABASE_URL+'/storage/v1/object/public/produtos/logos/'+_lojista_id+'.'+extlogo;
+      }catch(eLogo){ console.warn('Upload logo:', eLogo.message); }
+    }
     await supaREST('PATCH','lojistas','id=eq.'+encodeURIComponent(_lojista_id),{
-      empresa: DB.config.empresa||'',
-      tel: DB.config.tel||''
+      empresa: cfg.empresa||'',
+      nome: cfg.resp||'',
+      tel: cfg.tel||'',
+      logo_url: logoUrl,
+      cnpj: cfg.cnpj||'',
+      endereco: cfg.end||''
     });
-  }catch(e){}
+    console.log('✔ Dados da empresa sincronizados');
+  }catch(e){ console.warn('Sync empresa:', e.message); }
 
   var rows = (DB.materiais||[]).filter(function(m){
     return Number(m.vl||0) > 0; // só publica se tem preço
