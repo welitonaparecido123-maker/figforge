@@ -390,7 +390,7 @@ var SUPABASE_URL = 'https://olkoswzeudgpysxbsgog.supabase.co';
 var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9sa29zd3pldWRncHlzeGJzZ29nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgwMjQ4NDUsImV4cCI6MjEwMzYwMDg0NX0.qVnAL2KaS0Tz8C_orfyBP4RCWBX59a3B02xL2qMrxlQ';
 var URL_SERVIDOR = 'https://script.google.com/macros/s/AKfycbzmLyefN11Xs8kNKJaGW-UESg4AYmyEEpCy5ECJ69bBhJmjQP5vL6_Jg6Ce470u5cnz/exec';
 var OWNER_TEL    = '5567984326429';
-var PIX_CHAVE   = '57.048.794/0001-68'; // Sua chave PIX
+var PIX_CHAVE   = 'welitonfigueire@jim.com'; // Chave PIX (email InfinitePay)
 var INFINITE_HANDLE = 'welitonfigueire';
 
 // Pega parâmetros da URL
@@ -1004,7 +1004,10 @@ function exibirSucesso(pedidoId, totais, _itensSalvos){
       if(resp && resp.ok && resp.link){
         setTimeout(function(){ window.open(resp.link,'_blank'); }, 500);
       } else {
-        // Fallback — link direto do perfil
+        // Mostra erro e fallback
+        var errMsg = resp ? (resp.msg||'Erro desconhecido') : 'Sem resposta do servidor';
+        console.warn('InfinitePay erro:', errMsg);
+        // Fallback — abre link direto do perfil InfinitePay
         setTimeout(function(){ window.open('https://checkout.infinitepay.io/welitonfigueire','_blank'); }, 500);
       }
     };
@@ -1086,12 +1089,18 @@ function atualizarSteps(status){
 function gerarPixCopiaCola(valor, chave, desc){
   function tlv(id, val){ return id + String(val.length).padStart(2,'0') + val; }
   var merchantAccount = tlv('00','BR.GOV.BCB.PIX') + tlv('01', chave);
+  // Nome da empresa para o QR Code (max 25 chars, sem acentos)
+  var nomeQR = (document.getElementById('loja-nome')?document.getElementById('loja-nome').textContent:'Figueiredo Materiais')
+    .replace(/[áàãâä]/gi,'a').replace(/[éèêë]/gi,'e').replace(/[íìîï]/gi,'i')
+    .replace(/[óòõôö]/gi,'o').replace(/[úùûü]/gi,'u').replace(/[ç]/gi,'c')
+    .replace(/[^a-zA-Z0-9 ]/g,'').trim().slice(0,25);
+  var cidadeQR = 'Campo Grande';
   var payload = tlv('00','01') +
     tlv('26', merchantAccount) +
     tlv('52','0000') + tlv('53','986') +
     tlv('54', valor.toFixed(2)) +
-    tlv('58','BR') + tlv('59','Loja FigForge') + tlv('60','Campo Grande') +
-    tlv('62', tlv('05', desc.slice(0,25))) + '6304';
+    tlv('58','BR') + tlv('59', nomeQR) + tlv('60', cidadeQR) +
+    tlv('62', tlv('05', desc.replace(/[^a-zA-Z0-9 ]/g,'').slice(0,25))) + '6304';
   // CRC16
   var crc = 0xFFFF;
   for(var i=0;i<payload.length;i++){
