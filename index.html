@@ -14,7 +14,6 @@
 <link rel="apple-touch-icon" href="icon-192.png"/>
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png"/>
 <title>FigForge — Gestão para Construtoras</title>
-<script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js">
 setTimeout(() => document.getElementById('splash-screen').classList.add('hidden'), 2500);
 
@@ -2993,13 +2992,7 @@ var _supa = null;  // cliente Supabase inicializado após login
 var _lojista_id = 'e1cdcdee-13ae-42b6-96be-f940f7a400c1';  // UUID do lojista
 
 function iniciarSupabase(){
-  try {
-    if(typeof supabase === 'undefined') return;
-    _supa = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    console.log('✔ Supabase conectado');
-  } catch(e) {
-    console.warn('Supabase não disponível:', e.message);
-  }
+  console.log('✔ Supabase REST API configurado');
 }
 
 // Busca ou cria o lojista no Supabase após login
@@ -3036,31 +3029,10 @@ async function sincronizarLojistaSupa(){
   }
 }
 
-// ── Realtime — pedidos aparecem instantaneamente ──────────────────────────
+// ── Polling de pedidos (substitui realtime SDK) ───────────────────────────
 function iniciarRealtimePedidos(){
-  if(!_supa || !_lojista_id) return;
-  _supa
-    .channel('pedidos_lojista')
-    .on('postgres_changes', {
-      event: 'INSERT',
-      schema: 'public',
-      table: 'pedidos',
-      filter: 'lojista_id=eq.' + _lojista_id
-    }, function(payload){
-      var p = payload.new;
-      // Adiciona ao array local
-      if(!_pedidosData) _pedidosData = [];
-      _pedidosData.unshift(p);
-      // Badge e toast
-      mostrarToastPedido(1, p);
-      tocarSomPedido();
-      var badge = el('badge-pedidos');
-      if(badge){ badge.textContent = _pedidosData.filter(function(x){return x.status==='Novo';}).length; badge.style.display='inline-flex'; }
-      // Atualiza lista se painel aberto
-      if(panelAtual==='pedidos') renderListaPedidos();
-    })
-    .subscribe();
-  console.log('✔ Realtime pedidos ativo');
+  // Polling a cada 30s — sem SDK
+  setInterval(function(){ verificarPedidosNovos(); }, 30000);
 }
 
 
@@ -10402,17 +10374,12 @@ async function puxarPedidosServidor(silencioso){
     listEl.innerHTML='<div style="text-align:center;padding:20px;color:var(--tx3)">⏳ Buscando pedidos...</div>';
   }
 
-  // ── Tenta via Supabase (rápido e confiável) ─────────────────────────
-  if(_supa && _lojista_id){
+  // ── Tenta via Supabase REST ─────────────────────────────────────────
+  if(_lojista_id){
     try{
-      var { data, error } = await _supa
-        .from('pedidos')
-        .select('*')
-        .eq('lojista_id', _lojista_id)
-        .order('criado_em', { ascending: false })
-        .limit(100);
-
-      if(!error && data){
+      var params = 'lojista_id=eq.'+encodeURIComponent(_lojista_id)+'&order=criado_em.desc&limit=100';
+      var data = await supaREST('GET','pedidos',params);
+      if(data && Array.isArray(data)){
         _pedidosData = data;
         if(dbgEl && dbgTxt){ dbgEl.style.display='block'; dbgTxt.textContent='✔ '+data.length+' pedido(s) — Supabase'; }
         renderListaPedidos();
@@ -10421,7 +10388,7 @@ async function puxarPedidosServidor(silencioso){
         if(badge){ badge.textContent=novos||''; badge.style.display=novos>0?'inline-flex':'none'; }
         return;
       }
-    }catch(e){ console.warn('Supabase pedidos:', e.message); }
+    }catch(e){ console.warn('Supabase REST pedidos:', e.message); }
   }
 
   // ── Fallback via Google Apps Script (JSONP) ──────────────────────────
@@ -10544,12 +10511,13 @@ async function mudarStatusPedido(pedidoId, novoStatus){
   if(p) p.status = novoStatus;
   renderListaPedidos();
 
-  // ── Supabase ────────────────────────────────────────────────────────
-  if(_supa && _lojista_id){
+  // ── Supabase REST ────────────────────────────────────────────────────
+  if(_lojista_id){
     try{
-      await _supa.from('pedidos').update({ status: novoStatus, atualizado_em: new Date().toISOString() }).eq('id', pedidoId);
+      await supaREST('PATCH','pedidos','id=eq.'+encodeURIComponent(pedidoId),
+        { status: novoStatus, atualizado_em: new Date().toISOString() });
       return;
-    }catch(e){ console.warn('Supabase update pedido:', e.message); }
+    }catch(e){ console.warn('Supabase REST update:', e.message); }
   }
 
   // ── Fallback Apps Script ─────────────────────────────────────────────
@@ -10938,9 +10906,12 @@ async function sincronizarProdutosSupabase(){
   });
 
   try{
-    var { error } = await _supa.from('produtos').upsert(rows, { onConflict: 'id' });
+    // Faz upsert via REST (DELETE + INSERT por lote)
+    // Primeiro deleta os existentes deste lojista
+    await supaREST('DELETE','produtos','lojista_id=eq.'+encodeURIComponent(_lojista_id));
+    // Insere todos de uma vez
+    await supaREST('POST','produtos','',rows);
     if(btn){ btn.disabled=false; btn.textContent='🌐 Publicar catálogo'; }
-    if(error){ alert('Erro Supabase: '+error.message); return; }
     alert('✅ '+rows.length+' produto(s) publicado(s) na loja online!');
   }catch(e){
     if(btn){ btn.disabled=false; btn.textContent='🌐 Publicar catálogo'; }
