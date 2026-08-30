@@ -648,7 +648,12 @@ function criarCardProduto(p){
     ? '<img class="prod-card-img" src="'+p.foto+'" alt="'+p.nome+'" loading="lazy" onerror="this.parentNode.replaceChild(criarPlaceholder(),this)"/>'
     : '<div class="prod-card-img-placeholder">📦</div>';
 
-  card.innerHTML = fotoHtml +
+  var badgeDestaque = isDestaque && descOferta>0
+    ? '<div style="position:absolute;top:8px;left:8px;background:#ff6b00;color:#fff;font-size:10px;font-weight:700;padding:3px 8px;border-radius:10px">🏷️ -'+descOferta+'%</div>'
+    : isDestaque ? '<div style="position:absolute;top:8px;left:8px;background:#ff6b00;color:#fff;font-size:10px;font-weight:700;padding:3px 8px;border-radius:10px">⭐ Destaque</div>' : '';
+
+  card.style.cssText = isDestaque ? 'border:2px solid #ff6b00;box-shadow:0 0 0 2px rgba(255,107,0,.15);position:relative' : 'position:relative';
+  card.innerHTML = badgeDestaque + fotoHtml +
     '<div class="prod-card-body">'+
       '<div>'+
         '<div class="prod-card-nome">'+p.nome+'</div>'+
@@ -656,7 +661,9 @@ function criarCardProduto(p){
       '</div>'+
       '<div class="prod-card-footer">'+
         '<div>'+
-          '<div class="prod-card-preco">R$ '+Number(p.preco||0).toFixed(2).replace('.',',')+'<span style="font-size:11px;color:var(--tx3);font-weight:400">/'+p.un+'</span></div>'+
+          '<div class="prod-card-preco">'+
+          (descOferta>0?'<span style="text-decoration:line-through;font-size:13px;color:#999;font-weight:400">R$ '+Number(p.preco||0).toFixed(2).replace('.',',')+'</span> ':'')+'R$ '+precoFinal.toFixed(2).replace('.',',')+
+          '<span style="font-size:11px;color:var(--tx3);font-weight:400">/'+p.un+'</span></div>'+
           (dispon
             ? '<div style="font-size:11px;color:#16a34a;font-weight:600">✔ '+Number(p.qtd||0)+' '+p.un+' em estoque</div>'
             : '<div style="font-size:11px;color:#dc2626;font-weight:600">⚠️ Indisponível</div>')
@@ -701,7 +708,7 @@ function adicionarAoCarrinho(prodId){
     // Toast rápido de confirmação
     mostrarToastAdd(p.nome, ja.qty);
   } else {
-    _carrinho.push({id:p.id,nome:p.nome,preco:p.preco,un:p.un,qty:1});
+    _carrinho.push({id:p.id,nome:p.nome,preco:precoFinal,precoOriginal:p.preco,un:p.un,qty:1});
     mostrarToastAdd(p.nome, 1);
   }
   atualizarCarrinho();
