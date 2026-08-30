@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
 <meta name="theme-color" content="#ff6b00"/>
 <title>Loja Online</title>
-<script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
@@ -383,51 +382,79 @@ var _taxas     = {1:0,2:2.99,3:4.49,4:5.99,5:6.99,6:7.99,7:8.99,8:9.99,9:10.99,1
 
 function el(id){ return document.getElementById(id); }
 
+// ── API REST Supabase (sem SDK — funciona em todos os navegadores) ─────────
+async function supaFetch(tabela, params){
+  var url = SUPABASE_URL + '/rest/v1/' + tabela + '?' + params;
+  var r = await fetch(url, {
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': 'Bearer ' + SUPABASE_KEY,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=representation'
+    }
+  });
+  if(!r.ok) throw new Error('HTTP ' + r.status + ': ' + await r.text());
+  return await r.json();
+}
+
+async function supaInsert(tabela, dados){
+  var url = SUPABASE_URL + '/rest/v1/' + tabela;
+  var r = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': 'Bearer ' + SUPABASE_KEY,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=representation'
+    },
+    body: JSON.stringify(dados)
+  });
+  if(!r.ok) throw new Error('HTTP ' + r.status + ': ' + await r.text());
+  return await r.json();
+}
+
+async function supaPatch(tabela, filtro, dados){
+  var url = SUPABASE_URL + '/rest/v1/' + tabela + '?' + filtro;
+  var r = await fetch(url, {
+    method: 'PATCH',
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': 'Bearer ' + SUPABASE_KEY,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(dados)
+  });
+  return r.ok;
+}
+
 // ── Inicialização ─────────────────────────────────────────────────────────
 window.onload = async function(){
-  // Dados salvos do cliente
   try{
     var d = JSON.parse(localStorage.getItem('ff_cliente')||'{}');
     if(d.nome) setTimeout(function(){ preencherCliente(d); }, 500);
   }catch(e){}
-
-  // Inicializa Supabase
-  if(typeof supabase !== 'undefined' && SUPABASE_URL.includes('supabase')){
-    _supa = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    await carregarProdutosSupa();
-  } else {
-    // Fallback: Google Apps Script
-    carregarProdutosGAS();
-  }
+  await carregarProdutosSupa();
 };
 
 // ── Carrega produtos do Supabase ──────────────────────────────────────────
 async function carregarProdutosSupa(){
   var statusEl = document.getElementById('load-status');
-  if(statusEl) statusEl.textContent = '⏳ Conectando ao banco de dados...';
+  if(statusEl) statusEl.textContent = '⏳ Carregando produtos...';
   try{
-    // Query simples sem join para evitar problemas de RLS
-    var { data, error } = await _supa
-      .from('produtos')
-      .select('id,nome,descricao,categoria,unidade,qtd,preco_venda,foto_url')
-      .eq('lojista_id', _lojista_id)
-      .eq('publicado', true)
-      .eq('ativo', true)
-      .gt('preco_venda', 0)
-      .order('categoria')
-      .order('nome');
+    var params = [
+      'lojista_id=eq.'+encodeURIComponent(_lojista_id),
+      'publicado=eq.true',
+      'ativo=eq.true',
+      'preco_venda=gt.0',
+      'order=categoria.asc,nome.asc',
+      'select=id,nome,descricao,categoria,unidade,qtd,preco_venda,foto_url'
+    ].join('&');
 
-    if(error){
-      console.warn('Supabase erro:', error.message, error.code);
-      if(statusEl) statusEl.textContent = '⚠️ Erro: '+error.message;
-      carregarProdutosGAS();
-      return;
-    }
-
-    console.log('✔ Supabase produtos:', (data||[]).length);
+    var data = await supaFetch('produtos', params);
+    console.log('✔ Supabase produtos:', data.length);
     if(statusEl) statusEl.textContent = '';
 
-    _produtos = (data||[]).map(function(prod){
+    _produtos = data.map(function(prod){
       return {
         id: prod.id, nome: prod.nome,
         desc: prod.descricao||'', cat: prod.categoria||'',
@@ -438,14 +465,16 @@ async function carregarProdutosSupa(){
 
     if(!_produtos.length){
       document.getElementById('produtos-container').innerHTML =
-        '<div style="text-align:center;padding:60px;color:#999"><div style="font-size:48px">📦</div><div style="margin-top:8px">Nenhum produto disponível no momento.</div></div>';
+        '<div style="text-align:center;padding:60px;color:#999">'+
+        '<div style="font-size:48px">📦</div>'+
+        '<div style="margin-top:8px">Nenhum produto disponível no momento.</div></div>';
       return;
     }
     renderCats();
     renderProdutos(_produtos);
   }catch(e){
-    console.warn('Supabase falhou:', e.message);
-    if(statusEl) statusEl.textContent = '⚠️ '+e.message;
+    console.warn('Supabase REST falhou:', e.message);
+    if(statusEl) statusEl.textContent = '⚠️ Erro ao carregar. Tentando alternativa...';
     carregarProdutosGAS();
   }
 }
@@ -747,20 +776,17 @@ async function confirmarPedido(){
   };
 
   // ── Tenta via Supabase ───────────────────────────────────────────────
-  if(_supa && _lojista_id){
-    try{
-      pedidoData.lojista_id = _lojista_id;
-      var { data, error } = await _supa.from('pedidos').insert(pedidoData).select('id').single();
-      if(!error && data){
-        el('loading').classList.remove('on');
-        _pedidoId = data.id;
-        exibirSucesso(data.id, totais);
-        // Realtime: escuta atualização de status
-        escutarStatusPedido(data.id);
-        return;
-      }
-    }catch(e){ console.warn('Supabase insert pedido:', e.message); }
-  }
+  try{
+    pedidoData.lojista_id = _lojista_id;
+    var respData = await supaInsert('pedidos', pedidoData);
+    var pedidoSalvo = Array.isArray(respData) ? respData[0] : respData;
+    if(pedidoSalvo && pedidoSalvo.id){
+      el('loading').classList.remove('on');
+      _pedidoId = pedidoSalvo.id;
+      exibirSucesso(pedidoSalvo.id, totais);
+      return;
+    }
+  }catch(e){ console.warn('Supabase insert pedido:', e.message); }
 
   // ── Fallback: Google Apps Script ─────────────────────────────────────
   var cbName = 'cbPedido_'+Date.now();
@@ -805,7 +831,7 @@ function exibirSucesso(pedidoId, totais){
 
 // ── Realtime: status do pedido ────────────────────────────────────────────
 function escutarStatusPedido(pedidoId){
-  if(!_supa) return;
+  // Realtime via Supabase REST polling
   _supa.channel('pedido_'+pedidoId)
     .on('postgres_changes', { event:'UPDATE', schema:'public', table:'pedidos', filter:'id=eq.'+pedidoId }, function(payload){
       atualizarSteps(payload.new.status);
