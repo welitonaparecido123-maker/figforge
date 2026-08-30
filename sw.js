@@ -1,15 +1,13 @@
 // FigForge Service Worker
-// v2026.08.23 — network-first SEMPRE para arquivos do app
-var CACHE_NAME = 'figforge-v2026-08-23';
+// v2026.08.30 — network-first para tudo do app
+var CACHE_NAME = 'figforge-v2026-08-30';
 
-// Só cacheia a biblioteca PDF (pesada e raramente muda)
 var urlsToCache = [
   'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'
 ];
 
-// Instalação
 self.addEventListener('install', function(event) {
-  self.skipWaiting(); // Ativa imediatamente sem esperar fechar as abas
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then(function(cache) {
       return cache.addAll(urlsToCache).catch(function(){});
@@ -17,59 +15,57 @@ self.addEventListener('install', function(event) {
   );
 });
 
-// Ativação — apaga TODOS os caches antigos
 self.addEventListener('activate', function(event) {
   event.waitUntil(
     caches.keys().then(function(names) {
       return Promise.all(
         names.map(function(name) {
-          // Apaga qualquer cache que não seja o atual
           if(name !== CACHE_NAME) return caches.delete(name);
         })
       );
     }).then(function() {
-      // Assume controle de todas as abas abertas imediatamente
       return self.clients.claim();
     })
   );
 });
 
-// Fetch
 self.addEventListener('fetch', function(event) {
   var url = event.request.url;
 
-  // Nunca intercepta chamadas ao servidor/APIs externas
+  // Nunca intercepta APIs externas
   if(url.includes('script.google.com') ||
-     url.includes('api.imgbb.com') ||
+     url.includes('supabase.co') ||
+     url.includes('viacep.com') ||
      url.includes('wa.me') ||
+     url.includes('infinitepay') ||
      url.includes('googleapis.com')) {
-    return; // Deixa o browser lidar normalmente
+    return;
   }
 
-  // ARQUIVOS DO APP (HTML, SW, manifest): SEMPRE busca na rede
-  // Garante que toda atualização publicada no GitHub chegue imediatamente
+  // TODOS os arquivos HTML e do app: SEMPRE da rede (nunca do cache)
   var isAppFile = event.request.mode === 'navigate' ||
                   url.endsWith('.html') ||
                   url.endsWith('/figforge/') ||
                   url.endsWith('/figforge') ||
                   url.endsWith('sw.js') ||
-                  url.endsWith('manifest.json');
+                  url.endsWith('manifest.json') ||
+                  url.includes('pedidos') ||
+                  url.includes('index');
 
   if(isAppFile) {
     event.respondWith(
-      fetch(event.request, { cache: 'no-store' })
+      fetch(event.request, { cache: 'no-store', headers: { 'Cache-Control': 'no-cache' } })
         .then(function(response) {
           return response;
         })
         .catch(function() {
-          // Sem internet: usa cache se existir
           return caches.match(event.request);
         })
     );
     return;
   }
 
-  // BIBLIOTECAS EXTERNAS (CDN): cache-first — já são fixas
+  // Bibliotecas CDN: cache-first
   event.respondWith(
     caches.match(event.request).then(function(cached) {
       if(cached) return cached;
