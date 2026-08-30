@@ -1007,10 +1007,42 @@ function exibirSucesso(pedidoId, totais){
   }
   // Cartão: abre InfinityPay
   if(_pgtoTipo==='card'){
-    setTimeout(function(){
-      var url = 'https://pay.infinitypay.io/'+INFINITE_HANDLE+'?amount='+Math.round(totais.total*100)+'&installments='+_parcelaSel;
-      window.open(url,'_blank');
-    }, 800);
+    // Gera link InfinitePay via API oficial
+    el('loading').classList.add('on');
+    var numTel = String(pedidoData.cliente_tel||'').replace(/\D/g,'');
+    if(!numTel.startsWith('+')) numTel = '+55'+numTel;
+    var payload = {
+      handle: INFINITE_HANDLE,
+      order_nsu: String(pedidoSalvo&&pedidoSalvo.id||Date.now()).slice(-12),
+      items: pedidoData.itens.map(function(c){
+        return { quantity:Number(c.qtd||1), price:Math.round(Number(c.preco||0)*100), description:String(c.nome||'Produto') };
+      }),
+      customer:{ name:pedidoData.cliente_nome, phone_number:numTel }
+    };
+    if(totais.frete>0) payload.items.push({quantity:1,price:Math.round(totais.frete*100),description:'Frete'});
+    if(_freteTipo==='entrega' && el('ck-cep') && el('ck-cep').value.replace(/\D/g,'').length===8){
+      payload.address={
+        cep:el('ck-cep').value.replace(/\D/g,''),
+        street:el('ck-rua')?el('ck-rua').value:'',
+        neighborhood:el('ck-bairro')?el('ck-bairro').value:'',
+        number:el('ck-num')?el('ck-num').value:'',
+        complement:el('ck-comp')?el('ck-comp').value:''
+      };
+    }
+    fetch('https://api.checkout.infinitepay.io/links',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(payload)
+    }).then(function(r){return r.json();}).then(function(rd){
+      el('loading').classList.remove('on');
+      el('sucesso-overlay').classList.add('on');
+      if(rd.url){ setTimeout(function(){ window.open(rd.url,'_blank'); },800); }
+    }).catch(function(e){
+      el('loading').classList.remove('on');
+      el('sucesso-overlay').classList.add('on');
+      console.warn('InfinitePay:',e.message);
+    });
+    return; // sucesso-overlay aberto no then
   }
   el('sucesso-overlay').classList.add('on');
 }
