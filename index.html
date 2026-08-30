@@ -2310,6 +2310,36 @@ button[style*="background: #4F6EF7"], .btn-primary {
     <button class="btn bg" onclick="exportarCSV()">📊 Exportar CSV / Excel</button>
     <button class="btn sm" onclick="window.print()">🖨️ Imprimir</button>
   </div>
+
+  <!-- RELATÓRIO DA LOJA ONLINE -->
+  <div class="card" style="margin-top:20px">
+    <div class="ct" style="margin-bottom:12px">
+      🛒 Relatório da Loja Online
+      <button class="btn sm bp" onclick="gerarRelatorioLoja()" style="margin-left:auto">🔄 Atualizar</button>
+    </div>
+    <!-- Filtro de período -->
+    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+      <select id="loja-rel-periodo" onchange="gerarRelatorioLoja()" style="flex:1;min-width:140px">
+        <option value="7">Últimos 7 dias</option>
+        <option value="30" selected>Últimos 30 dias</option>
+        <option value="90">Últimos 3 meses</option>
+        <option value="365">Este ano</option>
+        <option value="0">Todo período</option>
+      </select>
+      <select id="loja-rel-status" onchange="gerarRelatorioLoja()" style="flex:1;min-width:140px">
+        <option value="">Todos os status</option>
+        <option value="Novo">Novos</option>
+        <option value="Concluído">Concluídos</option>
+        <option value="Cancelado">Cancelados</option>
+      </select>
+    </div>
+    <!-- Cards de resumo -->
+    <div id="loja-rel-cards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;margin-bottom:14px"></div>
+    <!-- Produtos mais vendidos -->
+    <div id="loja-rel-produtos" style="margin-bottom:14px"></div>
+    <!-- Estoque crítico -->
+    <div id="loja-rel-estoque"></div>
+  </div>
 </div>
 
 <!-- ========== USUÁRIOS ========== -->
@@ -2420,6 +2450,18 @@ button[style*="background: #4F6EF7"], .btn-primary {
       <div class="ct" style="margin-bottom:12px">
         🛒 Configurações da Loja Online
         <button class="btn sm bp" onclick="salvarConfigLoja()" style="margin-left:auto">💾 Salvar</button>
+      </div>
+
+      <!-- Logo da empresa -->
+      <div style="margin-bottom:12px;padding:12px;background:var(--bg3);border-radius:var(--r)">
+        <div style="font-weight:600;margin-bottom:8px">🖼️ Logo da empresa</div>
+        <div style="display:flex;align-items:center;gap:12px">
+          <img id="cfg-logo-prev" src="" style="width:64px;height:64px;border-radius:10px;object-fit:cover;background:var(--bg);display:none"/>
+          <div style="flex:1">
+            <input type="file" id="cfg-logo-file" accept="image/*" onchange="carregarLogoConfig(this)" style="font-size:12px"/>
+            <div id="cfg-logo-status" style="font-size:11px;color:var(--tx3);margin-top:4px">JPG ou PNG até 2MB</div>
+          </div>
+        </div>
       </div>
 
       <!-- Status da loja -->
@@ -3319,7 +3361,7 @@ function renderPanel(p){
   if(p==='estoque'){ renderEstoque(); renderFerramentas(); renderMovFerramentas(); }
   if(p==='financeiro'){ renderLanc(); renderResumo(); renderFixas(); preencherFinSelects(); setTimeout(toggleFlTipo,50); }
   if(p==='diario') renderDiario();
-  if(p==='relatorios') renderRelatorios();
+  if(p==='relatorios'){ renderRelatorios(); setTimeout(gerarRelatorioLoja,300); }
   if(p==='usuarios') renderUsers();
   if(p==='config') renderConfig();
   if(p==='pdv') renderPDV();
@@ -11202,15 +11244,20 @@ function atualizarStatusLojaVisual(){
 }
 
 function carregarConfigLoja(){
-  // Carrega do DB.config.lojaConfig
   if(DB.config && DB.config.lojaConfig){
     try{ _lojaConfig = Object.assign({}, _lojaConfig, JSON.parse(DB.config.lojaConfig)); }catch(e){}
   }
-  // Preenche UI
   var chk = el('loja-aberta');
   if(chk){ chk.checked = _lojaConfig.aberta !== false; atualizarStatusLojaVisual(); }
   var bv = el('loja-msg-bv');
   if(bv) bv.value = _lojaConfig.mensagemBV||'';
+  // Mostra logo existente
+  if(DB.config && DB.config.logo){
+    var prev = el('cfg-logo-prev');
+    if(prev){ prev.src=DB.config.logo; prev.style.display='block'; }
+    var st = el('cfg-logo-status');
+    if(st) st.textContent = '✔ Logo atual carregado';
+  }
   renderHorariosConfig();
   renderOfertasConfig();
 }
@@ -11286,6 +11333,255 @@ async function sincronizarProdutosSupabase_config(){
     console.log('✔ Config loja publicada');
   }catch(e){ console.warn('Config loja:', e.message); }
 }
+
+// ── Upload de logo no Config ──────────────────────────────────────────────
+function carregarLogoConfig(input){
+  if(!input.files[0]) return;
+  var file = input.files[0];
+  if(file.size > 2*1024*1024){ alert('Imagem muito grande. Use até 2MB.'); return; }
+  var st = el('cfg-logo-status');
+  if(st) st.textContent = '⏳ Carregando...';
+  var reader = new FileReader();
+  reader.onload = function(e){
+    var img = new Image();
+    img.onload = function(){
+      var canvas = document.createElement('canvas');
+      var MAX = 200; var w=img.width, hh=img.height;
+      if(w>MAX){hh=Math.round(hh*MAX/w);w=MAX;}
+      if(hh>MAX){w=Math.round(w*MAX/hh);hh=MAX;}
+      canvas.width=w; canvas.height=hh;
+      canvas.getContext('2d').drawImage(img,0,0,w,hh);
+      var data = canvas.toDataURL('image/jpeg',0.85);
+      DB.config.logo = data;
+      save();
+      var prev = el('cfg-logo-prev');
+      if(prev){ prev.src=data; prev.style.display='block'; }
+      if(st) st.textContent = '✔ Logo carregado';
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// RELATÓRIO DA LOJA ONLINE
+// ══════════════════════════════════════════════════════════════════════════
+async function gerarRelatorioLoja(){
+  var diasEl   = el('loja-rel-periodo');
+  var statusEl = el('loja-rel-status');
+  var dias     = diasEl   ? Number(diasEl.value)   : 30;
+  var filtroSt = statusEl ? statusEl.value          : '';
+
+  // Busca pedidos do Supabase
+  var pedidos = [];
+  try{
+    var params = 'lojista_id=eq.'+encodeURIComponent(_lojista_id)+'&order=criado_em.desc&limit=500';
+    pedidos = await supaREST('GET','pedidos',params) || [];
+  }catch(e){
+    // Fallback: usa _pedidosData já carregado
+    pedidos = _pedidosData||[];
+  }
+
+  // Filtra por período
+  var dataCorte = dias > 0 ? new Date(Date.now()-dias*24*3600*1000) : new Date(0);
+  pedidos = pedidos.filter(function(p){
+    var dt = new Date(p.criado_em||p.data||0);
+    return dt >= dataCorte && (!filtroSt || p.status===filtroSt);
+  });
+
+  var total     = pedidos.reduce(function(s,p){return s+Number(p.total||0);},0);
+  var qtdPed    = pedidos.length;
+  var concluidos= pedidos.filter(function(p){return p.status==='Concluído';}).length;
+  var cancelados= pedidos.filter(function(p){return p.status==='Cancelado';}).length;
+  var novos     = pedidos.filter(function(p){return p.status==='Novo';}).length;
+  var ticketMed = qtdPed>0 ? total/qtdPed : 0;
+
+  // Cards de resumo
+  var cardsEl = el('loja-rel-cards');
+  if(cardsEl) cardsEl.innerHTML = [
+    {icon:'💰',label:'Faturamento',val:'R$ '+total.toFixed(2).replace('.',','),cor:'var(--gn)'},
+    {icon:'📦',label:'Pedidos',val:qtdPed,cor:'var(--ac)'},
+    {icon:'✅',label:'Concluídos',val:concluidos,cor:'var(--gn)'},
+    {icon:'🆕',label:'Em aberto',val:novos,cor:'var(--am)'},
+    {icon:'❌',label:'Cancelados',val:cancelados,cor:'var(--rd)'},
+    {icon:'🎯',label:'Ticket médio',val:'R$ '+ticketMed.toFixed(2).replace('.',','),cor:'var(--ac)'},
+  ].map(function(c){
+    return '<div style="background:var(--bg3);border-radius:10px;padding:12px;text-align:center">'+
+      '<div style="font-size:22px">'+c.icon+'</div>'+
+      '<div style="font-size:18px;font-weight:700;color:'+c.cor+'">'+c.val+'</div>'+
+      '<div style="font-size:11px;color:var(--tx3)">'+c.label+'</div>'+
+    '</div>';
+  }).join('');
+
+  // Produtos mais vendidos
+  var prodVendas = {};
+  pedidos.forEach(function(p){
+    var itens = [];
+    try{ itens = Array.isArray(p.itens)?p.itens:JSON.parse(p.itens||'[]'); }catch(e){}
+    itens.forEach(function(i){
+      var n = i.nome||'?';
+      if(!prodVendas[n]) prodVendas[n]={qtd:0,total:0};
+      prodVendas[n].qtd   += Number(i.qtd||1);
+      prodVendas[n].total += Number(i.total||0);
+    });
+  });
+
+  var ranking = Object.entries(prodVendas)
+    .sort(function(a,b){return b[1].qtd-a[1].qtd;})
+    .slice(0,10);
+
+  var prodEl = el('loja-rel-produtos');
+  if(prodEl){
+    if(!ranking.length){
+      prodEl.innerHTML='<div style="color:var(--tx3);font-size:13px;text-align:center;padding:12px">Nenhum pedido no período</div>';
+    } else {
+      var maxQtd = ranking[0][1].qtd||1;
+      prodEl.innerHTML = '<div style="font-size:13px;font-weight:600;margin-bottom:8px">🏆 Produtos mais vendidos</div>'+
+        ranking.map(function(r,i){
+          var pct = Math.round(r[1].qtd/maxQtd*100);
+          return '<div style="margin-bottom:8px">'+
+            '<div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px">'+
+              '<span>'+(i+1)+'. '+r[0]+'</span>'+
+              '<span style="color:var(--gn);font-weight:600">'+r[1].qtd+'× · R$ '+r[1].total.toFixed(2).replace('.',',')+'</span>'+
+            '</div>'+
+            '<div style="background:var(--br);border-radius:4px;height:6px">'+
+              '<div style="background:var(--ac);width:'+pct+'%;height:100%;border-radius:4px"></div>'+
+            '</div>'+
+          '</div>';
+        }).join('');
+    }
+  }
+
+  // Estoque crítico
+  var criticos = (DB.materiais||[]).filter(function(m){
+    return Number(m.qtd||0) <= Number(m.min||0) && Number(m.vl||0)>0;
+  }).sort(function(a,b){return Number(a.qtd||0)-Number(b.qtd||0)});
+
+  var estoqueEl = el('loja-rel-estoque');
+  if(estoqueEl){
+    if(!criticos.length){
+      estoqueEl.innerHTML='<div style="background:rgba(16,185,129,.1);border-radius:8px;padding:10px;font-size:13px;color:var(--gn)">✔ Todos os produtos estão com estoque adequado</div>';
+    } else {
+      estoqueEl.innerHTML = '<div style="font-size:13px;font-weight:600;margin-bottom:8px;color:var(--rd)">⚠️ Estoque crítico ('+criticos.length+' produto(s))</div>'+
+        '<div style="background:var(--bg3);border-radius:8px;overflow:hidden">'+
+        criticos.map(function(m){
+          var cor = Number(m.qtd||0)===0?'var(--rd)':'var(--am)';
+          return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;border-bottom:1px dashed var(--br)">'+
+            '<div>'+
+              '<div style="font-size:13px;font-weight:600">'+m.nome+'</div>'+
+              '<div style="font-size:11px;color:var(--tx3)">Mínimo: '+m.min+' '+m.un+'</div>'+
+            '</div>'+
+            '<div style="text-align:right">'+
+              '<div style="font-weight:700;color:'+cor+'">'+m.qtd+' '+m.un+'</div>'+
+              '<div style="font-size:11px;color:var(--tx3)">em estoque</div>'+
+            '</div>'+
+          '</div>';
+        }).join('')+'</div>';
+    }
+  }
+
+  // ── ANÁLISE DE GIRO DE ESTOQUE ────────────────────────────────────────
+  var giroEl = el('loja-rel-giro');
+  if(!giroEl){
+    giroEl = document.createElement('div');
+    giroEl.id = 'loja-rel-giro';
+    giroEl.style.marginTop = '14px';
+    var estoqueParent = estoqueEl && estoqueEl.parentElement;
+    if(estoqueParent) estoqueParent.appendChild(giroEl);
+  }
+
+  // Produtos vendidos no período
+  var prodVendidosNomes = Object.keys(prodVendas);
+
+  // Calcula valor em estoque por produto (custo × qtd)
+  var totalEstoqueVenda  = 0;  // valor a preço de venda
+  var totalEstoqueCusto  = 0;  // valor a preço de custo
+  var mats = (DB.materiais||[]).filter(function(m){ return Number(m.qtd||0)>0; });
+
+  var listaGiro = mats.map(function(m){
+    var qtd    = Number(m.qtd||0);
+    var custo  = Number(m.custo||0);
+    var venda  = Number(m.vl||0);
+    var vlCusto= qtd * custo;
+    var vlVenda= qtd * venda;
+    totalEstoqueVenda += vlVenda;
+    totalEstoqueCusto += vlCusto;
+    var vendeuNoPeriodo = prodVendas[m.nome];
+    var qtdVendida = vendeuNoPeriodo ? vendeuNoPeriodo.qtd : 0;
+    var giro = qtdVendida > 0 ? 'bom' : 'parado';
+    return { nome:m.nome, qtd:qtd, un:m.un, custo:custo, venda:venda,
+             vlCusto:vlCusto, vlVenda:vlVenda, qtdVendida:qtdVendida, giro:giro };
+  }).sort(function(a,b){ return b.vlVenda - a.vlVenda; });
+
+  var parados = listaGiro.filter(function(x){return x.giro==='parado';});
+  var vlParado = parados.reduce(function(s,x){return s+x.vlVenda;},0);
+  var vlParadoCusto = parados.reduce(function(s,x){return s+x.vlCusto;},0);
+
+  giroEl.innerHTML =
+    // Cards de valor em estoque
+    '<div style="font-size:13px;font-weight:600;margin-bottom:10px">📊 Análise de Estoque e Giro</div>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">'+
+      '<div style="background:var(--bg3);border-radius:10px;padding:12px;text-align:center">'+
+        '<div style="font-size:11px;color:var(--tx3);margin-bottom:2px">Capital em estoque (custo)</div>'+
+        '<div style="font-size:18px;font-weight:700;color:var(--am)">R$ '+totalEstoqueCusto.toFixed(2).replace('.',',')+'</div>'+
+      '</div>'+
+      '<div style="background:var(--bg3);border-radius:10px;padding:12px;text-align:center">'+
+        '<div style="font-size:11px;color:var(--tx3);margin-bottom:2px">Valor a preço de venda</div>'+
+        '<div style="font-size:18px;font-weight:700;color:var(--gn)">R$ '+totalEstoqueVenda.toFixed(2).replace('.',',')+'</div>'+
+      '</div>'+
+    '</div>'+
+    // Parados
+    '<div style="background:rgba(239,68,68,.08);border-radius:10px;padding:12px;margin-bottom:12px">'+
+      '<div style="display:flex;justify-content:space-between;margin-bottom:8px">'+
+        '<div style="font-weight:600;color:var(--rd)">📦 Mercadoria parada no período</div>'+
+        '<div style="font-size:12px;color:var(--tx3)">'+parados.length+' produto(s)</div>'+
+      '</div>'+
+      '<div style="display:flex;gap:16px;margin-bottom:10px">'+
+        '<div><div style="font-size:11px;color:var(--tx3)">Valor custo parado</div>'+
+          '<div style="font-weight:700;color:var(--rd);font-size:16px">R$ '+vlParadoCusto.toFixed(2).replace('.',',')+'</div></div>'+
+        '<div><div style="font-size:11px;color:var(--tx3)">Potencial de venda</div>'+
+          '<div style="font-weight:700;color:var(--am);font-size:16px">R$ '+vlParado.toFixed(2).replace('.',',')+'</div></div>'+
+      '</div>'+
+      (parados.length ?
+        '<div style="max-height:200px;overflow-y:auto">'+
+        parados.map(function(p){
+          return '<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px dashed rgba(239,68,68,.2)">'+
+            '<div>'+
+              '<div style="font-size:12px;font-weight:600">'+p.nome+'</div>'+
+              '<div style="font-size:11px;color:var(--tx3)">'+p.qtd+' '+p.un+' em estoque</div>'+
+            '</div>'+
+            '<div style="text-align:right">'+
+              '<div style="font-size:12px;font-weight:700;color:var(--rd)">R$ '+p.vlVenda.toFixed(2).replace('.',',')+'</div>'+
+              '<div style="font-size:10px;color:var(--tx3)">a preço de venda</div>'+
+            '</div>'+
+          '</div>';
+        }).join('')+'</div>'
+        : '<div style="font-size:12px;color:var(--gn)">✔ Todos os produtos tiveram saída no período!</div>') +
+    '</div>'+
+    // Com giro
+    '<div style="font-size:12px;font-weight:600;margin-bottom:6px;color:var(--gn)">✅ Produtos com saída no período</div>'+
+    '<div style="background:var(--bg3);border-radius:8px;max-height:180px;overflow-y:auto">'+
+    listaGiro.filter(function(x){return x.giro==='bom';}).map(function(p){
+      var taxa = totalEstoqueVenda>0 ? (p.vlVenda/totalEstoqueVenda*100).toFixed(1) : '0';
+      return '<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 12px;border-bottom:1px dashed var(--br)">'+
+        '<div>'+
+          '<div style="font-size:12px;font-weight:600">'+p.nome+'</div>'+
+          '<div style="font-size:11px;color:var(--tx3)">Vendido: '+p.qtdVendida+' '+p.un+' · Saldo: '+p.qtd+'</div>'+
+        '</div>'+
+        '<div style="text-align:right">'+
+          '<div style="font-size:12px;font-weight:700;color:var(--gn)">R$ '+p.vlVenda.toFixed(2).replace('.',',')+'</div>'+
+          '<div style="font-size:10px;color:var(--tx3)">'+taxa+'% do estoque</div>'+
+        '</div>'+
+      '</div>';
+    }).join('')+
+    (listaGiro.filter(function(x){return x.giro==='bom';}).length===0
+      ? '<div style="padding:12px;text-align:center;color:var(--tx3);font-size:12px">Nenhuma venda no período selecionado</div>'
+      : '') +
+    '</div>';
+}
+
+// Chama ao abrir relatórios
+var _origRenderRelatorios = typeof renderRelatorios === 'function' ? renderRelatorios : null;
 </script>
 
 <div class="mo" id="mo-estq-edit"><div class="mbox">
