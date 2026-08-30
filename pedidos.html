@@ -989,55 +989,53 @@ function exibirSucesso(pedidoId, totais, _itensSalvos){
     var qrEl = el('pix-qr');
     if(qrEl){
       var qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=180x180&ecc=M&data='+encodeURIComponent(pixCode);
-      qrEl.innerHTML = '<img src="'+qrUrl+'" style="width:180px;height:180px;border-radius:8px;display:block;margin:0 auto" alt="QR Code PIX" onerror="this.parentNode.innerHTML=\'<div style=padding:20px>Escaneie: código abaixo</div>\'"/>';
+      qrEl.innerHTML = '<img src="'+qrUrl+'" style="width:180px;height:180px;border-radius:8px;display:block;margin:0 auto" alt="QR Code PIX"/>'+
+        '<div style="font-size:11px;color:#666;margin-top:8px">Ou transfira manualmente:<br><b>'+PIX_CHAVE+'</b></div>';
     }
     el('sucesso-overlay').classList.add('on');
   }
   // ── CARTÃO via GAS → InfinitePay ────────────────────────────────────
   else if(_pgtoTipo === 'card'){
     el('loading').classList.add('on');
-    var cbIP = 'cbIP_'+Date.now();
-    window[cbIP] = function(resp){
-      delete window[cbIP];
+    var nomeC2 = (_clienteCadastrado&&_clienteCadastrado.nome)||'';
+    var telC2  = (_clienteCadastrado&&_clienteCadastrado.tel)||'';
+    var numTel = telC2.replace(/\D/g,'');
+    if(!numTel.startsWith('+')) numTel = '+55'+numTel;
+
+    var ipItems = (_itensSalvos||[]).map(function(i){
+      return { quantity:Number(i.qtd||i.qty||1), price:Math.round(Number(i.preco||0)*100), description:String(i.nome||'Produto').slice(0,100) };
+    });
+    if(totais.frete>0) ipItems.push({quantity:1,price:Math.round(totais.frete*100),description:'Frete'});
+
+    var ipPayload = { handle:INFINITE_HANDLE, order_nsu:pedidoCurto, items:ipItems, customer:{name:nomeC2,phone_number:numTel} };
+
+    function abrirSucessoCard(link){
       el('loading').classList.remove('on');
       el('sucesso-overlay').classList.add('on');
-      if(resp && resp.ok && resp.link){
-        setTimeout(function(){ window.open(resp.link,'_blank'); }, 500);
-      } else {
-        // Mostra erro e fallback
-        var errMsg = resp ? (resp.msg||'Erro desconhecido') : 'Sem resposta do servidor';
-        console.warn('InfinitePay erro:', errMsg);
-        // Fallback — abre link direto do perfil InfinitePay
-        setTimeout(function(){ window.open('https://checkout.infinitepay.io/welitonfigueire','_blank'); }, 500);
-      }
-    };
-    setTimeout(function(){
-      if(window[cbIP]){
+      if(link) setTimeout(function(){ window.open(link,'_blank'); },500);
+    }
+
+    // Tenta direto no browser (InfinitePay permite em alguns casos)
+    fetch('https://api.checkout.infinitepay.io/links',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(ipPayload)})
+    .then(function(r){return r.json();})
+    .then(function(rd){
+      if(rd&&rd.url){ abrirSucessoCard(rd.url); }
+      else throw new Error(rd.message||rd.error||'sem url');
+    })
+    .catch(function(e1){
+      console.warn('IP direto:', e1.message);
+      // Fallback via GAS
+      var cbIP='cbIP_'+Date.now();
+      window[cbIP]=function(resp){
         delete window[cbIP];
-        el('loading').classList.remove('on');
-        el('sucesso-overlay').classList.add('on');
-        window.open('https://checkout.infinitepay.io/welitonfigueire','_blank');
-      }
-    }, 25000);
-    var nomeCliente = (_clienteCadastrado&&_clienteCadastrado.nome)||'';
-    var telCliente  = (_clienteCadastrado&&_clienteCadastrado.tel)||'';
-    var emailCliente= (_clienteCadastrado&&_clienteCadastrado.email)||'';
-    var pedidoGas = {
-      itens: _itensSalvos||[],
-      frete: totais.frete,
-      cliente: nomeCliente, email: emailCliente, telefone: telCliente,
-      cep: el('ck-cep')?el('ck-cep').value.replace(/\D/g,''):'',
-      rua: el('ck-rua')?el('ck-rua').value:'',
-      bairro: el('ck-bairro')?el('ck-bairro').value:'',
-      numero: el('ck-num')?el('ck-num').value:'',
-      complemento: el('ck-comp')?el('ck-comp').value:''
-    };
-    var gasUrl = URL_SERVIDOR+
-      '?action=gerarLinkPagamento'+
-      '&callback='+cbIP+
-      '&orderNsu='+encodeURIComponent(pedidoCurto)+
-      '&pedido='+encodeURIComponent(JSON.stringify(pedidoGas));
-    var sip = document.createElement('script'); sip.src=gasUrl; document.head.appendChild(sip);
+        if(resp&&resp.ok&&resp.link){ abrirSucessoCard(resp.link); }
+        else { console.warn('GAS IP:', resp&&resp.msg); abrirSucessoCard('https://link.infinitepay.io/'+INFINITE_HANDLE); }
+      };
+      setTimeout(function(){ if(window[cbIP]){ delete window[cbIP]; abrirSucessoCard('https://link.infinitepay.io/'+INFINITE_HANDLE); } },20000);
+      var sip=document.createElement('script');
+      sip.src=URL_SERVIDOR+'?action=gerarLinkPagamento&callback='+cbIP+'&orderNsu='+encodeURIComponent(pedidoCurto)+'&pedido='+encodeURIComponent(JSON.stringify({itens:_itensSalvos||[],frete:totais.frete,cliente:nomeC2,telefone:telC2}));
+      document.head.appendChild(sip);
+    });
   }
   // ── DINHEIRO ─────────────────────────────────────────────────────────
   else {
