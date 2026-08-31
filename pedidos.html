@@ -287,14 +287,26 @@ label{font-size:12px;color:var(--tx3);display:block;margin-bottom:4px;margin-top
   <!-- Pagamento -->
   <div class="ck-section">
     <div class="ck-title">💳 Pagamento</div>
-    <div style="background:linear-gradient(135deg,#ff6b00,#ff9500);border-radius:12px;padding:16px;text-align:center;color:#fff">
+    <!-- Opção dinheiro (só aparece se retirada) -->
+    <div id="pgto-dinheiro-opt" style="display:none;margin-bottom:10px">
+      <div style="display:flex;align-items:center;gap:10px;padding:12px;border-radius:10px;cursor:pointer;border:2px solid var(--br);background:#fff;margin-bottom:6px" id="opt-dinheiro" onclick="selecionarFormaPgto('dinheiro')">
+        <span style="font-size:22px">💵</span>
+        <div><div style="font-weight:600;font-size:14px">Pagar na retirada</div><div style="font-size:12px;color:#888">Dinheiro ou cartão na loja</div></div>
+        <div id="check-dinheiro" style="margin-left:auto;width:20px;height:20px;border-radius:50%;border:2px solid #ddd;flex-shrink:0"></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;padding:12px;border-radius:10px;cursor:pointer;border:2px solid var(--br);background:#fff" id="opt-infinitepay" onclick="selecionarFormaPgto('infinitepay')">
+        <span style="font-size:22px">💳</span>
+        <div><div style="font-weight:600;font-size:14px">PIX ou Cartão online</div><div style="font-size:12px;color:#888">Pague agora via InfinitePay</div></div>
+        <div id="check-infinitepay" style="margin-left:auto;width:20px;height:20px;border-radius:50%;border:2px solid #ddd;flex-shrink:0"></div>
+      </div>
+    </div>
+    <!-- Card InfinitePay (sempre visível para entrega) -->
+    <div id="pgto-infinitepay-card" style="background:linear-gradient(135deg,#ff6b00,#ff9500);border-radius:12px;padding:16px;text-align:center;color:#fff">
       <div style="font-size:24px;margin-bottom:6px">💳 PIX & Cartão</div>
       <div style="font-weight:700;font-size:15px">Pague como preferir</div>
       <div style="font-size:12px;opacity:.9;margin-top:4px">PIX · Crédito · Débito · Parcelado</div>
       <div style="display:flex;justify-content:center;gap:8px;margin-top:10px;font-size:11px;opacity:.85">
-        <span>✓ Pagamento seguro</span>
-        <span>✓ Até 12x</span>
-        <span>✓ Via InfinitePay</span>
+        <span>✓ Pagamento seguro</span><span>✓ Até 12x</span><span>✓ Via InfinitePay</span>
       </div>
     </div>
     <div style="font-size:11px;color:#888;text-align:center;margin-top:8px">
@@ -406,7 +418,8 @@ var _carrinho  = [];
 var _catAtiva  = '';
 var _freteTipo = 'retirada';
 var _freteVal  = 0;
-var _pgtoTipo  = 'pix';
+var _pgtoTipo  = 'infinitepay'; // infinitepay | dinheiro
+var _formaPgtoSel = 'infinitepay';
 var _parcelaSel= 1;
 var _pedidoId  = null;
 var _taxas     = {1:0,2:2.99,3:4.49,4:5.99,5:6.99,6:7.99,7:8.99,8:9.99,9:10.99,10:11.99,11:13.49,12:14.49};
@@ -822,11 +835,44 @@ function abrirCheckout(){
 }
 function fecharCheckout(){ el('checkout-overlay').classList.remove('on'); }
 
+function selecionarFormaPgto(forma){
+  _formaPgtoSel = forma;
+  var optDin = el('opt-dinheiro');
+  var optIP  = el('opt-infinitepay');
+  var cardIP = el('pgto-infinitepay-card');
+  var chkDin = el('check-dinheiro');
+  var chkIP  = el('check-infinitepay');
+  if(forma === 'dinheiro'){
+    if(optDin) optDin.style.borderColor='#ff6b00';
+    if(optIP)  optIP.style.borderColor='#ddd';
+    if(chkDin) chkDin.style.cssText='margin-left:auto;width:20px;height:20px;border-radius:50%;background:#ff6b00;flex-shrink:0';
+    if(chkIP)  chkIP.style.cssText='margin-left:auto;width:20px;height:20px;border-radius:50%;border:2px solid #ddd;flex-shrink:0';
+    if(cardIP) cardIP.style.display='none';
+  } else {
+    if(optDin) optDin.style.borderColor='#ddd';
+    if(optIP)  optIP.style.borderColor='#ff6b00';
+    if(chkDin) chkDin.style.cssText='margin-left:auto;width:20px;height:20px;border-radius:50%;border:2px solid #ddd;flex-shrink:0';
+    if(chkIP)  chkIP.style.cssText='margin-left:auto;width:20px;height:20px;border-radius:50%;background:#ff6b00;flex-shrink:0';
+    if(cardIP) cardIP.style.display='block';
+  }
+}
+
 function selecionarFrete(tipo, val, btn){
   _freteTipo = tipo; _freteVal = val;
   document.querySelectorAll('.frete-opt').forEach(function(e){ e.classList.remove('sel'); });
   btn.classList.add('sel');
   el('addr-fields').style.display = tipo==='entrega'?'block':'none';
+  // Mostra opção dinheiro só na retirada
+  var pgtoOpts = el('pgto-dinheiro-opt');
+  var cardIP   = el('pgto-infinitepay-card');
+  if(tipo === 'retirada'){
+    if(pgtoOpts) pgtoOpts.style.display='block';
+    selecionarFormaPgto('dinheiro'); // padrão: dinheiro na retirada
+  } else {
+    if(pgtoOpts) pgtoOpts.style.display='none';
+    _formaPgtoSel = 'infinitepay';
+    if(cardIP) cardIP.style.display='block';
+  }
   atualizarResumo();
 }
 
@@ -914,12 +960,8 @@ async function confirmarPedido(){
     if(!el('ck-num').value.trim()){ alert('Informe o número do endereço.'); el('ck-num').focus(); return; }
     if(!el('ck-rua').value.trim()){ alert('Informe a rua do endereço.'); el('ck-rua').focus(); return; }
   }
-  // Valida forma de pagamento
-  if(!_pgtoTipo){ alert('Selecione a forma de pagamento.'); return; }
-  if(_pgtoTipo==='card' && (!INFINITE_HANDLE || INFINITE_HANDLE==='SEU_HANDLE_AQUI')){
-    alert('Pagamento por cartão não está disponível no momento. Escolha PIX ou Dinheiro.');
-    return;
-  }
+  // Forma de pagamento
+  var pgtoLabel = _formaPgtoSel==='dinheiro' ? 'Dinheiro/retirada' : 'PIX ou Cartão (InfinitePay)';
 
   var totais = atualizarResumo();
   var endereco = _freteTipo==='entrega'
@@ -938,7 +980,7 @@ async function confirmarPedido(){
     cliente_email: el('ck-email').value.trim(),
     endereco_entrega: endereco,
     tipo_entrega: _freteTipo,
-    forma_pagamento: _pgtoTipo + (_pgtoTipo==='card'?' '+_parcelaSel+'x':''),
+    forma_pagamento: pgtoLabel,
     parcelas: _pgtoTipo==='card' ? _parcelaSel : 1,
     subtotal: totais.sub,
     frete: totais.frete,
@@ -957,7 +999,7 @@ async function confirmarPedido(){
     if(pedidoSalvo && pedidoSalvo.id){
       el('loading').classList.remove('on');
       _pedidoId = pedidoSalvo.id;
-      exibirSucesso(pedidoSalvo.id, totais, pedidoData.itens);
+      exibirSucesso(pedidoSalvo.id, totais, pedidoData.itens, _formaPgtoSel);
       return;
     }
   }catch(e){ console.warn('Supabase insert pedido:', e.message); }
@@ -969,7 +1011,7 @@ async function confirmarPedido(){
     delete window[cbName];
     if(resp && resp.ok){
       _pedidoId = resp.pedidoId;
-      exibirSucesso(resp.pedidoId, totais, pedidoData.itens);
+      exibirSucesso(resp.pedidoId, totais, pedidoData.itens, _formaPgtoSel);
     } else {
       alert('Erro ao enviar pedido. Tente pelo WhatsApp.');
     }
@@ -981,7 +1023,7 @@ async function confirmarPedido(){
 }
 
 // ── Exibe tela de sucesso ─────────────────────────────────────────────────
-function exibirSucesso(pedidoId, totais, _itensSalvos){
+function exibirSucesso(pedidoId, totais, _itensSalvos, _formaPgto){
   var pedidoCurto = String(pedidoId||'').slice(-8).toUpperCase();
   el('msg-pedido-id').textContent = 'Pedido #'+pedidoCurto;
   // Salva para uso no PIX InfinitePay
@@ -990,6 +1032,15 @@ function exibirSucesso(pedidoId, totais, _itensSalvos){
     return {quantity:Number(i.qtd||i.qty||1),price:Math.round(Number(i.preco||0)*100),description:String(i.nome||'Produto').slice(0,100)};
   });
 
+  // ── DINHEIRO NA RETIRADA ────────────────────────────────────────────────
+  if(_formaPgto === 'dinheiro'){
+    el('sucesso-overlay').classList.add('on');
+    var infoDin = document.createElement('div');
+    infoDin.style.cssText='background:#f0fdf4;border-radius:10px;padding:14px;margin-top:12px;text-align:center';
+    infoDin.innerHTML='<div style="font-size:20px">💵</div><div style="font-weight:700;color:#16a34a;margin-top:4px">Pague na retirada</div><div style="font-size:13px;color:#555;margin-top:4px">Total: R$ '+totais.total.toFixed(2).replace('.',',')+'</div>';
+    var sc=el('sucesso-content'); if(sc) sc.appendChild(infoDin);
+    return;
+  }
   // ── PAGAMENTO VIA INFINITEPAY (PIX e Cartão) ────────────────────────
   el('loading').classList.add('on');
   var ipItems2 = (_itensSalvos||[]).map(function(i){
