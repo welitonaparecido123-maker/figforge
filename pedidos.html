@@ -292,9 +292,9 @@ label{font-size:12px;color:var(--tx3);display:block;margin-bottom:4px;margin-top
       <div style="font-weight:700;font-size:15px">Pague como preferir</div>
       <div style="font-size:12px;opacity:.9;margin-top:4px">PIX · Crédito · Débito · Parcelado</div>
       <div style="display:flex;justify-content:center;gap:8px;margin-top:10px;font-size:11px;opacity:.85">
-        <span>✓ PIX com desconto</span>
+        <span>✓ Pagamento seguro</span>
         <span>✓ Até 12x</span>
-        <span>✓ Seguro</span>
+        <span>✓ Via InfinitePay</span>
       </div>
     </div>
     <div style="font-size:11px;color:#888;text-align:center;margin-top:8px">
@@ -419,25 +419,14 @@ function el(id){ return document.getElementById(id); }
 function verificarPagamentoRetorno(){
   var params = new URLSearchParams(window.location.search);
   if(params.get('pago') !== '1') return;
-  var orderNsu = params.get('nsu') || params.get('order_nsu') || '';
   // Limpa URL
   window.history.replaceState({},'',window.location.pathname+'?lid='+_lojista_id);
-  // Dispara WhatsApp de confirmação
-  try{
-    var cliente = JSON.parse(localStorage.getItem('ff_cliente')||'{}');
-    var nome = cliente.nome||''; var tel = cliente.tel||'';
-    var numC = tel.replace(/\D/g,'');
-    if(!numC.startsWith('55')) numC='55'+numC;
-    if(nome && numC.length>=12){
-      var primeiroNome = nome.split(' ')[0];
-      var msg = '✅ *Pagamento confirmado!*\n\n';
-      msg += 'Olá *'+primeiroNome+'*! 😊\n';
-      msg += 'Seu pedido foi *pago com sucesso*!\n';
-      if(orderNsu) msg += 'Referência: #'+orderNsu+'\n';
-      msg += '\nEstamos preparando tudo para você! 📦';
-      setTimeout(function(){ window.open('https://wa.me/'+numC+'?text='+encodeURIComponent(msg),'_blank'); },800);
-    }
-  }catch(e){}
+  // Mostra mensagem de sucesso na tela (sem WhatsApp — notificação vem do FigForge)
+  var banner = document.createElement('div');
+  banner.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#16a34a;color:#fff;padding:14px;text-align:center;font-weight:700;font-size:15px;z-index:999;box-shadow:0 2px 8px rgba(0,0,0,.2)';
+  banner.textContent = '✅ Pagamento confirmado! Você receberá uma confirmação em breve.';
+  document.body.appendChild(banner);
+  setTimeout(function(){ banner.style.display='none'; }, 6000);
 }
 
 async function supaFetch(tabela, params){
