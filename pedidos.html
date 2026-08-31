@@ -830,6 +830,17 @@ function abrirCheckout(){
     var t=el('ck-tel');  if(t&&!t.value) t.value=_clienteCadastrado.tel||'';
     var e=el('ck-email');if(e&&!e.value) e.value=_clienteCadastrado.email||'';
   }
+  // Inicializa opções de pagamento conforme o frete atual
+  var pgtoOpts = el('pgto-dinheiro-opt');
+  var cardIP   = el('pgto-infinitepay-card');
+  if(_freteTipo === 'retirada'){
+    if(pgtoOpts) pgtoOpts.style.display='block';
+    selecionarFormaPgto('dinheiro');
+  } else {
+    if(pgtoOpts) pgtoOpts.style.display='none';
+    _formaPgtoSel = 'infinitepay';
+    if(cardIP) cardIP.style.display='block';
+  }
   atualizarResumo();
   el('checkout-overlay').classList.add('on');
 }
