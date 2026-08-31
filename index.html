@@ -10879,8 +10879,34 @@ function tocarSomPedido(){
 
 function iniciarMonitorPedidos(){
   iniciarNotificacoesPedidos();
-  setTimeout(verificarPedidosNovos, 15000);
-  setInterval(verificarPedidosNovos, 30000);
+  // Verifica a cada 20s (mais rápido)
+  setTimeout(verificarPedidosNovos, 8000);
+  setInterval(verificarPedidosNovos, 20000);
+
+  // Quando o celular volta à aba — atualiza pedidos imediatamente
+  document.addEventListener('visibilitychange', function(){
+    if(document.visibilityState === 'visible'){
+      setTimeout(function(){
+        if(panelAtual === 'pedidos') puxarPedidosServidor(true);
+        else verificarPedidosNovos();
+      }, 500);
+    }
+  });
+
+  // Pull-to-refresh no painel de pedidos (arrastar para baixo)
+  var startY = 0;
+  var pedPanel = document.getElementById('pnl-pedidos');
+  if(pedPanel){
+    pedPanel.addEventListener('touchstart', function(e){ startY = e.touches[0].clientY; }, {passive:true});
+    pedPanel.addEventListener('touchend', function(e){
+      var diff = e.changedTouches[0].clientY - startY;
+      if(diff > 80 && pedPanel.scrollTop === 0){
+        // Arrastou para baixo — atualiza
+        mostrarToast('🔄 Atualizando pedidos...');
+        puxarPedidosServidor(false);
+      }
+    }, {passive:true});
+  }
 }
 
 function calcPrecoVendaEstq(){
