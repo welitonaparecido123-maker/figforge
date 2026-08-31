@@ -414,6 +414,32 @@ var _taxas     = {1:0,2:2.99,3:4.49,4:5.99,5:6.99,6:7.99,7:8.99,8:9.99,9:10.99,1
 function el(id){ return document.getElementById(id); }
 
 // ── API REST Supabase (sem SDK — funciona em todos os navegadores) ─────────
+
+// ── Verifica retorno do InfinitePay após pagamento ────────────────────────
+function verificarPagamentoRetorno(){
+  var params = new URLSearchParams(window.location.search);
+  if(params.get('pago') !== '1') return;
+  var orderNsu = params.get('nsu') || params.get('order_nsu') || '';
+  // Limpa URL
+  window.history.replaceState({},'',window.location.pathname+'?lid='+_lojista_id);
+  // Dispara WhatsApp de confirmação
+  try{
+    var cliente = JSON.parse(localStorage.getItem('ff_cliente')||'{}');
+    var nome = cliente.nome||''; var tel = cliente.tel||'';
+    var numC = tel.replace(/\D/g,'');
+    if(!numC.startsWith('55')) numC='55'+numC;
+    if(nome && numC.length>=12){
+      var primeiroNome = nome.split(' ')[0];
+      var msg = '✅ *Pagamento confirmado!*\n\n';
+      msg += 'Olá *'+primeiroNome+'*! 😊\n';
+      msg += 'Seu pedido foi *pago com sucesso*!\n';
+      if(orderNsu) msg += 'Referência: #'+orderNsu+'\n';
+      msg += '\nEstamos preparando tudo para você! 📦';
+      setTimeout(function(){ window.open('https://wa.me/'+numC+'?text='+encodeURIComponent(msg),'_blank'); },800);
+    }
+  }catch(e){}
+}
+
 async function supaFetch(tabela, params){
   var url = SUPABASE_URL + '/rest/v1/' + tabela + '?' + params;
   var r = await fetch(url, {
@@ -460,6 +486,8 @@ async function supaPatch(tabela, filtro, dados){
 
 // ── Inicialização ─────────────────────────────────────────────────────────
 window.onload = async function(){
+  // Verifica se voltou do InfinitePay com pagamento confirmado
+  verificarPagamentoRetorno();
   // Carrega dados salvos
   try{
     var d = JSON.parse(localStorage.getItem('ff_cliente')||'{}');
@@ -841,32 +869,23 @@ function selecionarParcela(n){ _parcelaSel=n; renderParcelas(); atualizarResumo(
 
 function atualizarResumo(){
   var sub = _carrinho.reduce(function(s,c){return s+c.qty*c.preco;},0);
-  var desc = _pgtoTipo==='pix' ? sub*0.05 : 0;
-  var taxa = _pgtoTipo==='card' ? (_taxas[_parcelaSel]||0)/100 : 0;
-  var acr  = _pgtoTipo==='card' ? sub*taxa : 0;
-  var tot  = sub - desc + acr + _freteVal;
+  var tot = sub + _freteVal;
 
-  el('ck-sub').textContent = 'R$ '+sub.toFixed(2).replace('.',',');
-  el('ck-frete').textContent = _freteVal>0 ? 'R$ '+_freteVal.toFixed(2).replace('.',',') : 'Grátis';
-
-  var dRow = el('ck-desconto-row');
-  if(desc>0){ dRow.style.display='flex'; el('ck-desconto').textContent='-R$ '+desc.toFixed(2).replace('.',','); }
-  else dRow.style.display='none';
-
+  var subEl = el('ck-sub');
+  if(subEl) subEl.textContent = 'R$ '+sub.toFixed(2).replace('.',',');
+  var freteEl = el('ck-frete');
+  if(freteEl) freteEl.textContent = _freteVal>0 ? 'R$ '+_freteVal.toFixed(2).replace('.',',') : 'Grátis';
   var totalEl = el('ck-total');
-  if(_pgtoTipo==='card' && acr>0){
-    totalEl.innerHTML = 'R$ '+tot.toFixed(2).replace('.',',')+'<div style="font-size:11px;color:var(--tx3);font-weight:400">'+_parcelaSel+'x R$ '+(tot/_parcelaSel).toFixed(2).replace('.',',')+'</div>';
-  } else {
-    totalEl.textContent = 'R$ '+tot.toFixed(2).replace('.',',');
-  }
+  if(totalEl) totalEl.textContent = 'R$ '+tot.toFixed(2).replace('.',',');
 
-  // Resumo dos itens
-  el('ck-resumo-itens').innerHTML = _carrinho.map(function(c){
+  var resumoEl = el('ck-resumo-itens');
+  if(resumoEl) resumoEl.innerHTML = _carrinho.map(function(c){
     return '<div style="display:flex;justify-content:space-between;font-size:13px;padding:4px 0">'+
-      '<span>'+c.qty+'× '+c.nome+'</span><span>R$ '+(c.qty*c.preco).toFixed(2).replace('.',',')+'</span></div>';
+      '<span>'+c.qty+'× '+c.nome+'</span>'+
+      '<span>R$ '+(c.qty*c.preco).toFixed(2).replace('.',',')+'</span></div>';
   }).join('');
 
-  return { sub:sub, desc:desc, acr:acr, frete:_freteVal, total:tot };
+  return { sub:sub, desconto:0, acrescimo:0, frete:_freteVal, total:tot };
 }
 
 // ── CEP ───────────────────────────────────────────────────────────────────
@@ -1030,25 +1049,8 @@ function exibirSucesso(pedidoId, totais, _itensSalvos){
     console.warn('IP direto falhou, usando GAS:', e.message);
   });
 
-  // WhatsApp para o cliente (cópia dos itens antes de limpar carrinho)
-  var nomeC = (_clienteCadastrado&&_clienteCadastrado.nome)||'';
-  var telC  = (_clienteCadastrado&&_clienteCadastrado.tel)||'';
-  var numC  = telC.replace(/\D/g,'');
-  if(!numC.startsWith('55')) numC='55'+numC;
-  if(numC.length >= 12){
-    var primeiroNome = nomeC.split(' ')[0];
-    var msg = '\u2705 *Pedido confirmado!*\n\n';
-    msg += 'Ol\u00e1 *'+primeiroNome+'*! \ud83d\ude0a\n';
-    msg += 'Pedido *#'+pedidoCurto+'* recebido.\n\n';
-    if(_itensSalvos && _itensSalvos.length){
-      msg += '\ud83d\udce6 *Itens:*\n';
-      _itensSalvos.forEach(function(c){ msg+='\u2022 '+(c.qtd||c.qty||1)+'\u00d7 '+c.nome+'\n'; });
-    }
-    msg += '\n\ud83d\udcb0 *Total: R$ '+totais.total.toFixed(2).replace('.',',')+'*\n';
-    msg += '\ud83d\udcb3 Pgto: '+(_pgtoTipo==='pix'?'PIX (5% desc.)':_pgtoTipo==='card'?'Cart\u00e3o '+_parcelaSel+'x':'Dinheiro')+'\n\n';
-    msg += '\ud83d\udcf1 Acompanhe seu pedido pelo WhatsApp!';
-    setTimeout(function(){ window.open('https://wa.me/'+numC+'?text='+encodeURIComponent(msg),'_blank'); }, 1500);
-  }
+  // WhatsApp enviado APÓS pagamento confirmado (via redirect_url ?pago=1)
+  // Ver função verificarPagamentoRetorno()
 
   // Limpa carrinho
   _carrinho = [];
