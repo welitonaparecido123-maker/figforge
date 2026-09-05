@@ -2106,9 +2106,15 @@ button[style*="background: #4F6EF7"], .btn-primary {
     <div class="itab" onclick="itab('estq','mov-ferr',this)">📋 Mov. Ferramentas</div>
   </div>
   <div class="itp on" id="estq-itens">
-    <div style="display:flex;gap:8px;margin-bottom:10px">
-      <input type="text" id="estq-busca" placeholder="Buscar material..." style="flex:1" oninput="renderEstoque()"/>
-      <button class="btn bp" onclick="abrirMo('mo-estq')">+ Novo material</button>
+    <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">
+      <input type="text" id="estq-busca" placeholder="Buscar material..." style="flex:1;min-width:160px" oninput="renderEstoque()"/>
+      <button class="btn bp" onclick="abrirMo('mo-estq')">+ Novo</button>
+      <label class="btn sm" style="cursor:pointer;white-space:nowrap" title="Importar lista de produtos via CSV">
+        📥 CSV
+        <input type="file" accept=".csv,.txt" onchange="importarCSVProdutos(this)" style="display:none"/>
+      </label>
+      <button class="btn sm" onclick="abrirNFe()" style="background:var(--am);color:#fff;white-space:nowrap">📄 NF-e</button>
+      <button class="btn sm" onclick="sincronizarProdutosSupabase()" style="white-space:nowrap">🌐 Publicar</button>
     </div>
     <div class="tw"><table class="tbl"><thead><tr><th>Material</th><th>Un.</th><th>Estoque</th><th>Mínimo</th><th>Localização</th><th>Valor unit.</th><th>Status</th><th>Ações</th></tr></thead>
     <tbody id="tbl-estq"></tbody></table></div>
