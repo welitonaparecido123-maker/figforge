@@ -699,9 +699,7 @@ function criarCardProduto(p){
           '<div class="prod-card-preco">'+
           (descOferta>0?'<span style="text-decoration:line-through;font-size:13px;color:#999;font-weight:400">R$ '+Number(p.preco||0).toFixed(2).replace('.',',')+'</span> ':'')+'R$ '+precoFinal.toFixed(2).replace('.',',')+
           '<span style="font-size:11px;color:var(--tx3);font-weight:400">/'+p.un+'</span></div>'+
-          (dispon
-            ? '<div style="font-size:11px;color:#16a34a;font-weight:600">✔ '+Number(p.qtd||0)+' '+p.un+' em estoque</div>'
-            : '<div style="font-size:11px;color:#dc2626;font-weight:600">⚠️ Indisponível</div>')
+          '' // sem exibição de quantidade
         +'</div>'+
         (dispon
           ? '<button class="prod-card-btn" onclick="adicionarAoCarrinho(\''+p.id+'\')">+</button>'
@@ -1268,5 +1266,120 @@ function verHorarios(){
 verificarFuncionamento();
 setInterval(verificarFuncionamento, 60000);
 
+
+// ── Seletor de cor/variante ───────────────────────────────────────────────
+var _prodSelecionado = null;
+var _corSelecionada  = null;
+
+function abrirSeletorCor(prodId){
+  var prod = _produtos.find(function(x){return x.id===prodId;});
+  if(!prod) return;
+  _prodSelecionado = prod;
+  _corSelecionada  = null;
+
+  document.getElementById('mc-nome').textContent = prod.nome;
+  document.getElementById('mc-sel').style.display = 'none';
+  document.getElementById('mc-btn-add').style.display = 'none';
+
+  var variantes = prod.variantes || [];
+  var grid = document.getElementById('mc-cores');
+  grid.innerHTML = variantes.filter(function(v){return Number(v.qtd||0)>0;}).map(function(v,i){
+    // Usa foto real se disponível, senão bolinha colorida
+    var imgHtml = v.foto
+      ? '<img src="'+v.foto+'" style="width:56px;height:56px;border-radius:10px;object-fit:cover;margin:0 auto 6px;display:block;border:1px solid rgba(0,0,0,.08)"/>'
+      : '<div style="width:56px;height:56px;border-radius:10px;margin:0 auto 6px;background:'+v.cor+';border:1px solid rgba(0,0,0,.1);display:flex;align-items:center;justify-content:center">'+
+          '<div style="width:32px;height:32px;border-radius:50%;background:'+v.cor+';border:2px solid rgba(255,255,255,.6)"></div>'+
+        '</div>';
+    return '<div onclick="selecionarCor('+i+')" id="cor-opt-'+i+'" '+
+      'style="border:2px solid #ddd;border-radius:10px;padding:10px;text-align:center;cursor:pointer;transition:.15s;background:#fff">'+
+      imgHtml+
+      '<div style="font-size:12px;font-weight:600;line-height:1.3">'+v.nome+'</div>'+
+      '<div style="font-size:10px;color:#888;margin-top:2px">'+v.qtd+' un</div>'+
+    '</div>';
+  }).join('');
+
+  if(!grid.innerHTML){
+    grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:#999;padding:20px">Nenhuma cor disponível no momento</div>';
+  }
+
+  document.getElementById('modal-cor').style.display = 'flex';
+}
+
+function selecionarCor(idx){
+  var prod = _prodSelecionado;
+  if(!prod) return;
+  var variantes = (prod.variantes||[]).filter(function(v){return Number(v.qtd||0)>0;});
+  var v = variantes[idx];
+  if(!v) return;
+  _corSelecionada = v;
+
+  // Destaca selecionada
+  document.querySelectorAll('[id^="cor-opt-"]').forEach(function(el,i){
+    el.style.borderColor = i===idx ? '#ff6b00' : '#ddd';
+    el.style.background  = i===idx ? 'rgba(255,107,0,.06)' : '#fff';
+  });
+
+  // Mostra preview
+  var sel = document.getElementById('mc-sel');
+  sel.style.display = 'block';
+  var selCor = document.getElementById('mc-sel-cor');
+  if(v.foto){
+    selCor.innerHTML = '<img src="'+v.foto+'" style="width:100%;height:100%;object-fit:cover;border-radius:6px"/>';
+    selCor.style.background = 'transparent';
+  } else {
+    selCor.innerHTML = '';
+    selCor.style.background = v.cor;
+  }
+  document.getElementById('mc-sel-nome').textContent = v.nome;
+  document.getElementById('mc-sel-qtd').textContent = v.qtd+' unidades em estoque';
+  document.getElementById('mc-btn-add').style.display = 'block';
+}
+
+function confirmarCorEAdicionar(){
+  if(!_prodSelecionado || !_corSelecionada) return;
+  var p = _prodSelecionado;
+  var v = _corSelecionada;
+  var nomeCompleto = p.nome+' — '+v.nome;
+  var ja = _carrinho.find(function(c){return c.id===p.id&&c.variante===v.nome;});
+  if(ja){ ja.qty++; }
+  else { _carrinho.push({id:p.id,nome:nomeCompleto,variante:v.nome,cor:v.cor,preco:p.preco,un:p.un,qty:1}); }
+  atualizarCarrinho();
+  fecharModalCor();
+  mostrarToastAdd(nomeCompleto, 1);
+}
+
+function fecharModalCor(){
+  document.getElementById('modal-cor').style.display = 'none';
+  _prodSelecionado = null;
+  _corSelecionada  = null;
+}
+
 </script>
+
+<!-- Modal seleção de cor -->
+<div id="modal-cor" style="display:none;position:fixed;inset:0;z-index:400;background:rgba(0,0,0,.6);align-items:flex-end;justify-content:center">
+  <div style="background:#fff;width:min(480px,100%);border-radius:20px 20px 0 0;padding:20px;max-height:80vh;overflow-y:auto">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+      <div id="mc-nome" style="font-size:16px;font-weight:700"></div>
+      <button onclick="fecharModalCor()" style="background:#f0f0f0;border:none;border-radius:50%;width:32px;height:32px;font-size:16px;cursor:pointer">✕</button>
+    </div>
+    <div style="font-size:13px;color:#888;margin-bottom:16px">Selecione a cor desejada:</div>
+    <!-- Cores em grid -->
+    <div id="mc-cores" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px;margin-bottom:16px"></div>
+    <!-- Cor selecionada -->
+    <div id="mc-sel" style="display:none;background:#f9f9f9;border-radius:10px;padding:12px;margin-bottom:12px;border:2px solid #ff6b00">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div id="mc-sel-cor" style="width:32px;height:32px;border-radius:6px;border:1px solid #ddd;flex-shrink:0"></div>
+        <div>
+          <div id="mc-sel-nome" style="font-weight:600;font-size:14px"></div>
+          <div id="mc-sel-qtd" style="font-size:12px;color:#888"></div>
+        </div>
+      </div>
+    </div>
+    <button id="mc-btn-add" onclick="confirmarCorEAdicionar()" style="background:#ff6b00;color:#fff;width:100%;padding:14px;border-radius:10px;border:none;font-size:15px;font-weight:700;cursor:pointer;display:none">
+      + Adicionar ao carrinho
+    </button>
+  </div>
+</div>
+
 </body></html>
