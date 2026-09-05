@@ -2915,6 +2915,22 @@ button[style*="background: #4F6EF7"], .btn-primary {
     <div><label>⚠️ Crítico mínimo</label><input id="es-min" type="number" value="0" min="0" step="0.01"/></div>
     <div><label>Localização</label><input id="es-loc" type="text" placeholder="Galpão A, prateleira 3"/></div>
   </div>
+  <!-- VARIANTES DE COR/TIPO -->
+  <div style="margin-top:10px;padding:12px;background:var(--bg3);border-radius:var(--r)">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+      <div style="font-size:13px;font-weight:600">🎨 Variantes (cores/tipos)</div>
+      <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;margin:0">
+        <input type="checkbox" id="es-tem-variantes" onchange="toggleVariantes()"/>
+        <span>Habilitar</span>
+      </label>
+    </div>
+    <div id="es-variantes-area" style="display:none">
+      <div style="font-size:11px;color:var(--tx3);margin-bottom:8px">Ex: Branco, Areia, Azul Céu... (cada cor com qtd em estoque)</div>
+      <div id="es-variantes-lista"></div>
+      <button type="button" onclick="adicionarVariante()" class="btn sm" style="width:100%;margin-top:6px">+ Adicionar cor/tipo</button>
+    </div>
+  </div>
+
   <!-- Foto do produto -->
   <div style="background:var(--bg3);border-radius:var(--r);padding:12px;margin-top:4px;margin-bottom:4px">
     <div style="font-size:12px;font-weight:600;color:var(--tx2);margin-bottom:8px">📷 Foto do produto <span style="font-weight:400;color:var(--tx3)">(aparece na loja online)</span></div>
@@ -3873,6 +3889,8 @@ function editarMat(id){
     else if(pEl){ pEl.src=''; pEl.style.display='none'; }
 
     atualizarInfoMargemEstq();
+    // Carrega variantes de cor
+    carregarVariantesNoModal(m.variantes||[]);
   },80);
 }
 function salvarMaterial(){
@@ -11608,6 +11626,345 @@ async function gerarRelatorioLoja(){
 
 // Chama ao abrir relatórios
 var _origRenderRelatorios = typeof renderRelatorios === 'function' ? renderRelatorios : null;
+
+// ── Importar produtos via CSV ─────────────────────────────────────────────
+function importarCSVProdutos(input){
+  if(!input.files[0]) return;
+  var reader = new FileReader();
+  reader.onload = function(e){
+    var linhas = e.target.result.split('\n').map(function(l){return l.trim();}).filter(Boolean);
+    if(!linhas.length){ alert('Arquivo vazio.'); return; }
+    var header = linhas[0].split(',').map(function(h){return h.trim();});
+    var importados = 0; var erros = 0;
+    for(var i=1;i<linhas.length;i++){
+      var cols = linhas[i].split(',');
+      if(cols.length < 2) continue;
+      var obj = {};
+      header.forEach(function(h,j){ obj[h] = (cols[j]||'').trim(); });
+      var mat = {
+        id: id(),
+        nome: obj.nome||obj.Nome||'',
+        cat:  obj.categoria||obj.Categoria||'',
+        un:   obj.unidade||obj.Unidade||'un',
+        vl:   Number((obj.preco_venda||obj.preco||'0').replace(',','.'))||0,
+        custo:Number((obj.preco_custo||'0').replace(',','.'))||0,
+        qtd:  Number((obj.qtd||obj.quantidade||'0').replace(',','.'))||0,
+        min:  Number((obj.qtd_minima||obj.minimo||'0').replace(',','.'))||0,
+        margem: 30,
+        loc:'', foto:'', _ts:Date.now()
+      };
+      if(!mat.nome){ erros++; continue; }
+      // Verifica duplicata pelo nome
+      var jaExiste = DB.materiais.find(function(m){return m.nome.toLowerCase()===mat.nome.toLowerCase();});
+      if(jaExiste){ erros++; continue; }
+      DB.materiais.push(mat);
+      importados++;
+    }
+    save();
+    _autoPublicarSupabase();
+    renderEstoque();
+    alert('✅ '+importados+' produto(s) importado(s)!\n'+(erros>0?erros+' linha(s) ignorada(s) (duplicatas ou inválidas).':''));
+  };
+  reader.readAsText(input.files[0]);
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// LEITURA DE NF-e
+// ══════════════════════════════════════════════════════════════════════════
+var _nfeProdutos = [];
+
+function abrirNFe(){
+  el('mo-nfe').style.display = 'flex';
+  el('nfe-status').style.display = 'none';
+  el('nfe-produtos').style.display = 'none';
+  el('nfe-chave').value = '';
+  el('nfe-chave-info').textContent = '0/44 dígitos';
+  switchTabNFe('chave');
+}
+
+function switchTabNFe(tab){
+  el('nfe-tab-chave').style.display = tab==='chave' ? 'block' : 'none';
+  el('nfe-tab-xml').style.display   = tab==='xml'   ? 'block' : 'none';
+  el('tab-chave').style.background  = tab==='chave' ? 'var(--ac)' : 'var(--bg3)';
+  el('tab-chave').style.color       = tab==='chave' ? '#fff'      : 'var(--tx)';
+  el('tab-xml').style.background    = tab==='xml'   ? 'var(--ac)' : 'var(--bg3)';
+  el('tab-xml').style.color         = tab==='xml'   ? '#fff'      : 'var(--tx)';
+}
+
+function atualizarChaveNFe(inp){
+  var v = inp.value.replace(/\D/g,'');
+  el('nfe-chave-info').textContent = v.length+'/44 dígitos';
+  el('nfe-chave-info').style.color = v.length===44 ? 'var(--gn)' : 'var(--tx3)';
+}
+
+// ── Consulta via chave (SEFAZ MS via GAS) ────────────────────────────────
+function consultarNFe(){
+  var chave = el('nfe-chave').value.replace(/\D/g,'');
+  if(chave.length !== 44){ alert('Digite os 44 dígitos da chave de acesso.'); return; }
+
+  nfeStatus('⏳ Consultando SEFAZ...', 'var(--am)');
+  el('nfe-produtos').style.display = 'none';
+
+  var cbNFe = 'cbNFe_'+Date.now();
+  window[cbNFe] = function(data){
+    delete window[cbNFe];
+    if(data && data.ok && data.produtos){
+      _nfeProdutos = data.produtos;
+      renderProdutosNFe(data);
+    } else {
+      nfeStatus('❌ Erro: '+(data&&data.msg ? data.msg : 'NF-e não encontrada ou inválida'), 'var(--rd)');
+    }
+  };
+  setTimeout(function(){ if(window[cbNFe]){ delete window[cbNFe]; nfeStatus('❌ Tempo esgotado. Tente pelo XML.', 'var(--rd)'); } }, 25000);
+
+  var url = URL_SERVIDOR+'?action=consultarNFe&chave='+encodeURIComponent(chave)+'&callback='+cbNFe;
+  var s = document.createElement('script'); s.src=url; document.head.appendChild(s);
+}
+
+// ── Lê XML da NF-e (arquivo local) ───────────────────────────────────────
+function lerXMLNFe(input){
+  if(!input.files[0]) return;
+  nfeStatus('⏳ Lendo XML...', 'var(--am)');
+  var reader = new FileReader();
+  reader.onload = function(e){
+    try{
+      var parser = new DOMParser();
+      var xmlDoc = parser.parseFromString(e.target.result, 'text/xml');
+
+      // Extrai dados da nota
+      var nNF   = xmlDoc.querySelector('nNF');
+      var emitXNome = xmlDoc.querySelector('emit xNome');
+      var dhEmi = xmlDoc.querySelector('dhEmi');
+      var vNF   = xmlDoc.querySelector('ICMSTot vNF');
+
+      var numNota = nNF ? nNF.textContent : '?';
+      var fornecedor = emitXNome ? emitXNome.textContent : 'Fornecedor';
+      var data = dhEmi ? dhEmi.textContent.slice(0,10) : '';
+      var total = vNF ? parseFloat(vNF.textContent) : 0;
+
+      // Extrai produtos (tag det)
+      var dets = xmlDoc.querySelectorAll('det');
+      var produtos = [];
+      dets.forEach(function(det){
+        var xProd  = det.querySelector('xProd');
+        var qCom   = det.querySelector('qCom');
+        var vUnCom = det.querySelector('vUnCom');
+        var uCom   = det.querySelector('uCom');
+        var vProd  = det.querySelector('vProd');
+        var cEAN   = det.querySelector('cEAN');
+        var NCM    = det.querySelector('NCM');
+
+        if(!xProd) return;
+        var qtd   = qCom   ? parseFloat(qCom.textContent)   : 1;
+        var preco = vUnCom ? parseFloat(vUnCom.textContent) : 0;
+        var unidade = uCom ? uCom.textContent.toLowerCase() : 'un';
+        // Normaliza unidades
+        var unMap = {'m':'mt','mt':'mt','metro':'mt','metros':'mt','un':'un','und':'un','pç':'un','pc':'un','peca':'un','rl':'rl','rolo':'rl','cx':'cx','caixa':'cx','kg':'kg','l':'lt','litro':'lt','barra':'barra','br':'barra'};
+        unidade = unMap[unidade] || unidade;
+
+        produtos.push({
+          nome: xProd.textContent.trim().slice(0,80),
+          qtd: qtd, preco: preco, un: unidade,
+          ean: cEAN ? cEAN.textContent : '',
+          ncm: NCM ? NCM.textContent : ''
+        });
+      });
+
+      if(!produtos.length){
+        nfeStatus('❌ Nenhum produto encontrado no XML. Verifique se é um XML de NF-e válido.', 'var(--rd)');
+        return;
+      }
+
+      _nfeProdutos = produtos;
+      renderProdutosNFe({
+        numNota: numNota, fornecedor: fornecedor,
+        data: data, total: total, produtos: produtos
+      });
+    }catch(err){
+      nfeStatus('❌ Erro ao ler XML: '+err.message, 'var(--rd)');
+    }
+  };
+  reader.readAsText(input.files[0], 'UTF-8');
+}
+
+// ── Renderiza lista de produtos da NF-e ──────────────────────────────────
+function renderProdutosNFe(data){
+  var prods = data.produtos || _nfeProdutos;
+  nfeStatus('✔ NF-e '+data.numNota+' · '+data.fornecedor+' · '+prods.length+' itens · R$ '+(data.total||0).toFixed(2), 'var(--gn)');
+
+  el('nfe-lista').innerHTML = prods.map(function(p,i){
+    var jaExiste = DB.materiais.find(function(m){ return m.nome.toLowerCase()===p.nome.toLowerCase(); });
+    return '<div style="display:flex;align-items:flex-start;gap:10px;padding:10px;border-radius:8px;margin-bottom:6px;background:var(--bg3);border:1px solid '+(jaExiste?'var(--am)':'var(--br)')+'">'+
+      '<input type="checkbox" id="nfe-item-'+i+'" '+(jaExiste?'':'checked')+' style="margin-top:2px;width:16px;height:16px;flex-shrink:0"/>'+
+      '<div style="flex:1;min-width:0">'+
+        '<div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+p.nome+'</div>'+
+        '<div style="font-size:11px;color:var(--tx3)">Qtd: '+p.qtd+' '+p.un+' · R$ '+p.preco.toFixed(2)+'/'+p.un+'</div>'+
+        (jaExiste?'<div style="font-size:11px;color:var(--am)">⚠️ Já existe no estoque — será atualizado</div>':'')+'</div>'+
+      '<div style="flex-shrink:0;text-align:right">'+
+        '<div style="font-weight:700;font-size:13px;color:var(--gn)">R$ '+(p.qtd*p.preco).toFixed(2)+'</div>'+
+        '<select id="nfe-cat-'+i+'" style="font-size:11px;padding:3px;margin-top:4px">'+
+          ['Hidráulica','Elétrica','Cimento e argamassa','Ferro e aço','Madeira','Tinta','Acabamento','Outros'].map(function(c){
+            var sel = (p.nome.toLowerCase().includes('tubo')||p.nome.toLowerCase().includes('cano')||p.nome.toLowerCase().includes('registro')||p.nome.toLowerCase().includes('torneira')) ? 'Hidráulica' :
+                      (p.nome.toLowerCase().includes('fio')||p.nome.toLowerCase().includes('cabo')||p.nome.toLowerCase().includes('disjuntor')||p.nome.toLowerCase().includes('tomada')||p.nome.toLowerCase().includes('lampada')||p.nome.toLowerCase().includes('lâmpada')) ? 'Elétrica' : 'Outros';
+            return '<option '+(c===sel?'selected':'')+'>'+c+'</option>';
+          }).join('')+
+        '</select>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+
+  el('nfe-produtos').style.display = 'block';
+}
+
+function selecionarTodosNFe(val){
+  _nfeProdutos.forEach(function(_,i){
+    var chk = el('nfe-item-'+i);
+    if(chk) chk.checked = val;
+  });
+}
+
+function importarProdutosNFe(){
+  var importados=0; var atualizados=0;
+  _nfeProdutos.forEach(function(p,i){
+    var chk = el('nfe-item-'+i);
+    if(!chk || !chk.checked) return;
+    var cat = el('nfe-cat-'+i);
+    var categoria = cat ? cat.value : 'Outros';
+    // Verifica se já existe
+    var jaExiste = DB.materiais.find(function(m){ return m.nome.toLowerCase()===p.nome.toLowerCase(); });
+    if(jaExiste){
+      // Atualiza quantidade (soma o recebido)
+      jaExiste.qtd = Number(jaExiste.qtd||0) + Number(p.qtd||0);
+      jaExiste.custo = p.preco;
+      jaExiste._ts = Date.now();
+      atualizados++;
+    } else {
+      // Novo produto
+      DB.materiais.push({
+        id: id(), nome: p.nome, cat: categoria,
+        un: p.un||'un', qtd: p.qtd, min: 0,
+        custo: p.preco, vl: Math.round(p.preco*1.3*100)/100, // 30% de margem padrão
+        margem: 30, loc:'', foto:'', _ts: Date.now()
+      });
+      importados++;
+    }
+  });
+  save();
+  _autoPublicarSupabase();
+  renderEstoque();
+  fecharMo('mo-nfe');
+  alert('✅ NF-e importada!\n'+importados+' novo(s) produto(s) adicionado(s)\n'+atualizados+' produto(s) com estoque atualizado');
+}
+
+function nfeStatus(msg, cor){
+  var el2 = el('nfe-status');
+  if(!el2) return;
+  el2.style.display = 'block';
+  el2.style.background = cor==='var(--gn)' ? 'rgba(16,185,129,.1)' : cor==='var(--rd)' ? 'rgba(239,68,68,.1)' : 'rgba(245,158,11,.1)';
+  el2.style.color = cor;
+  el2.textContent = msg;
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// VARIANTES DE COR/TIPO DE PRODUTO
+// ══════════════════════════════════════════════════════════════════════════
+function toggleVariantes(){
+  var chk = el('es-tem-variantes');
+  var area = el('es-variantes-area');
+  if(!area) return;
+  area.style.display = chk && chk.checked ? 'block' : 'none';
+  if(chk && chk.checked && el('es-variantes-lista') && !el('es-variantes-lista').children.length){
+    adicionarVariante();
+  }
+}
+
+function adicionarVariante(nome, qtd, cor, foto){
+  var lista = el('es-variantes-lista');
+  if(!lista) return;
+  var idx = lista.children.length;
+  var div = document.createElement('div');
+  div.style.cssText = 'display:flex;gap:6px;align-items:center;margin-bottom:6px';
+  // Paleta de cores pré-definidas
+  var coresComuns = ['#FFFFFF','#F5F0E8','#FFE4B5','#F5DEB3','#D2B48C','#C0C0C0','#808080','#000000',
+    '#FF6B6B','#FF4500','#FFA500','#FFD700','#ADFF2F','#228B22','#00CED1','#4169E1','#8A2BE2','#FF69B4'];
+  var corSel = cor || coresComuns[idx % coresComuns.length];
+  var fotoData = foto || '';
+  div.innerHTML =
+    // Preview da foto (clicável para upload)
+    '<label style="cursor:pointer;flex-shrink:0;position:relative" title="Foto da cor">'+
+      '<div style="width:44px;height:44px;border-radius:8px;overflow:hidden;border:2px solid var(--br);background:'+corSel+';display:flex;align-items:center;justify-content:center">'+
+        (fotoData ? '<img src="'+fotoData+'" style="width:100%;height:100%;object-fit:cover"/>' : '<span style="font-size:18px">📷</span>')+
+      '</div>'+
+      '<input type="file" accept="image/*" onchange="carregarFotoVariante(this)" style="display:none"/>'+
+    '</label>'+
+    '<input type="color" value="'+corSel+'" style="width:32px;height:44px;border:none;border-radius:6px;padding:2px;cursor:pointer;flex-shrink:0" title="Cor de fundo"/>'+
+    '<input type="text" placeholder="Nome (ex: Branco Gelo)" value="'+(nome||'')+'" style="flex:1;min-width:0"/>'+
+    '<input type="number" placeholder="Qtd" value="'+(qtd||0)+'" min="0" style="width:56px;flex-shrink:0"/>'+
+    '<input type="hidden" class="var-foto" value="'+fotoData+'"/>'+
+    '<button type="button" onclick="this.parentNode.remove()" style="background:var(--rd);color:#fff;border:none;border-radius:6px;width:28px;height:28px;cursor:pointer;flex-shrink:0;font-size:14px">✕</button>';
+  lista.appendChild(div);
+}
+
+function carregarFotoVariante(input){
+  if(!input.files[0]) return;
+  var container = input.closest('div[style*="display:flex"]');
+  if(!container) container = input.parentNode.parentNode;
+  var reader = new FileReader();
+  reader.onload = function(e){
+    var img = new Image();
+    img.onload = function(){
+      var canvas = document.createElement('canvas');
+      var MAX=120; var w=img.width,hh=img.height;
+      if(w>MAX){hh=Math.round(hh*MAX/w);w=MAX;}
+      if(hh>MAX){w=Math.round(w*MAX/hh);hh=MAX;}
+      canvas.width=w; canvas.height=hh;
+      canvas.getContext('2d').drawImage(img,0,0,w,hh);
+      var data = canvas.toDataURL('image/jpeg',0.80);
+      // Atualiza preview
+      var preview = container.querySelector('label div');
+      if(preview) preview.innerHTML = '<img src="'+data+'" style="width:100%;height:100%;object-fit:cover"/>';
+      // Salva no campo hidden
+      var hidden = container.querySelector('.var-foto');
+      if(hidden) hidden.value = data;
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(input.files[0]);
+}
+
+function coletarVariantes(){
+  var lista = el('es-variantes-lista');
+  if(!lista) return [];
+  var vars = [];
+  Array.from(lista.children).forEach(function(div){
+    var inputs = div.querySelectorAll('input');
+    if(inputs.length >= 3){
+      var cor  = inputs[0].value;
+      var nome = inputs[1].value.trim();
+      var qtd  = Number(inputs[2].value)||0;
+      var fotoEl = div.querySelector('.var-foto');
+      var fotoV = fotoEl ? fotoEl.value : '';
+      if(nome) vars.push({cor:cor, nome:nome, qtd:qtd, foto:fotoV});
+    }
+  });
+  return vars;
+}
+
+function carregarVariantesNoModal(variantes){
+  var chk  = el('es-tem-variantes');
+  var area = el('es-variantes-area');
+  var lista= el('es-variantes-lista');
+  if(!lista) return;
+  lista.innerHTML = '';
+  if(variantes && variantes.length){
+    if(chk) chk.checked = true;
+    if(area) area.style.display = 'block';
+    variantes.forEach(function(v){ adicionarVariante(v.nome, v.qtd, v.cor, v.foto||''); });
+  } else {
+    if(chk) chk.checked = false;
+    if(area) area.style.display = 'none';
+  }
+}
 </script>
 
 <div class="mo" id="mo-estq-edit"><div class="mbox">
@@ -11763,5 +12120,60 @@ var _origRenderRelatorios = typeof renderRelatorios === 'function' ? renderRelat
 </div></div
 </div>
 
+
+<!-- MODAL LEITURA NF-e -->
+<div class="mo" id="mo-nfe" style="display:none;position:fixed;inset:0;z-index:400;background:rgba(0,0,0,.6);align-items:flex-end;justify-content:center">
+  <div style="background:var(--bg2);width:min(600px,100%);border-radius:16px 16px 0 0;padding:20px;max-height:90vh;overflow-y:auto">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <div style="font-size:17px;font-weight:700">📄 Importar Nota Fiscal (NF-e)</div>
+      <button onclick="fecharMo('mo-nfe')" style="background:var(--bg3);border:none;border-radius:50%;width:32px;height:32px;cursor:pointer;font-size:18px">✕</button>
+    </div>
+
+    <!-- Tabs -->
+    <div style="display:flex;gap:6px;margin-bottom:16px">
+      <button id="tab-chave" onclick="switchTabNFe('chave')" class="btn" style="flex:1;background:var(--ac);color:#fff">🔑 Chave de acesso</button>
+      <button id="tab-xml" onclick="switchTabNFe('xml')" class="btn" style="flex:1">📁 Arquivo XML</button>
+    </div>
+
+    <!-- Tab: Chave de acesso (44 dígitos) -->
+    <div id="nfe-tab-chave">
+      <div style="font-size:13px;color:var(--tx3);margin-bottom:8px">Cole a chave de acesso de 44 dígitos da NF-e:</div>
+      <input id="nfe-chave" type="text" maxlength="44" placeholder="00000000000000000000000000000000000000000000"
+        style="font-family:monospace;font-size:13px;letter-spacing:1px"
+        oninput="this.value=this.value.replace(/\D/g,'').slice(0,44); atualizarChaveNFe(this)"/>
+      <div id="nfe-chave-info" style="font-size:11px;color:var(--tx3);margin-top:4px">0/44 dígitos</div>
+      <button onclick="consultarNFe()" class="btn bp" style="width:100%;margin-top:10px;padding:12px">
+        🔍 Consultar NF-e no SEFAZ
+      </button>
+    </div>
+
+    <!-- Tab: XML -->
+    <div id="nfe-tab-xml" style="display:none">
+      <div style="font-size:13px;color:var(--tx3);margin-bottom:8px">Selecione o arquivo XML da NF-e (enviado pelo fornecedor por e-mail):</div>
+      <label style="display:block;border:2px dashed var(--br);border-radius:10px;padding:20px;text-align:center;cursor:pointer">
+        <div style="font-size:32px;margin-bottom:8px">📁</div>
+        <div style="font-weight:600">Clique para selecionar o XML</div>
+        <div style="font-size:12px;color:var(--tx3);margin-top:4px">Arquivo .xml da NF-e</div>
+        <input type="file" accept=".xml" onchange="lerXMLNFe(this)" style="display:none"/>
+      </label>
+    </div>
+
+    <!-- Status -->
+    <div id="nfe-status" style="margin-top:12px;font-size:13px;display:none;padding:10px;border-radius:8px"></div>
+
+    <!-- Produtos encontrados -->
+    <div id="nfe-produtos" style="display:none;margin-top:12px">
+      <div style="font-size:14px;font-weight:700;margin-bottom:8px">📦 Produtos na nota:</div>
+      <div id="nfe-lista"></div>
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <button onclick="selecionarTodosNFe(true)"  class="btn sm" style="flex:1">✅ Selecionar todos</button>
+        <button onclick="selecionarTodosNFe(false)" class="btn sm" style="flex:1">☐ Desmarcar todos</button>
+      </div>
+      <button onclick="importarProdutosNFe()" class="btn bp" style="width:100%;margin-top:8px;padding:12px">
+        📥 Importar selecionados para o Estoque
+      </button>
+    </div>
+  </div>
+</div>
 </body>
 </html>
