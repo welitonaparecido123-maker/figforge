@@ -5866,8 +5866,11 @@ function renderEstoque(){
     var venda  = Number(m.vl||0);
     var margem = custo>0 && venda>0 ? ((venda-custo)/custo*100).toFixed(1)+'%' : (m.margem?m.margem+'%':'-');
     var lucroUnit = custo>0 && venda>0 ? '<span style="color:'+(venda>=custo?'var(--gn)':'var(--rd)')+'">'+fmt(venda-custo)+'</span>' : '-';
+    var fotoMini = m.foto
+      ? '<img src="'+m.foto+'" style="width:36px;height:36px;object-fit:cover;border-radius:6px;flex-shrink:0;border:1px solid var(--br)" onerror="this.style.display=\'none\'"/>'
+      : '<div style="width:36px;height:36px;border-radius:6px;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">📦</div>';
     return '<tr>' +
-      '<td><strong>'+m.nome+'</strong>'+(m.cat?'<br><span style="font-size:10px;color:var(--tx3)">'+m.cat+'</span>':'')+'</td>' +
+      '<td><div style="display:flex;align-items:center;gap:8px">'+fotoMini+'<div><strong>'+m.nome+'</strong>'+(m.cat?'<br><span style="font-size:10px;color:var(--tx3)">'+m.cat+'</span>':'')+'</div></div></td>' +
       '<td>'+m.un+'</td>' +
       '<td style="font-weight:600;color:'+(zerado?'var(--rd)':critico?'var(--am)':'var(--tx)')+'">'+fmtN(qtd)+'</td>' +
       '<td>'+fmtN(minQ)+'</td>' +
