@@ -11946,15 +11946,19 @@ function coletarVariantes(){
   if(!lista) return [];
   var vars = [];
   Array.from(lista.children).forEach(function(div){
-    var inputs = div.querySelectorAll('input');
-    if(inputs.length >= 3){
-      var cor  = inputs[0].value;
-      var nome = inputs[1].value.trim();
-      var qtd  = Number(inputs[2].value)||0;
-      var fotoEl = div.querySelector('.var-foto');
-      var fotoV = fotoEl ? fotoEl.value : '';
-      if(nome) vars.push({cor:cor, nome:nome, qtd:qtd, foto:fotoV});
-    }
+    var corEl   = div.querySelector('input[type="color"]');
+    var nomeEl  = div.querySelector('input[type="text"]');
+    var qtdEl   = div.querySelector('input[type="number"]');
+    var fotoEl  = div.querySelector('.var-foto');
+    if(!nomeEl) return;
+    var nome = nomeEl.value.trim();
+    if(!nome) return;
+    vars.push({
+      cor:  corEl  ? corEl.value  : '#cccccc',
+      nome: nome,
+      qtd:  qtdEl  ? Number(qtdEl.value)||0 : 0,
+      foto: fotoEl ? fotoEl.value : ''
+    });
   });
   return vars;
 }
