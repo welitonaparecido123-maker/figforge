@@ -11140,8 +11140,9 @@ async function sincronizarProdutosSupabase(){
       qtd: Number(m.qtd||0), qtd_minima: Number(m.min||0),
       preco_custo: Number(m.custo||0), preco_venda: Number(m.vl||0),
       margem: Number(m.margem||0),
-      foto_url: m.foto || null, // base64 ou URL
+      foto_url: m.foto || null,
       localizacao: m.loc||'',
+      variantes: (m.variantes && m.variantes.length) ? m.variantes : null,
       publicado: true,
       ativo: true
     };
