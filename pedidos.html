@@ -573,7 +573,7 @@ async function carregarProdutosSupa(){
       'ativo=eq.true',
       'preco_venda=gt.0',
       'order=categoria.asc,nome.asc',
-      'select=id,nome,descricao,categoria,unidade,qtd,preco_venda,foto_url'
+      'select=id,nome,descricao,categoria,unidade,qtd,preco_venda,foto_url,variantes'
     ].join('&');
 
     var data = await supaFetch('produtos', params);
@@ -702,7 +702,9 @@ function criarCardProduto(p){
           '' // sem exibição de quantidade
         +'</div>'+
         (dispon
-          ? '<button class="prod-card-btn" onclick="adicionarAoCarrinho(\''+p.id+'\')">+</button>'
+          ? (p.variantes && p.variantes.filter(function(v){return Number(v.qtd||0)>0||(v.nome&&v.nome.length>0);}).length
+          ? '<button class="prod-card-btn" onclick="abrirSeletorCor(\'' + p.id + '\')" title="Escolher cor/tipo">🎨</button>'
+          : '<button class="prod-card-btn" onclick="adicionarAoCarrinho(\'' + p.id + '\')" title="Adicionar">+</button>')
           : '<button class="prod-card-btn" disabled style="background:#e0e0e0;cursor:not-allowed;font-size:14px">✕</button>')
       +'</div>'+
     '</div>';
@@ -1281,9 +1283,9 @@ function abrirSeletorCor(prodId){
   document.getElementById('mc-sel').style.display = 'none';
   document.getElementById('mc-btn-add').style.display = 'none';
 
-  var variantes = prod.variantes || [];
+  var variantes = (prod.variantes || []).filter(function(v){return v.nome && v.nome.trim();});
   var grid = document.getElementById('mc-cores');
-  grid.innerHTML = variantes.filter(function(v){return Number(v.qtd||0)>0;}).map(function(v,i){
+  grid.innerHTML = variantes.map(function(v,i){  // mostra todas as cores (sob demanda)
     // Usa foto real se disponível, senão bolinha colorida
     var imgHtml = v.foto
       ? '<img src="'+v.foto+'" style="width:56px;height:56px;border-radius:10px;object-fit:cover;margin:0 auto 6px;display:block;border:1px solid rgba(0,0,0,.08)"/>'
@@ -1308,7 +1310,7 @@ function abrirSeletorCor(prodId){
 function selecionarCor(idx){
   var prod = _prodSelecionado;
   if(!prod) return;
-  var variantes = (prod.variantes||[]).filter(function(v){return Number(v.qtd||0)>0;});
+  var variantes = (prod.variantes||[]).filter(function(v){return v.nome&&v.nome.trim();});
   var v = variantes[idx];
   if(!v) return;
   _corSelecionada = v;
