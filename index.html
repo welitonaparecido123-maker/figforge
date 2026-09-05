@@ -3901,6 +3901,7 @@ function editarMat(id){
 }
 function salvarMaterial(){
   var fotoEl = document.getElementById('es-foto');
+  var variantesColetadas = coletarVariantes();
   var dados = {
     nome:val('es-nome'), un:val('es-un'),
     qtd:Number(val('es-qtd'))||0, min:Number(val('es-min'))||0,
@@ -3910,11 +3911,19 @@ function salvarMaterial(){
     cat:val('es-cat')||'',
     loc:val('es-loc'), obra:val('es-obra'),
     foto: fotoEl ? (fotoEl.value||'') : '',
+    variantes: variantesColetadas,
     _ts:Date.now()
   };
   if(!dados.nome){alert('Preencha a descrição.');return;}
   if(editId.mat){
-    Object.assign(DB.materiais.find(function(x){return x.id===editId.mat;}), dados);
+    var matEdit = DB.materiais.find(function(x){return x.id===editId.mat;});
+    if(matEdit){
+      Object.assign(matEdit, dados);
+      // Garante que variantes são salvas (não sobrescritas por undefined)
+      if(variantesColetadas.length > 0 || el('es-tem-variantes') && el('es-tem-variantes').checked){
+        matEdit.variantes = variantesColetadas;
+      }
+    }
     delete editId.mat;
   } else {
     dados.id=id(); DB.materiais.push(dados);
