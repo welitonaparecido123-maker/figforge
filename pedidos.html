@@ -178,7 +178,10 @@ label{font-size:12px;color:var(--tx3);display:block;margin-bottom:4px;margin-top
       <span id="loja-status-icon">🟢</span> <span id="loja-status-txt">Verificando...</span>
     </div>
     </div>
-    <button id="btn-carrinho" onclick="abrirCarrinho()">
+    <a id="btn-wpp-fixo" href="https://wa.me/5567984326429" target="_blank"
+    style="background:#25D366;color:#fff;border-radius:50%;width:46px;height:46px;display:flex;align-items:center;justify-content:center;font-size:22px;text-decoration:none;flex-shrink:0;box-shadow:0 2px 8px rgba(0,0,0,.2)"
+    title="Falar no WhatsApp">💬</a>
+  <button id="btn-carrinho" onclick="abrirCarrinho()">
       🛒
       <div id="cart-badge">0</div>
     </button>
@@ -580,6 +583,7 @@ async function carregarProdutosSupa(){
     console.log('✔ Supabase produtos:', data.length);
     if(statusEl) statusEl.textContent = '';
 
+    if(data.length > 0) console.log('Primeiro produto variantes:', data[0].variantes);
     _produtos = data.map(function(prod){
       // Tenta construir URL da foto do Storage se não tiver salva
       var fotoUrl = prod.foto_url || '';
@@ -672,43 +676,51 @@ function renderProdutos(lista){
 function criarCardProduto(p){
   var card = document.createElement('div');
   card.className = 'prod-card';
-  var dispon = Number(p.qtd||0) > 0;
 
-  // Destaque e oferta — calculados DENTRO da função
-  var ofertasIds = window._ofertasIds || [];
-  var isDestaque = ofertasIds.includes(p.id) || p.destaque;
+  var isDestaque = p.destaque || false;
   var descOferta = Number(p.desconto_oferta||0);
   var precoFinal = descOferta>0 ? p.preco*(1-descOferta/100) : p.preco;
+  var temVariantes = p.variantes && Array.isArray(p.variantes) && p.variantes.length > 0;
 
   var fotoHtml = p.foto
-    ? '<img class="prod-card-img" src="'+p.foto+'" alt="'+p.nome+'" loading="lazy" onerror="this.parentNode.replaceChild(criarPlaceholder(),this)"/>'
+    ? '<img class="prod-card-img" src="'+p.foto+'" loading="lazy"/>'
     : '<div class="prod-card-img-placeholder">📦</div>';
 
-  var badgeDestaque = isDestaque && descOferta>0
-    ? '<div style="position:absolute;top:8px;left:8px;background:#ff6b00;color:#fff;font-size:10px;font-weight:700;padding:3px 8px;border-radius:10px">🏷️ -'+descOferta+'%</div>'
-    : isDestaque ? '<div style="position:absolute;top:8px;left:8px;background:#ff6b00;color:#fff;font-size:10px;font-weight:700;padding:3px 8px;border-radius:10px">⭐ Destaque</div>' : '';
+  card.style.position = 'relative';
+  if(isDestaque) card.style.cssText = 'position:relative;border:2px solid #ff6b00';
 
-  card.style.cssText = isDestaque ? 'border:2px solid #ff6b00;box-shadow:0 0 0 2px rgba(255,107,0,.15);position:relative' : 'position:relative';
-  card.innerHTML = badgeDestaque + fotoHtml +
+  // Botão: usa onclick seguro sem aspas dentro de string
+  var btn = document.createElement('button');
+  btn.className = 'prod-card-btn';
+  if(temVariantes){
+    btn.textContent = '🎨';
+    btn.title = 'Escolher cor';
+    btn.style.background = '#8b5cf6';
+    btn.style.fontSize = '18px';
+    btn.onclick = (function(id){ return function(){ abrirSeletorCor(id); }; })(p.id);
+  } else {
+    btn.textContent = '+';
+    btn.title = 'Adicionar';
+    btn.onclick = (function(id){ return function(){ adicionarAoCarrinho(id); }; })(p.id);
+  }
+
+  var precoHtml = descOferta>0
+    ? '<span style="text-decoration:line-through;font-size:12px;color:#999">R$ '+p.preco.toFixed(2).replace('.',',')+'</span> R$ '+precoFinal.toFixed(2).replace('.',',')
+    : 'R$ '+precoFinal.toFixed(2).replace('.',',');
+
+  card.innerHTML = fotoHtml +
     '<div class="prod-card-body">'+
       '<div>'+
         '<div class="prod-card-nome">'+p.nome+'</div>'+
         (p.desc?'<div class="prod-card-desc">'+p.desc+'</div>':'')+
       '</div>'+
       '<div class="prod-card-footer">'+
-        '<div>'+
-          '<div class="prod-card-preco">'+
-          (descOferta>0?'<span style="text-decoration:line-through;font-size:13px;color:#999;font-weight:400">R$ '+Number(p.preco||0).toFixed(2).replace('.',',')+'</span> ':'')+'R$ '+precoFinal.toFixed(2).replace('.',',')+
-          '<span style="font-size:11px;color:var(--tx3);font-weight:400">/'+p.un+'</span></div>'+
-          '' // sem exibição de quantidade
-        +'</div>'+
-        (dispon
-          ? (p.variantes && p.variantes.filter(function(v){return Number(v.qtd||0)>0||(v.nome&&v.nome.length>0);}).length
-          ? '<button class="prod-card-btn" onclick="abrirSeletorCor(\'' + p.id + '\')" title="Escolher cor/tipo">🎨</button>'
-          : '<button class="prod-card-btn" onclick="adicionarAoCarrinho(\'' + p.id + '\')" title="Adicionar">+</button>')
-          : '<button class="prod-card-btn" disabled style="background:#e0e0e0;cursor:not-allowed;font-size:14px">✕</button>')
-      +'</div>'+
+        '<div class="prod-card-preco">'+precoHtml+'<span style="font-size:11px;color:var(--tx3)">/'+p.un+'</span></div>'+
+      '</div>'+
     '</div>';
+
+  // Adiciona o botão via DOM (sem escape de aspas)
+  card.querySelector('.prod-card-footer').appendChild(btn);
   return card;
 }
 function criarPlaceholder(){ var d=document.createElement('div'); d.className='prod-card-img-placeholder'; d.textContent='📦'; return d; }
@@ -1384,5 +1396,14 @@ function fecharModalCor(){
     </button>
   </div>
 </div>
+
+
+<!-- WhatsApp flutuante -->
+<a href="https://wa.me/5567984326429?text=Ol%C3%A1%2C%20vim%20pela%20loja%20online%20e%20gostaria%20de%20mais%20informa%C3%A7%C3%B5es."
+   target="_blank"
+   style="position:fixed;bottom:24px;right:20px;z-index:999;background:#25D366;color:#fff;width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:26px;box-shadow:0 4px 16px rgba(0,0,0,.25);text-decoration:none"
+   title="Falar no WhatsApp">
+  💬
+</a>
 
 </body></html>
