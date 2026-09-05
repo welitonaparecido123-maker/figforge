@@ -590,8 +590,9 @@ async function carregarProdutosSupa(){
       return {
         id: prod.id, nome: prod.nome,
         desc: prod.descricao||'', cat: prod.categoria||'',
-        un: prod.unidade||'un', qtd: Number(prod.qtd||0),
-        preco: Number(prod.preco_venda||0), foto: fotoUrl
+        un: prod.unidade||'un', qtd: 999,
+        preco: Number(prod.preco_venda||0), foto: fotoUrl,
+        variantes: prod.variantes||null
       };
     });
 
