@@ -677,52 +677,107 @@ function renderProdutos(lista){
 function criarCardProduto(p){
   var card = document.createElement('div');
   card.className = 'prod-card';
-
   var isDestaque = p.destaque || false;
   var descOferta = Number(p.desconto_oferta||0);
   var precoFinal = descOferta>0 ? p.preco*(1-descOferta/100) : p.preco;
   var temVariantes = p.variantes && Array.isArray(p.variantes) && p.variantes.length > 0;
-
-  var fotoHtml = p.foto
-    ? '<img class="prod-card-img" src="'+p.foto+'" loading="lazy"/>'
-    : '<div class="prod-card-img-placeholder">📦</div>';
-
   card.style.position = 'relative';
-  if(isDestaque) card.style.cssText = 'position:relative;border:2px solid #ff6b00';
 
-  // Botão: usa onclick seguro sem aspas dentro de string
-  var btn = document.createElement('button');
-  btn.className = 'prod-card-btn';
-  if(temVariantes){
-    btn.textContent = '🎨';
-    btn.title = 'Escolher cor';
-    btn.style.background = '#8b5cf6';
-    btn.style.fontSize = '18px';
-    btn.onclick = (function(id){ return function(){ abrirSeletorCor(id); }; })(p.id);
-  } else {
-    btn.textContent = '+';
-    btn.title = 'Adicionar';
-    btn.onclick = (function(id){ return function(){ adicionarAoCarrinho(id); }; })(p.id);
+  if(descOferta>0){
+    card.style.border = '2px solid #ff6b00';
+    var faixa = document.createElement('div');
+    faixa.style.cssText = 'position:absolute;top:0;left:0;right:0;background:linear-gradient(135deg,#ff6b00,#ff4500);color:#fff;font-size:11px;font-weight:700;padding:4px 10px;display:flex;align-items:center;justify-content:space-between;z-index:2;border-radius:8px 8px 0 0';
+    var s1=document.createElement('span'); s1.textContent='OFERTA';
+    var s2=document.createElement('span'); s2.textContent='-'+descOferta+'%';
+    faixa.appendChild(s1); faixa.appendChild(s2); card.appendChild(faixa);
+    card.style.paddingTop='24px';
+  } else if(isDestaque){
+    card.style.border='2px solid #ff6b00';
+    var faixa=document.createElement('div');
+    faixa.style.cssText='position:absolute;top:0;left:0;right:0;background:#ff6b00;color:#fff;font-size:11px;font-weight:700;padding:4px 10px;text-align:center;z-index:2;border-radius:8px 8px 0 0';
+    faixa.textContent='DESTAQUE'; card.appendChild(faixa);
+    card.style.paddingTop='24px';
   }
 
-  var precoHtml = descOferta>0
-    ? '<span style="text-decoration:line-through;font-size:12px;color:#999">R$ '+p.preco.toFixed(2).replace('.',',')+'</span> R$ '+precoFinal.toFixed(2).replace('.',',')
-    : 'R$ '+precoFinal.toFixed(2).replace('.',',');
+  if(p.foto){
+    var img=document.createElement('img'); img.className='prod-card-img'; img.src=p.foto; img.loading='lazy'; img.alt=p.nome;
+    img.onerror=function(){this.style.display='none';}; card.appendChild(img);
+  } else {
+    var ph=document.createElement('div'); ph.className='prod-card-img-placeholder'; ph.textContent='caixa'; card.appendChild(ph);
+  }
 
-  card.innerHTML = fotoHtml +
-    '<div class="prod-card-body">'+
-      '<div>'+
-        '<div class="prod-card-nome">'+p.nome+'</div>'+
-        (p.desc?'<div class="prod-card-desc">'+p.desc+'</div>':'')+
-      '</div>'+
-      '<div class="prod-card-footer">'+
-        '<div class="prod-card-preco">'+precoHtml+'<span style="font-size:11px;color:var(--tx3)">/'+p.un+'</span></div>'+
-      '</div>'+
-    '</div>';
+  var body=document.createElement('div'); body.className='prod-card-body';
+  var nomDiv=document.createElement('div'); nomDiv.className='prod-card-nome'; nomDiv.textContent=p.nome; body.appendChild(nomDiv);
+  if(p.desc){ var dcDiv=document.createElement('div'); dcDiv.className='prod-card-desc'; dcDiv.textContent=p.desc; body.appendChild(dcDiv); }
 
-  // Adiciona o botão via DOM (sem escape de aspas)
-  card.querySelector('.prod-card-footer').appendChild(btn);
+  var footer=document.createElement('div'); footer.className='prod-card-footer';
+  var precoDiv=document.createElement('div'); precoDiv.className='prod-card-preco';
+  if(descOferta>0){
+    var rs=document.createElement('span'); rs.style.cssText='text-decoration:line-through;font-size:11px;color:#999;display:block'; rs.textContent='R$ '+p.preco.toFixed(2).replace('.',',');
+    var at=document.createElement('span'); at.style.color='#ff4500'; at.style.fontWeight='700'; at.textContent='R$ '+precoFinal.toFixed(2).replace('.',',');
+    var un=document.createElement('span'); un.style.cssText='font-size:11px;color:var(--tx3)'; un.textContent='/'+p.un;
+    precoDiv.appendChild(rs); precoDiv.appendChild(at); precoDiv.appendChild(un);
+  } else {
+    precoDiv.textContent='R$ '+precoFinal.toFixed(2).replace('.',',');
+    var un=document.createElement('span'); un.style.cssText='font-size:11px;color:var(--tx3)'; un.textContent='/'+p.un; precoDiv.appendChild(un);
+  }
+  footer.appendChild(precoDiv);
+
+  var btn=document.createElement('button'); btn.className='prod-card-btn';
+  if(temVariantes){
+    btn.textContent='Cor'; btn.title='Escolher cor'; btn.style.background='#8b5cf6'; btn.style.fontSize='13px';
+    btn.onclick=(function(id){return function(e){e.stopPropagation();abrirSeletorCor(id);};})(p.id);
+  } else {
+    btn.textContent='+';
+    btn.onclick=(function(id){return function(e){e.stopPropagation();adicionarAoCarrinho(id);};})(p.id);
+  }
+  footer.appendChild(btn); body.appendChild(footer); card.appendChild(body);
+
+  card.style.cursor='pointer';
+  card.onclick=(function(prod2,pf,dc,tv){
+    return function(e){if(e.target.tagName!=='BUTTON') abrirPopupProduto(prod2,pf,dc,tv);};
+  })(p,precoFinal,descOferta,temVariantes);
+
   return card;
+}
+
+function abrirPopupProduto(prod,precoFinal,descOferta,temVariantes){
+  var ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;z-index:450;background:rgba(0,0,0,.6);display:flex;align-items:flex-end;justify-content:center';
+  ov.onclick=function(e){if(e.target===ov)ov.remove();};
+  var box=document.createElement('div');
+  box.style.cssText='background:#fff;width:min(480px,100%);border-radius:20px 20px 0 0;padding:20px;max-height:85vh;overflow-y:auto';
+
+  var hd=document.createElement('div'); hd.style.cssText='display:flex;justify-content:space-between;align-items:center;margin-bottom:12px';
+  var nm=document.createElement('div'); nm.style.cssText='font-size:17px;font-weight:700;flex:1'; nm.textContent=prod.nome;
+  var cls=document.createElement('button'); cls.style.cssText='background:#f0f0f0;border:none;border-radius:50%;width:32px;height:32px;font-size:16px;cursor:pointer;flex-shrink:0'; cls.textContent='x'; cls.onclick=function(){ov.remove();};
+  hd.appendChild(nm); hd.appendChild(cls); box.appendChild(hd);
+
+  if(prod.foto){var fg=document.createElement('img');fg.src=prod.foto;fg.style.cssText='width:100%;max-height:200px;object-fit:cover;border-radius:12px;margin-bottom:12px';fg.onerror=function(){this.style.display='none';};box.appendChild(fg);}
+
+  if(descOferta>0){var bg=document.createElement('div');bg.style.cssText='display:inline-block;background:linear-gradient(135deg,#ff6b00,#ff4500);color:#fff;font-size:13px;font-weight:700;padding:6px 14px;border-radius:20px;margin-bottom:12px';bg.textContent='OFERTA - '+descOferta+'% de desconto!';box.appendChild(bg);}
+  else if(prod.destaque){var bg=document.createElement('div');bg.style.cssText='display:inline-block;background:#ff6b00;color:#fff;font-size:13px;font-weight:700;padding:6px 14px;border-radius:20px;margin-bottom:12px';bg.textContent='Produto em Destaque';box.appendChild(bg);}
+
+  if(prod.desc){var dv=document.createElement('div');dv.style.cssText='font-size:14px;color:#555;margin-bottom:14px';dv.textContent=prod.desc;box.appendChild(dv);}
+
+  var pd=document.createElement('div'); pd.style.marginBottom='16px';
+  if(descOferta>0){
+    var r=document.createElement('span');r.style.cssText='text-decoration:line-through;color:#999;font-size:14px;display:block';r.textContent='R$ '+prod.preco.toFixed(2).replace('.',',');
+    var a=document.createElement('span');a.style.cssText='font-size:26px;font-weight:700;color:#ff4500';a.textContent='R$ '+precoFinal.toFixed(2).replace('.',',');
+    var u=document.createElement('span');u.style.cssText='color:#888;font-size:12px';u.textContent=' /'+prod.un;
+    var ec=document.createElement('div');ec.style.cssText='background:#fff3e0;border-radius:8px;padding:6px 10px;margin-top:6px;font-size:13px;color:#e65100;font-weight:600';ec.textContent='Voce economiza R$ '+(prod.preco-precoFinal).toFixed(2).replace('.',',');
+    pd.appendChild(r);pd.appendChild(a);pd.appendChild(u);pd.appendChild(ec);
+  } else {
+    var a=document.createElement('span');a.style.cssText='font-size:26px;font-weight:700';a.textContent='R$ '+precoFinal.toFixed(2).replace('.',',');
+    var u=document.createElement('span');u.style.cssText='color:#888;font-size:12px';u.textContent=' /'+prod.un;
+    pd.appendChild(a);pd.appendChild(u);
+  }
+  box.appendChild(pd);
+
+  var btn=document.createElement('button');btn.style.cssText='width:100%;padding:14px;border-radius:12px;border:none;font-size:16px;font-weight:700;cursor:pointer;background:#ff6b00;color:#fff';
+  if(temVariantes){btn.textContent='Escolher cor e adicionar';btn.onclick=function(){ov.remove();abrirSeletorCor(prod.id);};}
+  else{btn.textContent='+ Adicionar ao carrinho';btn.onclick=function(){adicionarAoCarrinho(prod.id);ov.remove();};}
+  box.appendChild(btn);ov.appendChild(box);document.body.appendChild(ov);
 }
 function criarPlaceholder(){ var d=document.createElement('div'); d.className='prod-card-img-placeholder'; d.textContent='📦'; return d; }
 
@@ -1398,13 +1453,5 @@ function fecharModalCor(){
   </div>
 </div>
 
-
-<!-- WhatsApp flutuante -->
-<a href="https://wa.me/5567984326429?text=Ol%C3%A1%2C%20vim%20pela%20loja%20online%20e%20gostaria%20de%20mais%20informa%C3%A7%C3%B5es."
-   target="_blank"
-   style="position:fixed;bottom:24px;right:20px;z-index:999;background:#25D366;color:#fff;width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:26px;box-shadow:0 4px 16px rgba(0,0,0,.25);text-decoration:none"
-   title="Falar no WhatsApp">
-  💬
-</a>
 
 </body></html>
