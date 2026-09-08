@@ -2114,6 +2114,7 @@ button[style*="background: #4F6EF7"], .btn-primary {
         <input type="file" accept=".csv,.txt" onchange="importarCSVProdutos(this)" style="display:none"/>
       </label>
       <button class="btn sm" onclick="abrirNFe()" style="background:var(--am);color:#fff;white-space:nowrap">📄 NF-e</button>
+      <button class="btn sm" onclick="abrirGestaoFornecedores()" style="background:#8b5cf6;color:#fff;white-space:nowrap">🏭 Fornecedores</button>
       <button class="btn sm" onclick="sincronizarProdutosSupabase()" style="white-space:nowrap">🌐 Publicar</button>
     </div>
     <div class="tw"><table class="tbl"><thead><tr><th>Material</th><th>Un.</th><th>Estoque</th><th>Mínimo</th><th>Localização</th><th>Valor unit.</th><th>Status</th><th>Ações</th></tr></thead>
@@ -2920,6 +2921,11 @@ button[style*="background: #4F6EF7"], .btn-primary {
     <div><label>Qtd. inicial</label><input id="es-qtd" type="number" value="0" min="0" step="0.01"/></div>
     <div><label>⚠️ Crítico mínimo</label><input id="es-min" type="number" value="0" min="0" step="0.01"/></div>
     <div><label>Localização</label><input id="es-loc" type="text" placeholder="Galpão A, prateleira 3"/></div>
+    <div><label>Fornecedor</label>
+      <select id="es-forn">
+        <option value="">-- Selecione --</option>
+      </select>
+    </div>
   </div>
   <!-- VARIANTES DE COR/TIPO -->
   <div style="margin-top:10px;padding:12px;background:var(--bg3);border-radius:var(--r)">
@@ -3867,6 +3873,13 @@ function editarMat(id){
     setV('es-qtd', m.qtd||0);
     setV('es-min', m.min||0);
     setV('es-loc', m.loc||'');
+    // Preenche select de fornecedores
+    var fornSel = el('es-forn');
+    if(fornSel){
+      var forns = _getFornecedores();
+      fornSel.innerHTML = '<option value="">-- Selecione --</option>' +
+        forns.map(function(f){ return '<option value="'+f.id+'" '+(m.forn===f.id?'selected':'')+'>'+f.nome+'</option>'; }).join('');
+    }
 
     var catEl = el('es-cat');
     if(catEl){
@@ -3909,7 +3922,7 @@ function salvarMaterial(){
     vl:Number(val('es-vl'))||0,
     margem:Number(val('es-margem'))||0,
     cat:val('es-cat')||'',
-    loc:val('es-loc'), obra:val('es-obra'),
+    loc:val('es-loc'), obra:val('es-obra'), forn:val('es-forn')||'',
     foto: fotoEl ? (fotoEl.value||'') : '',
     variantes: variantesColetadas,
     _ts:Date.now()
@@ -11384,11 +11397,13 @@ async function sincronizarProdutosSupabase_config(){
         desconto_oferta:m._descOferta||0
       };
     });
+    var lojaConfigStr = JSON.stringify(_lojaConfig);
     await supaREST('PATCH','lojistas','id=eq.'+encodeURIComponent(_lojista_id),{
       empresa:cfg.empresa||'', tel:cfg.tel||'', logo_url:cfg.logo||null,
       cnpj:cfg.cnpj||'', endereco:cfg.end||'',
-      loja_config:JSON.stringify(_lojaConfig)
+      loja_config:lojaConfigStr
     });
+    console.log('✔ loja_config publicada:', lojaConfigStr.slice(0,100));
     if(rows.length){
       await supaREST('DELETE','produtos','lojista_id=eq.'+encodeURIComponent(_lojista_id));
       await supaREST('POST','produtos','',rows);
@@ -11987,6 +12002,197 @@ function carregarVariantesNoModal(variantes){
     if(chk) chk.checked = false;
     if(area) area.style.display = 'none';
   }
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// GESTÃO DE FORNECEDORES
+// ══════════════════════════════════════════════════════════════════════════
+function _getFornecedores(){
+  return DB.fornecedores || [];
+}
+
+function abrirGestaoFornecedores(){
+  var forns = _getFornecedores();
+  var conteudo = '<div style="max-height:70vh;overflow-y:auto">' +
+    '<div style="font-size:14px;font-weight:700;margin-bottom:12px">🏭 Fornecedores cadastrados</div>' +
+    (forns.length ? forns.map(function(f,i){
+      return '<div style="display:flex;gap:8px;align-items:center;padding:10px;background:var(--bg3);border-radius:8px;margin-bottom:6px">'+
+        '<div style="flex:1">'+
+          '<div style="font-weight:600">'+f.nome+'</div>'+
+          '<div style="font-size:11px;color:var(--tx3)">'+[f.tel,f.email].filter(Boolean).join(' · ')+'</div>'+
+        '</div>'+
+        '<button onclick="excluirFornecedor(\''+f.id+'\')" style="background:var(--rd);color:#fff;border:none;border-radius:6px;padding:4px 8px;cursor:pointer;font-size:12px">✕</button>'+
+      '</div>';
+    }).join('') : '<div style="color:var(--tx3);text-align:center;padding:20px">Nenhum fornecedor cadastrado</div>') +
+    '<div style="margin-top:12px;padding:12px;background:var(--bg3);border-radius:8px">'+
+      '<div style="font-size:13px;font-weight:600;margin-bottom:8px">➕ Novo fornecedor</div>'+
+      '<input id="nf-nome" type="text" placeholder="Nome do fornecedor*" style="margin-bottom:6px"/>'+
+      '<input id="nf-tel" type="text" placeholder="WhatsApp/Telefone"/>'+
+      '<input id="nf-email" type="email" placeholder="E-mail"/>'+
+      '<input id="nf-obs" type="text" placeholder="Observações"/>'+
+      '<button onclick="adicionarFornecedor()" class="btn bp" style="width:100%;margin-top:8px">Salvar fornecedor</button>'+
+    '</div>'+
+    '<div style="margin-top:10px;display:flex;gap:8px">'+
+      '<button onclick="abrirPedidoCompra()" class="btn" style="flex:1;background:#8b5cf6;color:#fff">📋 Pedido de Compra</button>'+
+      '<button onclick="exportarCatalogoProdutos()" class="btn" style="flex:1">📊 Exportar Catálogo</button>'+
+    '</div>'+
+  '</div>';
+
+  var mo = el('mo-fornecedores');
+  if(!mo){
+    mo = document.createElement('div');
+    mo.id = 'mo-fornecedores';
+    mo.className = 'mo';
+    document.body.appendChild(mo);
+  }
+  mo.innerHTML = '<div class="mo-box" style="max-width:500px">'+
+    '<div class="mo-hd"><span>🏭 Fornecedores</span><button onclick="fecharMo(\'mo-fornecedores\')">✕</button></div>'+
+    conteudo+
+  '</div>';
+  mo.style.display='flex';
+}
+
+function adicionarFornecedor(){
+  var nome = (el('nf-nome')||{}).value;
+  if(!nome||!nome.trim()){ alert('Informe o nome.'); return; }
+  if(!DB.fornecedores) DB.fornecedores = [];
+  DB.fornecedores.push({
+    id: id(), nome:nome.trim(),
+    tel:(el('nf-tel')||{}).value||'',
+    email:(el('nf-email')||{}).value||'',
+    obs:(el('nf-obs')||{}).value||''
+  });
+  save();
+  abrirGestaoFornecedores();
+}
+
+function excluirFornecedor(fid){
+  if(!confirm('Excluir este fornecedor?')) return;
+  DB.fornecedores = (DB.fornecedores||[]).filter(function(f){return f.id!==fid;});
+  save();
+  abrirGestaoFornecedores();
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// PEDIDO DE COMPRA — seleciona itens e gera lista para fornecedor
+// ══════════════════════════════════════════════════════════════════════════
+function abrirPedidoCompra(){
+  var forns = _getFornecedores();
+  var mats = DB.materiais||[];
+  // Agrupa por fornecedor
+  var semForn = mats.filter(function(m){return !m.forn && Number(m.vl||0)>0;});
+  var comForn = {};
+  mats.filter(function(m){return m.forn && Number(m.vl||0)>0;}).forEach(function(m){
+    if(!comForn[m.forn]) comForn[m.forn]=[];
+    comForn[m.forn].push(m);
+  });
+
+  var html = '<div style="max-height:75vh;overflow-y:auto">';
+  html += '<div style="font-size:13px;color:var(--tx3);margin-bottom:10px">Selecione os itens para o pedido de compra. Itens com estoque crítico já aparecem marcados.</div>';
+
+  // Por fornecedor
+  var fornNomes = {};
+  forns.forEach(function(f){ fornNomes[f.id]=f; });
+
+  Object.keys(comForn).forEach(function(fid){
+    var forn = fornNomes[fid] || {nome:'Fornecedor desconhecido', tel:''};
+    html += '<div style="font-size:13px;font-weight:700;margin:12px 0 6px;color:var(--ac)">🏭 '+forn.nome+'</div>';
+    comForn[fid].forEach(function(m){
+      var critico = Number(m.qtd||0) <= Number(m.min||0);
+      html += '<label style="display:flex;align-items:center;gap:10px;padding:8px;background:var(--bg3);border-radius:8px;margin-bottom:4px;cursor:pointer">'+
+        '<input type="checkbox" class="pc-item" data-forn="'+fid+'" data-fornome="'+forn.nome+'" data-tel="'+forn.tel+'" data-nome="'+m.nome+'" data-un="'+m.un+'" value="'+m.id+'" '+(critico?'checked':'')+' style="width:16px;height:16px"/>'+
+        '<div style="flex:1"><div style="font-size:13px;font-weight:600">'+m.nome+'</div>'+
+          '<div style="font-size:11px;color:'+(critico?'var(--rd)':'var(--tx3)')+'">Estoque: '+Number(m.qtd||0)+' '+m.un+(critico?' ⚠️ crítico':'')+' · Mín: '+Number(m.min||0)+'</div></div>'+
+        '<input type="number" class="pc-qtd" placeholder="Qtd" min="1" style="width:64px;font-size:12px" value="'+(Number(m.min||0)>0?Math.max(Number(m.min||0)-Number(m.qtd||0)+5,1):1)+'"/>'+
+      '</label>';
+    });
+  });
+
+  if(semForn.length){
+    html += '<div style="font-size:13px;font-weight:700;margin:12px 0 6px;color:var(--tx3)">📦 Sem fornecedor definido</div>';
+    semForn.forEach(function(m){
+      html += '<label style="display:flex;align-items:center;gap:10px;padding:8px;background:var(--bg3);border-radius:8px;margin-bottom:4px;cursor:pointer">'+
+        '<input type="checkbox" class="pc-item" data-forn="" data-fornome="Sem fornecedor" data-tel="" data-nome="'+m.nome+'" data-un="'+m.un+'" value="'+m.id+'"/>'+
+        '<div style="flex:1"><div style="font-size:13px">'+m.nome+'</div></div>'+
+        '<input type="number" class="pc-qtd" placeholder="Qtd" min="1" style="width:64px;font-size:12px" value="1"/>'+
+      '</label>';
+    });
+  }
+
+  html += '</div>';
+  html += '<div style="display:flex;gap:8px;margin-top:12px">'+
+    '<button onclick="enviarPedidoCompra()" class="btn bp" style="flex:1">📱 Enviar pelo WhatsApp</button>'+
+    '<button onclick="exportarPedidoCSV()" class="btn" style="flex:1">📊 Exportar CSV</button>'+
+  '</div>';
+
+  var mo = el('mo-pedido-compra');
+  if(!mo){
+    mo = document.createElement('div');
+    mo.id = 'mo-pedido-compra';
+    mo.className = 'mo';
+    document.body.appendChild(mo);
+  }
+  mo.innerHTML = '<div class="mo-box" style="max-width:560px">'+
+    '<div class="mo-hd"><span>📋 Pedido de Compra</span><button onclick="fecharMo(\'mo-pedido-compra\')">✕</button></div>'+
+    html+'</div>';
+  mo.style.display='flex';
+}
+
+function _coletarItensPedido(){
+  var checks = document.querySelectorAll('.pc-item:checked');
+  var porFornecedor = {};
+  checks.forEach(function(chk, i){
+    var qtdEl = chk.parentNode.querySelector('.pc-qtd');
+    var qtd = qtdEl ? Number(qtdEl.value)||1 : 1;
+    var fid = chk.dataset.forn||'_sem';
+    if(!porFornecedor[fid]) porFornecedor[fid]={nome:chk.dataset.fornome||'Sem fornecedor', tel:chk.dataset.tel||'', itens:[]};
+    porFornecedor[fid].itens.push({nome:chk.dataset.nome, qtd:qtd, un:chk.dataset.un||'un'});
+  });
+  return porFornecedor;
+}
+
+function enviarPedidoCompra(){
+  var grupos = _coletarItensPedido();
+  if(!Object.keys(grupos).length){ alert('Selecione pelo menos um item.'); return; }
+  var hoje = new Date().toLocaleDateString('pt-BR');
+  Object.values(grupos).forEach(function(g){
+    if(!g.itens.length) return;
+    var msg = '📋 *Pedido de Compra — '+hoje+'*\n\n';
+    msg += g.itens.map(function(i,n){ return (n+1)+'. '+i.nome+' — *'+i.qtd+' '+i.un+'*'; }).join('\n');
+    msg += '\n\n_Enviado via FigForge_';
+    var tel = g.tel ? g.tel.replace(/\D/g,'') : '';
+    if(tel && !tel.startsWith('+')) tel = '55'+tel;
+    var url = tel ? 'https://wa.me/'+tel+'?text='+encodeURIComponent(msg) : 'https://wa.me/?text='+encodeURIComponent(msg);
+    window.open(url,'_blank');
+  });
+}
+
+function exportarPedidoCSV(){
+  var grupos = _coletarItensPedido();
+  if(!Object.keys(grupos).length){ alert('Selecione pelo menos um item.'); return; }
+  var hoje = new Date().toLocaleDateString('pt-BR').replace(/\//g,'-');
+  var csv = 'Fornecedor,Produto,Quantidade,Unidade\n';
+  Object.values(grupos).forEach(function(g){
+    g.itens.forEach(function(i){
+      csv += '"'+g.nome+'","'+i.nome+'",'+i.qtd+',"'+i.un+'"\n';
+    });
+  });
+  var blob = new Blob([csv],{type:'text/csv;charset=utf-8'});
+  var a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download='pedido_compra_'+hoje+'.csv'; a.click();
+}
+
+function exportarCatalogoProdutos(){
+  var mats = DB.materiais||[];
+  var hoje = new Date().toLocaleDateString('pt-BR').replace(/\//g,'-');
+  var forns = {}; (_getFornecedores()).forEach(function(f){forns[f.id]=f.nome;});
+  var csv = 'Produto,Categoria,Unidade,Preco Custo,Preco Venda,Margem %,Estoque,Minimo,Fornecedor\n';
+  mats.filter(function(m){return Number(m.vl||0)>0;}).forEach(function(m){
+    csv += '"'+m.nome+'","'+(m.cat||'')+'",'+(m.un||'un')+','+Number(m.custo||0).toFixed(2)+','+Number(m.vl||0).toFixed(2)+','+Number(m.margem||0)+','+Number(m.qtd||0)+','+Number(m.min||0)+',"'+(forns[m.forn]||'')+'"'+'\n';
+  });
+  var blob = new Blob([csv],{type:'text/csv;charset=utf-8'});
+  var a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download='catalogo_produtos_'+hoje+'.csv'; a.click();
 }
 </script>
 
