@@ -549,7 +549,7 @@ async function carregarProdutosSupa(){
     }
     // Também tenta buscar do Supabase
     try{
-      var lojData = await supaFetch('lojistas','id=eq.'+encodeURIComponent(_lojista_id)+'&select=empresa,tel,logo_url,cnpj,endereco');
+      var lojData = await supaFetch('lojistas','id=eq.'+encodeURIComponent(_lojista_id)+'&select=empresa,tel,logo_url,cnpj,endereco,loja_config');
       if(lojData && lojData[0]){
         var loj = lojData[0];
         if(loj.empresa){
@@ -577,7 +577,7 @@ async function carregarProdutosSupa(){
       'ativo=eq.true',
       'preco_venda=gt.0',
       'order=categoria.asc,nome.asc',
-      'select=id,nome,descricao,categoria,unidade,qtd,preco_venda,foto_url,variantes'
+      'select=id,nome,descricao,categoria,unidade,qtd,preco_venda,foto_url,variantes,destaque,desconto_oferta'
     ].join('&');
 
     var data = await supaFetch('produtos', params);
@@ -597,7 +597,9 @@ async function carregarProdutosSupa(){
         desc: prod.descricao||'', cat: prod.categoria||'',
         un: prod.unidade||'un', qtd: 999,
         preco: Number(prod.preco_venda||0), foto: fotoUrl,
-        variantes: prod.variantes||null
+        variantes: prod.variantes||null,
+        destaque: prod.destaque||false,
+        desconto_oferta: Number(prod.desconto_oferta||0)
       };
     });
 
