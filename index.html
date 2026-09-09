@@ -11156,6 +11156,8 @@ async function sincronizarProdutosSupabase(){
       foto_url: m.foto || null,
       localizacao: m.loc||'',
       variantes: (m.variantes && m.variantes.length) ? m.variantes : null,
+      destaque: _lojaConfig.ofertas && _lojaConfig.ofertas.includes(m.id) ? true : false,
+      desconto_oferta: m._descOferta || 0,
       publicado: true,
       ativo: true
     };
