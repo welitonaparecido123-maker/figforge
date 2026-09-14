@@ -11225,9 +11225,12 @@ async function _autoPublicarSupabase(){
     };
   });
   try{
-    await supaREST('DELETE','produtos','lojista_id=eq.'+encodeURIComponent(_lojista_id));
-    if(rows.length) await supaREST('POST','produtos','',rows);
-    console.log('✔ Catálogo auto-publicado: '+rows.length+' produtos');
+    // UPSERT — atualiza sem apagar (preserva variantes e fotos)
+    if(rows.length){
+      await supaREST('POST','produtos','on_conflict=id',rows,
+        {'Prefer':'resolution=merge-duplicates'});
+    }
+    console.log('✔ Catálogo auto-publicado (upsert): '+rows.length+' produtos');
   }catch(e){ console.warn('Auto-publicar Supabase:', e.message); }
 }
 
@@ -11382,37 +11385,34 @@ async function salvarConfigLoja(){
 }
 
 async function sincronizarProdutosSupabase_config(){
+  // Salva APENAS as configurações do lojista — NÃO toca nos produtos (preserva variantes/fotos)
   if(!_lojista_id) return;
   try{
-    // Salva config no lojista
     var cfg = DB.config||{};
-    var rows = (DB.materiais||[]).filter(function(m){ return Number(m.vl||0)>0; }).map(function(m){
-      return {
-        id:m.id, lojista_id:_lojista_id,
-        nome:m.nome||'', descricao:m.desc||'',
-        categoria:m.cat||'', unidade:m.un||'un',
-        qtd:Number(m.qtd||0), qtd_minima:Number(m.min||0),
-        preco_custo:Number(m.custo||0), preco_venda:Number(m.vl||0),
-        margem:Number(m.margem||0),
-        foto_url:m.foto||null,
-        localizacao:m.loc||'',
-        publicado:true, ativo:true,
-        destaque:_lojaConfig.ofertas.includes(m.id),
-        desconto_oferta:m._descOferta||0
-      };
-    });
     var lojaConfigStr = JSON.stringify(_lojaConfig);
     await supaREST('PATCH','lojistas','id=eq.'+encodeURIComponent(_lojista_id),{
-      empresa:cfg.empresa||'', tel:cfg.tel||'', logo_url:cfg.logo||null,
-      cnpj:cfg.cnpj||'', endereco:cfg.end||'',
-      loja_config:lojaConfigStr
+      empresa: cfg.empresa||'',
+      tel: cfg.tel||'',
+      logo_url: cfg.logo||null,
+      cnpj: cfg.cnpj||'',
+      endereco: cfg.end||'',
+      loja_config: lojaConfigStr
     });
-    console.log('✔ loja_config publicada:', lojaConfigStr.slice(0,100));
-    if(rows.length){
-      await supaREST('DELETE','produtos','lojista_id=eq.'+encodeURIComponent(_lojista_id));
-      await supaREST('POST','produtos','',rows);
+    console.log('✔ Configurações da loja salvas:', lojaConfigStr.slice(0,80));
+
+    // Atualiza APENAS destaque/desconto dos produtos via UPSERT (sem apagar variantes)
+    var mats = (DB.materiais||[]).filter(function(m){ return Number(m.vl||0)>0; });
+    for(var i=0; i<mats.length; i++){
+      var m = mats[i];
+      var isDestaque = _lojaConfig.ofertas && _lojaConfig.ofertas.includes(m.id);
+      try{
+        await supaREST('PATCH','produtos',
+          'id=eq.'+encodeURIComponent(m.id)+'&lojista_id=eq.'+encodeURIComponent(_lojista_id),
+          { destaque: !!isDestaque, desconto_oferta: m._descOferta||0 }
+        );
+      }catch(ep){}
     }
-    console.log('✔ Config loja publicada');
+    console.log('✔ Descontos e destaques atualizados');
   }catch(e){ console.warn('Config loja:', e.message); }
 }
 
