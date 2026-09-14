@@ -10777,11 +10777,7 @@ function publicarCatalogo(){
 }
 
 function copiarLinkLoja(){
-  var lic={};
-  try{ lic=_lerLicenca(); }catch(e){}
-  var base = window.location.href.replace('index.html','').replace(/#.*/,'');
-  if(!base.endsWith('/')) base += '/';
-  var link = base+'pedidos.html?loja='+encodeURIComponent(lic.email||'seuemail@gmail.com');
+  var link = 'https://www.figueiredoconstrução.com.br/pedidos.html';
   if(navigator.clipboard){
     navigator.clipboard.writeText(link).then(function(){
       alert('✅ Link copiado!\n\n'+link+'\n\nCompartilhe com seus clientes pelo WhatsApp.');
