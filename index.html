@@ -11128,15 +11128,17 @@ async function sincronizarProdutosSupabase(){
         if(rLogo.ok) logoUrl = SUPABASE_URL+'/storage/v1/object/public/produtos/logos/'+_lojista_id+'.'+extlogo;
       }catch(eLogo){ console.warn('Upload logo:', eLogo.message); }
     }
+    var lojaConfigStr = DB.config&&DB.config.lojaConfig ? DB.config.lojaConfig : null;
     await supaREST('PATCH','lojistas','id=eq.'+encodeURIComponent(_lojista_id),{
       empresa: cfg.empresa||'',
       nome: cfg.resp||'',
       tel: cfg.tel||'',
       logo_url: logoUrl,
       cnpj: cfg.cnpj||'',
-      endereco: cfg.end||''
+      endereco: cfg.end||'',
+      loja_config: lojaConfigStr
     });
-    console.log('✔ Dados da empresa sincronizados');
+    console.log('✔ Dados da empresa e loja_config sincronizados');
   }catch(e){ console.warn('Sync empresa:', e.message); }
 
   var rows = (DB.materiais||[]).filter(function(m){
@@ -11215,7 +11217,11 @@ async function _autoPublicarSupabase(){
       preco_custo:Number(m.custo||0), preco_venda:Number(m.vl||0),
       margem:Number(m.margem||0),
       foto_url: m.foto||null,
-      localizacao:m.loc||'', publicado:true, ativo:true
+      localizacao:m.loc||'',
+      variantes: (m.variantes&&m.variantes.length)?m.variantes:null,
+      destaque: (_lojaConfig&&_lojaConfig.ofertas&&_lojaConfig.ofertas.includes(m.id))||false,
+      desconto_oferta: m._descOferta||0,
+      publicado:true, ativo:true
     };
   });
   try{
