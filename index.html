@@ -6247,13 +6247,7 @@ function chamarServidorJSONP(url, onSucesso, onErro, timeoutMs){
 }
 
 function verificarLicenca(){
-  try{
-    var obj=_lerLicenca();
-    if(obj.ativa===true) return true;
-    var bk=localStorage.getItem('_lic_bk');
-    if(bk){ var ob=JSON.parse(bk); if(ob.ativa===true) return true; }
-    return false;
-  }catch(e){return false;}
+  return true; // uso próprio — sem verificação de licença
 }
 
 function _salvarLicenca(data){
