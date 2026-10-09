@@ -4702,7 +4702,8 @@ function gerarPDFOrc(o){
     doc.setFillColor(35,35,35);
     doc.rect(mL, y, cW, 8, 'F');
     doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(8.5);
-    doc.text('Produto / Serviço',  mL+3,        y+5.5);
+    doc.text('Foto',               mL+3,        y+5.5);
+    doc.text('Produto / Serviço',  mL+20,       y+5.5);
     doc.text('Qty.',               mL+cW*0.64,  y+5.5, {align:'center'});
     doc.text('Val. Unit.',         mL+cW*0.80,  y+5.5, {align:'center'});
     doc.text('Total',              PW-mR-2,     y+5.5, {align:'right'});
@@ -4711,14 +4712,33 @@ function gerarPDFOrc(o){
     /* Linhas */
     doc.setTextColor(40,40,40); doc.setFont('helvetica','normal'); doc.setFontSize(8.5);
     let fillRow=false;
+    const IMG_W=14, IMG_H=14, IMG_PAD=2; // largura da coluna de imagem
     o.linhas.forEach(l=>{
-      const descLines = doc.splitTextToSize(l.desc||'—', cW*0.58);
-      const rowH = Math.max(9, descLines.length*4.6+3);
+      // Busca foto do produto no estoque local
+      var matFoto = null;
+      if(l.matId){
+        var mat = (DB.materiais||[]).find(function(m){ return m.id===l.matId; });
+        if(mat && mat.foto) matFoto = mat.foto;
+      }
+      if(!matFoto && l.foto) matFoto = l.foto;
+
+      const imgColW = matFoto ? IMG_W+IMG_PAD*2 : 4;
+      const descLines = doc.splitTextToSize(l.desc||'—', cW*0.58 - imgColW);
+      const rowH = Math.max(IMG_H+4, descLines.length*4.6+3);
       if(y+rowH > PH-35){ doc.addPage(); y=20; }
       if(fillRow){ doc.setFillColor(247,248,250); doc.rect(mL,y,cW,rowH,'F'); }
       fillRow=!fillRow;
+
+      // Imagem do produto
+      if(matFoto){
+        try{
+          var imgType = matFoto.startsWith('data:image/png') ? 'PNG' : 'JPEG';
+          doc.addImage(matFoto, imgType, mL+IMG_PAD, y+(rowH-IMG_H)/2, IMG_W, IMG_H);
+        }catch(ei){}
+      }
+
       doc.setTextColor(40,40,40);
-      doc.text(descLines, mL+3, y+4.5);
+      doc.text(descLines, mL+imgColW+2, y+4.5);
       doc.text(fmtN(l.qtd),      mL+cW*0.64, y+4.5, {align:'center'});
       /* Valor unit em 2 linhas */
       doc.setFontSize(7); doc.setTextColor(90,90,90);
